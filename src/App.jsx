@@ -1,6 +1,6 @@
 // =======================================================================
 // FILE: src/App.jsx (UPDATED)
-// PURPOSE: Add the new route for the profile page.
+// PURPOSE: Add the new route for the user tracker page.
 // =======================================================================
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
@@ -14,7 +14,9 @@ import PMOLayout from './layouts/AdminLayout';
 // Pages
 import LoginPage from './features/auth/LoginPage';
 import DashboardPage from './features/dashboard/DashboardPage';
-import ProfilePage from './features/profile/ProfilePage'; // Import the new page
+import ProfilePage from './features/profile/ProfilePage';
+import ManageUsersPage from './features/admin/ManageUsersPage';
+import UserTrackerPage from './features/admin/UserTrackerPage'; // Import the new page
 import Spinner from './components/Spinner';
 
 function App() {
@@ -33,20 +35,19 @@ function App() {
 
         <Route element={user && user.role === 'admin' ? <AdminLayout /> : <Navigate to="/login" />}>
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/profile" element={<ProfilePage />} /> {/* ADDED ROUTE */}
-          {/* Add other admin routes here */}
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/manage-users" element={<ManageUsersPage />} />
+          <Route path="/user-tracker" element={<UserTrackerPage />} /> {/* ADDED ROUTE */}
         </Route>
 
         <Route element={user && user.role === 'tester' ? <TesterLayout /> : <Navigate to="/login" />}>
           <Route path="/tester/dashboard" element={<div>Tester Dashboard</div>} />
-          <Route path="/profile" element={<ProfilePage />} /> {/* ADDED ROUTE */}
-          {/* Add other tester routes here */}
+          <Route path="/profile" element={<ProfilePage />} />
         </Route>
 
         <Route element={user && user.role === 'pmo' ? <PMOLayout /> : <Navigate to="/login" />}>
             <Route path="/pmo-dashboard" element={<div>PMO Dashboard</div>} />
-            <Route path="/profile" element={<ProfilePage />} /> {/* ADDED ROUTE */}
-            {/* Add other pmo routes here */}
+            <Route path="/profile" element={<ProfilePage />} />
         </Route>
 
         <Route 
