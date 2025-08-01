@@ -1,49 +1,47 @@
 // =======================================================================
 // FILE: src/components/Navbar.jsx (UPDATED)
-// PURPOSE: The top navigation bar inside the dashboard.
+// PURPOSE: The top navigation bar with a sidebar toggle button.
 // =======================================================================
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useUI } from '../contexts/UIContext'; // Import the UI context hook
 
-// Icons for the user dropdown
+// Icons
+const MenuIcon = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>;
 const UserCircleIcon = () => <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>;
 const LogoutIcon = () => <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>;
 
 const Navbar = () => {
     const { user, logout } = useAuth();
+    const { toggleSidebar } = useUI(); // Get the toggle function
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
 
-    // Close dropdown when clicking outside
     useEffect(() => {
         const pageClickEvent = (e) => {
             if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
                 setDropdownOpen(false);
             }
         };
-        if (dropdownOpen) {
-            window.addEventListener('click', pageClickEvent);
-        }
-        return () => {
-            window.removeEventListener('click', pageClickEvent);
-        }
+        if (dropdownOpen) window.addEventListener('click', pageClickEvent);
+        return () => window.removeEventListener('click', pageClickEvent);
     }, [dropdownOpen]);
 
     return (
-        <header className="bg-white shadow-sm h-16 flex justify-between items-center px-6 flex-shrink-0">
-            {/* Left side - can be used for search or breadcrumbs later */}
-            <div>
-                <h1 className="text-lg font-semibold text-gray-700">Dashboard</h1>
+        <header className="bg-white shadow-sm h-16 flex justify-between items-center px-6 flex-shrink-0 z-10">
+            <div className="flex items-center">
+                <button onClick={toggleSidebar} className="text-gray-500 focus:outline-none">
+                    <MenuIcon />
+                </button>
+                <h1 className="text-lg font-semibold text-gray-700 ml-4">Dashboard</h1>
             </div>
 
-            {/* Right side - User menu */}
             <div className="relative" ref={dropdownRef}>
                 <button 
                     onClick={() => setDropdownOpen(!dropdownOpen)} 
                     className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 focus:outline-none"
                 >
-                    {/* Placeholder for profile image */}
                     <div className="w-8 h-8 rounded-full bg-pink-500 text-white flex items-center justify-center font-bold">
                         {user?.name?.charAt(0).toUpperCase()}
                     </div>

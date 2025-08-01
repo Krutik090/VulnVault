@@ -1,6 +1,6 @@
 // =======================================================================
 // FILE: src/App.jsx (UPDATED)
-// PURPOSE: Defines all application routes.
+// PURPOSE: Add the new route for the profile page.
 // =======================================================================
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
@@ -9,12 +9,12 @@ import { useAuth } from './contexts/AuthContext';
 import AdminLayout from './layouts/AdminLayout';
 import TesterLayout from './layouts/TesterLayout';
 import AuthLayout from './layouts/AuthLayout';
-// NOTE: You might want a dedicated PMOLayout as well
-import PMOLayout from './layouts/AdminLayout'; // Re-using AdminLayout for now
+import PMOLayout from './layouts/AdminLayout';
 
 // Pages
 import LoginPage from './features/auth/LoginPage';
 import DashboardPage from './features/dashboard/DashboardPage';
+import ProfilePage from './features/profile/ProfilePage'; // Import the new page
 import Spinner from './components/Spinner';
 
 function App() {
@@ -27,31 +27,28 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public routes are only accessible if the user is NOT logged in */}
         <Route element={!user ? <AuthLayout /> : <Navigate to="/" />}>
           <Route path="/login" element={<LoginPage />} />
         </Route>
 
-        {/* Protected Admin Routes */}
         <Route element={user && user.role === 'admin' ? <AdminLayout /> : <Navigate to="/login" />}>
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/profile" element={<ProfilePage />} /> {/* ADDED ROUTE */}
           {/* Add other admin routes here */}
         </Route>
 
-        {/* Protected Tester Routes */}
         <Route element={user && user.role === 'tester' ? <TesterLayout /> : <Navigate to="/login" />}>
           <Route path="/tester/dashboard" element={<div>Tester Dashboard</div>} />
+          <Route path="/profile" element={<ProfilePage />} /> {/* ADDED ROUTE */}
           {/* Add other tester routes here */}
         </Route>
 
-        {/* Protected PMO Routes */}
         <Route element={user && user.role === 'pmo' ? <PMOLayout /> : <Navigate to="/login" />}>
             <Route path="/pmo-dashboard" element={<div>PMO Dashboard</div>} />
+            <Route path="/profile" element={<ProfilePage />} /> {/* ADDED ROUTE */}
             {/* Add other pmo routes here */}
         </Route>
 
-
-        {/* Fallback route to redirect to the correct dashboard or login */}
         <Route 
           path="/" 
           element={

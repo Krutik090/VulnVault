@@ -1,8 +1,3 @@
-
-// =======================================================================
-// FILE: src/contexts/AuthContext.jsx (UPDATED)
-// PURPOSE: Manages global authentication state and API calls.
-// =======================================================================
 import { createContext, useState, useContext, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
@@ -38,12 +33,11 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      // Use the API_URL for the fetch call
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -63,8 +57,10 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-        // Use the API_URL for the fetch call
-        await fetch(`${API_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
+        await fetch(`${API_URL}/auth/logout`, { 
+            method: 'POST',
+            credentials: 'include',
+        });
         setUser(null);
         toast.success('Logged out successfully.');
     } catch (error) {
@@ -72,7 +68,8 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const value = { user, login, logout, loading };
+  // Expose setUser in the context value so other components can update the user state
+  const value = { user, setUser, login, logout, loading };
 
   return (
     <AuthContext.Provider value={value}>
