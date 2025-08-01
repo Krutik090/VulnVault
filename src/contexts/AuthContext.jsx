@@ -1,9 +1,13 @@
+
 // =======================================================================
-// FILE: src/contexts/AuthContext.jsx
-// PURPOSE: Manages global authentication state (replaces auth.service.ts).
+// FILE: src/contexts/AuthContext.jsx (UPDATED)
+// PURPOSE: Manages global authentication state and API calls.
 // =======================================================================
 import { createContext, useState, useContext, useEffect } from 'react';
 import toast from 'react-hot-toast';
+
+// Use the environment variable for the API base URL
+const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 const AuthContext = createContext(null);
 
@@ -18,7 +22,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // This effect runs once on app load to check for an existing session
   useEffect(() => {
     try {
       const userDataCookie = getCookie('userData');
@@ -28,7 +31,6 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error("Failed to parse user data from cookie", error);
-      // Clear potentially corrupted cookies
       document.cookie = "userData=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     }
     setLoading(false);
@@ -36,8 +38,10 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await fetch('http://localhost:6002/api/users/login', {
+      // Use the API_URL for the fetch call
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
@@ -48,23 +52,20 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.message || 'Login failed');
       }
 
-      // The httpOnly token cookie is set by the browser automatically.
-      // We just need to update the user state with the response data.
       setUser({ name: data.name, id: data.id, role: data.role });
       toast.success('Logged in successfully!');
-      return data; // Return user data for navigation
+      return data;
     } catch (error) {
       toast.error(error.message);
-      throw error; // Re-throw error to be caught in the component
+      throw error;
     }
   };
 
   const logout = async () => {
     try {
-        await fetch('/api/users/logout', { method: 'POST' });
-        // Cookies are cleared by the backend. We just update the local state.
+        // Use the API_URL for the fetch call
+        await fetch(`${API_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
         setUser(null);
-        // The page will redirect via the App.jsx logic
         toast.success('Logged out successfully.');
     } catch (error) {
         toast.error('Logout failed. Please try again.');
@@ -80,8 +81,6 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Custom hook to easily access the auth context
 export const useAuth = () => {
   return useContext(AuthContext);
 };
-

@@ -1,7 +1,6 @@
-
 // =======================================================================
-// FILE: src/App.jsx
-// PURPOSE: Defines all application routes (replaces app-routing.module.ts).
+// FILE: src/App.jsx (UPDATED)
+// PURPOSE: Defines all application routes.
 // =======================================================================
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
@@ -10,6 +9,8 @@ import { useAuth } from './contexts/AuthContext';
 import AdminLayout from './layouts/AdminLayout';
 import TesterLayout from './layouts/TesterLayout';
 import AuthLayout from './layouts/AuthLayout';
+// NOTE: You might want a dedicated PMOLayout as well
+import PMOLayout from './layouts/AdminLayout'; // Re-using AdminLayout for now
 
 // Pages
 import LoginPage from './features/auth/LoginPage';
@@ -43,12 +44,24 @@ function App() {
           {/* Add other tester routes here */}
         </Route>
 
+        {/* Protected PMO Routes */}
+        <Route element={user && user.role === 'pmo' ? <PMOLayout /> : <Navigate to="/login" />}>
+            <Route path="/pmo-dashboard" element={<div>PMO Dashboard</div>} />
+            {/* Add other pmo routes here */}
+        </Route>
+
+
         {/* Fallback route to redirect to the correct dashboard or login */}
         <Route 
           path="/" 
           element={
             user 
-            ? <Navigate to={user.role === 'admin' ? '/dashboard' : '/tester/dashboard'} replace /> 
+            ? <Navigate to={
+                user.role === 'admin' ? '/dashboard' :
+                user.role === 'tester' ? '/tester/dashboard' :
+                user.role === 'pmo' ? '/pmo-dashboard' :
+                '/login'
+              } replace /> 
             : <Navigate to="/login" replace />
           } 
         />
