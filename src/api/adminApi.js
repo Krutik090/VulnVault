@@ -15,6 +15,16 @@ export const getAllUsers = async () => {
 };
 
 /**
+ * Fetches only users with the 'tester' role. (Admin only)
+ * @returns {Promise<object>} The list of testers.
+ */
+export const getTesters = async () => {
+    const response = await fetch(`${API_URL}/users/testers`, { credentials: 'include' });
+    if (!response.ok) throw new Error('Failed to fetch testers.');
+    return response.json();
+};
+
+/**
  * Creates a new user. (Admin only)
  * @param {object} userData - { name, email, password, role }
  * @returns {Promise<object>} The API response.

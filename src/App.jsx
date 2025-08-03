@@ -1,6 +1,6 @@
 // =======================================================================
 // FILE: src/App.jsx (UPDATED)
-// PURPOSE: Add the new route for the user tracker page.
+// PURPOSE: Add the new route for the add client page.
 // =======================================================================
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
@@ -16,7 +16,10 @@ import LoginPage from './features/auth/LoginPage';
 import DashboardPage from './features/dashboard/DashboardPage';
 import ProfilePage from './features/profile/ProfilePage';
 import ManageUsersPage from './features/admin/ManageUsersPage';
-import UserTrackerPage from './features/admin/UserTrackerPage'; // Import the new page
+import UserTrackerPage from './features/admin/UserTrackerPage';
+import ProjectRecordsPage from './features/projects/ProjectRecordsPage';
+import AddClientPage from './features/clients/AddClientPage'; // Import the new page
+import TimeTrackerPage from './features/tracker/TimeTrackerPage';
 import Spinner from './components/Spinner';
 
 function App() {
@@ -37,17 +40,21 @@ function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/manage-users" element={<ManageUsersPage />} />
-          <Route path="/user-tracker" element={<UserTrackerPage />} /> {/* ADDED ROUTE */}
+          <Route path="/user-tracker" element={<UserTrackerPage />} />
+          <Route path="/project-records" element={<ProjectRecordsPage />} />
+          <Route path="/add-client" element={<AddClientPage />} /> {/* ADDED ROUTE */}
         </Route>
 
         <Route element={user && user.role === 'tester' ? <TesterLayout /> : <Navigate to="/login" />}>
           <Route path="/tester/dashboard" element={<div>Tester Dashboard</div>} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/time-tracker" element={<TimeTrackerPage />} />
         </Route>
 
         <Route element={user && user.role === 'pmo' ? <PMOLayout /> : <Navigate to="/login" />}>
             <Route path="/pmo-dashboard" element={<div>PMO Dashboard</div>} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/time-tracker" element={<TimeTrackerPage />} />
         </Route>
 
         <Route 
