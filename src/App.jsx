@@ -21,6 +21,7 @@ import ProjectRecordsPage from './features/projects/ProjectRecordsPage';
 import AddClientPage from './features/clients/AddClientPage'; // Import the new page
 import TimeTrackerPage from './features/tracker/TimeTrackerPage';
 import Spinner from './components/Spinner';
+import ClientProjectsPage from './features/clients/ClientProjectsPage';
 
 function App() {
   const { user, loading } = useAuth();
@@ -43,6 +44,8 @@ function App() {
           <Route path="/user-tracker" element={<UserTrackerPage />} />
           <Route path="/project-records" element={<ProjectRecordsPage />} />
           <Route path="/add-client" element={<AddClientPage />} /> {/* ADDED ROUTE */}
+          <Route path="/clients/:clientId/projects" element={<ClientProjectsPage />} /> {/* ADDED ROUTE */}
+
         </Route>
 
         <Route element={user && user.role === 'tester' ? <TesterLayout /> : <Navigate to="/login" />}>
@@ -52,23 +55,23 @@ function App() {
         </Route>
 
         <Route element={user && user.role === 'pmo' ? <PMOLayout /> : <Navigate to="/login" />}>
-            <Route path="/pmo-dashboard" element={<div>PMO Dashboard</div>} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/time-tracker" element={<TimeTrackerPage />} />
+          <Route path="/pmo-dashboard" element={<div>PMO Dashboard</div>} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/time-tracker" element={<TimeTrackerPage />} />
         </Route>
 
-        <Route 
-          path="/" 
+        <Route
+          path="/"
           element={
-            user 
-            ? <Navigate to={
+            user
+              ? <Navigate to={
                 user.role === 'admin' ? '/dashboard' :
-                user.role === 'tester' ? '/tester/dashboard' :
-                user.role === 'pmo' ? '/pmo-dashboard' :
-                '/login'
-              } replace /> 
-            : <Navigate to="/login" replace />
-          } 
+                  user.role === 'tester' ? '/tester/dashboard' :
+                    user.role === 'pmo' ? '/pmo-dashboard' :
+                      '/login'
+              } replace />
+              : <Navigate to="/login" replace />
+          }
         />
         <Route path="*" element={<div>404 Not Found</div>} />
       </Routes>

@@ -5,6 +5,25 @@
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 /**
+ * Fetches all active projects with resolved details. (Admin only)
+ */
+export const getActiveProjects = async () => {
+  const response = await fetch(`${API_URL}/projects/active`, { credentials: 'include' });
+  if (!response.ok) throw new Error('Failed to fetch active projects.');
+  return response.json();
+};
+
+/**
+ * Fetches all projects for a specific client. (Admin only)
+ */
+export const getClientProjects = async (clientId) => {
+    const response = await fetch(`${API_URL}/projects/client/${clientId}`, { credentials: 'include' });
+    if (!response.ok) throw new Error('Failed to fetch client projects.');
+    return response.json();
+};
+
+
+/**
  * Fetches all projects with resolved details. (Admin only)
  */
 export const getAllProjects = async () => {

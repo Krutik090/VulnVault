@@ -1,25 +1,33 @@
+
 // =======================================================================
-// FILE: src/features/clients/AddClientPage.jsx (NEW FILE)
+// FILE: src/features/clients/AddClientPage.jsx (UPDATED)
 // PURPOSE: A page for admins to add a new client.
 // =======================================================================
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-// We will create this API function in a future step
-// import { addClient } from '../../api/clientApi'; 
+import { addClient } from '../../api/clientApi';
 
 const AddClientPage = () => {
-    const [clientName, setClientName] = useState('');
-    const [serviceType, setServiceType] = useState('vapt');
+    const [formData, setFormData] = useState({
+        clientName: '',
+        location: '',
+        email: ''
+    });
     const [isSaving, setIsSaving] = useState(false);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSaving(true);
         try {
-            // await addClient({ clientName, serviceType }); // This will be the actual API call
-            toast.success(`Client "${clientName}" added successfully! (Simulated)`);
-            setClientName('');
-            setServiceType('vapt');
+            const response = await addClient(formData);
+            toast.success(response.message || 'Client added successfully!');
+            // Reset the form
+            setFormData({ clientName: '', location: '', email: '' });
         } catch (error) {
             toast.error(error.message || "Failed to add client.");
         } finally {
@@ -40,24 +48,38 @@ const AddClientPage = () => {
                         <input 
                             type="text" 
                             id="clientName"
-                            value={clientName}
-                            onChange={(e) => setClientName(e.target.value)}
+                            name="clientName"
+                            value={formData.clientName}
+                            onChange={handleChange}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
                             placeholder="e.g., Secure Corp"
                             required
                         />
                     </div>
                     <div>
-                        <label htmlFor="serviceType" className="block text-sm font-bold text-gray-700 mb-1">Service Type</label>
-                        <select 
-                            id="serviceType"
-                            value={serviceType}
-                            onChange={(e) => setServiceType(e.target.value)}
+                        <label htmlFor="email" className="block text-sm font-bold text-gray-700 mb-1">Email</label>
+                        <input 
+                            type="email" 
+                            id="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-                        >
-                            <option value="vapt">VAPT</option>
-                            <option value="soc">SOC</option>
-                        </select>
+                            placeholder="e.g., contact@securecorp.com"
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="location" className="block text-sm font-bold text-gray-700 mb-1">Location</label>
+                        <input 
+                            type="text" 
+                            id="location"
+                            name="location"
+                            value={formData.location}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+                            placeholder="e.g., New York, USA"
+                        />
                     </div>
                 </div>
                 <div className="p-6 bg-gray-50 text-right rounded-b-lg">

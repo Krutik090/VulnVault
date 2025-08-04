@@ -1,5 +1,7 @@
+
 // =======================================================================
 // FILE: src/features/projects/ProjectRecordsPage.jsx (UPDATED)
+// PURPOSE: The main page for viewing and managing all projects.
 // =======================================================================
 import { useState, useEffect, useMemo } from 'react';
 import { getAllProjects } from '../../api/projectApi';
@@ -27,6 +29,7 @@ const statusMap = {
 const ProjectRecordsPage = () => {
     const [projects, setProjects] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [statusFilter, setStatusFilter] = useState('all');
     const [projectToConfig, setProjectToConfig] = useState(null);
     const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
     const [projectToEdit, setProjectToEdit] = useState(null);
@@ -59,6 +62,13 @@ const ProjectRecordsPage = () => {
         fetchProjects();
     };
 
+    const filteredProjects = useMemo(() => {
+        if (statusFilter === 'all') {
+            return projects;
+        }
+        return projects.filter(p => p.status.toString() === statusFilter);
+    }, [projects, statusFilter]);
+
     const columns = useMemo(() => [
         { accessorKey: 'project_name', header: 'Project Name' },
         { accessorKey: 'projectType', header: 'Project Type', cell: info => info.getValue().join(', ') },
@@ -81,16 +91,24 @@ const ProjectRecordsPage = () => {
     return (
         <>
             <div className="bg-white shadow rounded-lg">
-                <div className="p-6 border-b flex justify-between items-center">
+                <div className="p-6 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-800">Project Records</h1>
                         <p className="text-gray-500 mt-1">View, create, and manage all projects.</p>
                     </div>
-                    <button onClick={() => { setProjectToEdit(null); setIsProjectModalOpen(true); }} className="flex items-center px-4 py-2 text-white font-semibold rounded-lg shadow-md" style={{ background: 'linear-gradient(to right, #EC008C, #FC6767)' }}>
-                        <AddIcon /> Add New Project
-                    </button>
+                    <div className="flex items-center gap-4">
+                        <select onChange={(e) => setStatusFilter(e.target.value)} value={statusFilter} className="p-2 border rounded-md">
+                            <option value="all">All</option>
+                            {Object.entries(statusMap).map(([key, { text }]) => (
+                                <option key={key} value={key}>{text}</option>
+                            ))}
+                        </select>
+                        <button onClick={() => { setProjectToEdit(null); setIsProjectModalOpen(true); }} className="flex items-center px-4 py-2 text-white font-semibold rounded-lg shadow-md" style={{ background: 'linear-gradient(to right, #EC008C, #FC6767)' }}>
+                            <AddIcon /> Add New Project
+                        </button>
+                    </div>
                 </div>
-                {isLoading ? <Spinner /> : <DataTable data={projects} columns={columns} />}
+                {isLoading ? <Spinner /> : <DataTable data={filteredProjects} columns={columns} />}
             </div>
             <ProjectConfigModal project={projectToConfig} onClose={() => setProjectToConfig(null)} />
             <AddEditProjectModal isOpen={isProjectModalOpen} onClose={() => setIsProjectModalOpen(false)} onSave={handleProjectSaved} projectToEdit={projectToEdit} />
