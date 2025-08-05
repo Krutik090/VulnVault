@@ -22,6 +22,10 @@ import AddClientPage from './features/clients/AddClientPage'; // Import the new 
 import TimeTrackerPage from './features/tracker/TimeTrackerPage';
 import Spinner from './components/Spinner';
 import ClientProjectsPage from './features/clients/ClientProjectsPage';
+import ProjectDetailsPage from './features/projects/ProjectDetailsPage';
+import VulnerabilityInstancesPage from './features/vulnerabilities/VulnerabilityInstancesPage';
+import VulnerabilityInstanceDetailsPage from './features/vulnerabilities/VulnerabilityInstanceDetailsPage';
+
 
 function App() {
   const { user, loading } = useAuth();
@@ -45,6 +49,9 @@ function App() {
           <Route path="/project-records" element={<ProjectRecordsPage />} />
           <Route path="/add-client" element={<AddClientPage />} /> {/* ADDED ROUTE */}
           <Route path="/clients/:clientId/projects" element={<ClientProjectsPage />} /> {/* ADDED ROUTE */}
+          <Route path="/projects/:projectId" element={<ProjectDetailsPage />} /> {/* ADDED ROUTE */}
+          <Route path="/vulnerabilities/:vulnName" element={<VulnerabilityInstancesPage />} /> {/* ADDED ROUTE */}
+          <Route path="/project-vulnerabilities/:vulnId" element={<VulnerabilityInstanceDetailsPage />} /> {/* ADDED ROUTE */}
 
         </Route>
 

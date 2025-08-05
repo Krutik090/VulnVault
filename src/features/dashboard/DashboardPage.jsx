@@ -90,7 +90,7 @@ const DashboardPage = () => {
             accessorKey: 'project_name', 
             header: 'Project Name',
             cell: info => (
-                <Link to={`/projects/${info.row.original._id}/vulnerabilities`} className="hover:text-blue-600">
+                <Link to={`/projects/${info.row.original._id}`} className="hover:text-blue-600">
                     {info.getValue()}
                 </Link>
             )
@@ -101,7 +101,7 @@ const DashboardPage = () => {
         { id: 'actions', header: 'Actions', cell: ({ row }) => (
             <div className="flex items-center space-x-2">
                 <button onClick={() => { setProjectToEdit(row.original); setIsProjectModalOpen(true); }} className="p-2 rounded-full text-blue-500 hover:bg-blue-100" title="Edit Project"><EditIcon /></button>
-                <button onClick={() => setProjectToConfig(row.original)} className="p-2 rounded-full text-gray-500 hover:bg-gray-100" title="Configure Project"><ConfigIcon /></button>
+                {/* <button onClick={() => setProjectToConfig(row.original)} className="p-2 rounded-full text-gray-500 hover:bg-gray-100" title="Configure Project"><ConfigIcon /></button> */}
                 <button onClick={() => setProjectToDelete(row.original)} className="p-2 rounded-full text-red-500 hover:bg-red-100" title="Delete Project"><TrashIcon /></button>
             </div>
         )},

@@ -1,40 +1,10 @@
 // =======================================================================
-// FILE: src/api/projectApi.js (UPDATED)
-// PURPOSE: Centralizes all API calls for project management.
+// FILE: src/api/projectApi.js (REVERTED & CLEANED)
+// PURPOSE: Centralizes API calls for project lists and core CRUD.
 // =======================================================================
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
-/**
- * Fetches all active projects with resolved details. (Admin only)
- */
-export const getActiveProjects = async () => {
-  const response = await fetch(`${API_URL}/projects/active`, { credentials: 'include' });
-  if (!response.ok) throw new Error('Failed to fetch active projects.');
-  return response.json();
-};
-
-/**
- * Fetches all projects for a specific client. (Admin only)
- */
-export const getClientProjects = async (clientId) => {
-    const response = await fetch(`${API_URL}/projects/client/${clientId}`, { credentials: 'include' });
-    if (!response.ok) throw new Error('Failed to fetch client projects.');
-    return response.json();
-};
-
-
-/**
- * Fetches all projects with resolved details. (Admin only)
- */
-export const getAllProjects = async () => {
-  const response = await fetch(`${API_URL}/projects`, { credentials: 'include' });
-  if (!response.ok) throw new Error('Failed to fetch projects.');
-  return response.json();
-};
-
-/**
- * Creates a new project. (Admin only)
- */
+// --- Core Project CRUD Functions ---
 export const createProject = async (projectData) => {
     const response = await fetch(`${API_URL}/projects`, {
         method: 'POST',
@@ -47,9 +17,6 @@ export const createProject = async (projectData) => {
     return data;
 };
 
-/**
- * Updates an existing project. (Admin only)
- */
 export const updateProject = async (projectId, projectData) => {
     const response = await fetch(`${API_URL}/projects/${projectId}`, {
         method: 'PUT',
@@ -62,9 +29,6 @@ export const updateProject = async (projectId, projectData) => {
     return data;
 };
 
-/**
- * Deletes a project. (Admin only)
- */
 export const deleteProject = async (projectId) => {
     const response = await fetch(`${API_URL}/projects/${projectId}`, {
         method: 'DELETE',
@@ -75,29 +39,21 @@ export const deleteProject = async (projectId) => {
     return data;
 };
 
-
-/**
- * Fetches the configuration for a specific project.
- */
-export const getProjectConfig = async (projectId) => {
-    const response = await fetch(`${API_URL}/projects/${projectId}/config`, { credentials: 'include' });
-    if (!response.ok && response.status !== 404) {
-        throw new Error('Failed to fetch project configuration.');
-    }
-    return response.json();
+// --- Project List Functions (for Dashboards) ---
+export const getAllProjects = async () => {
+  const response = await fetch(`${API_URL}/projects`, { credentials: 'include' });
+  if (!response.ok) throw new Error('Failed to fetch projects.');
+  return response.json();
 };
 
-/**
- * Creates or updates the configuration for a project.
- */
-export const saveProjectConfig = async (projectId, configData) => {
-    const response = await fetch(`${API_URL}/projects/${projectId}/config`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(configData),
-        credentials: 'include',
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Failed to save configuration.');
-    return data;
+export const getActiveProjects = async () => {
+  const response = await fetch(`${API_URL}/projects/active`, { credentials: 'include' });
+  if (!response.ok) throw new Error('Failed to fetch active projects.');
+  return response.json();
+};
+
+export const getClientProjects = async (clientId) => {
+    const response = await fetch(`${API_URL}/projects/client/${clientId}`, { credentials: 'include' });
+    if (!response.ok) throw new Error('Failed to fetch client projects.');
+    return response.json();
 };

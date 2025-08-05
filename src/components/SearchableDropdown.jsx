@@ -1,5 +1,5 @@
 // =======================================================================
-// FILE: src/components/SearchableDropdown.jsx (NEW FILE)
+// FILE: src/components/SearchableDropdown.jsx (FIXED)
 // PURPOSE: A reusable dropdown component with a search filter.
 // =======================================================================
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -9,10 +9,17 @@ const SearchableDropdown = ({ options, value, onChange, placeholder = "Select an
     const [searchTerm, setSearchTerm] = useState('');
     const dropdownRef = useRef(null);
 
-    const filteredOptions = useMemo(() => 
-        options.filter(option => 
+    const filteredOptions = useMemo(() => {
+        // Ensure options is an array before filtering
+        if (!Array.isArray(options)) {
+            return [];
+        }
+        // The fix is here: we now check that option and option.label exist before filtering.
+        return options.filter(option => 
+            option && typeof option.label === 'string' &&
             option.label.toLowerCase().includes(searchTerm.toLowerCase())
-        ), [options, searchTerm]);
+        );
+    }, [options, searchTerm]);
 
     const selectedOptionLabel = useMemo(() => {
         const selectedOption = options.find(option => option.value === value);
@@ -36,7 +43,7 @@ const SearchableDropdown = ({ options, value, onChange, placeholder = "Select an
     };
 
     return (
-        <div className="relative w-64" ref={dropdownRef}>
+        <div className="relative w-64" ref={dropdownRef}> {/* FIX: Changed w-full back to w-64 */}
             <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full p-2 border rounded-md bg-white text-left flex items-center justify-between">
                 <span className="truncate">{selectedOptionLabel}</span>
                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -54,7 +61,7 @@ const SearchableDropdown = ({ options, value, onChange, placeholder = "Select an
                     </div>
                     <ul className="max-h-60 overflow-y-auto">
                         {filteredOptions.map(option => (
-                            <li key={option.value} onClick={() => handleSelect(option.value)} className="px-4 py-2 cursor-pointer hover:bg-gray-100">
+                            <li key={option.value} onClick={() => handleSelect(option.value)} className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${value === option.value ? 'bg-blue-50' : ''}`}>
                                 {option.label}
                             </li>
                         ))}

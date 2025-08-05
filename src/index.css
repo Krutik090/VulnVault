@@ -1,3 +1,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom CKEditor Styles */
+.ck-editor-container .ck.ck-editor__main > .ck-editor__editable {
+    @apply min-h-[150px];
+}
+
+.ck-editor-container .ck.ck-toolbar {
+    @apply bg-gray-50 border-gray-300;
+}
+
+.ck-editor-container .ck.ck-editor__editable:focus {
+    --tw-ring-color: #EC008C; /* Your theme's pink color */
+    border-color: #EC008C !important;
+    box-shadow: 0 0 0 1px #EC008C !important;
+}
+
+/* Hide the "Powered by CKEditor" branding */
+.ck-powered-by {
+  display: none !important;
+}

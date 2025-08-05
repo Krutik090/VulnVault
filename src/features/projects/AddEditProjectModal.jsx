@@ -1,9 +1,10 @@
+
 // =======================================================================
 // FILE: src/features/projects/AddEditProjectModal.jsx (UPDATED)
 // =======================================================================
 import { useState, useEffect } from 'react';
 import Modal from '../../components/Modal';
-import MultiSelect from '../../components/MultiSelect'; // Import the new component
+import MultiSelect from '../../components/MultiSelect';
 import { createProject, updateProject } from '../../api/projectApi';
 import { getAllClients } from '../../api/clientApi';
 import { getTesters } from '../../api/adminApi';
@@ -77,14 +78,14 @@ const AddEditProjectModal = ({ isOpen, onClose, onSave, projectToEdit }) => {
             <form onSubmit={handleSubmit}>
                 <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Client Name</label>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Client Name</label>
                         <select name="clientId" value={formData.clientId} onChange={handleChange} required className="w-full p-2 border rounded">
                             <option value="" disabled>Select a client</option>
                             {clients.map(client => <option key={client._id} value={client._id}>{client.clientName}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Project Name</label>
                         <input type="text" name="project_name" value={formData.project_name} onChange={handleChange} required className="w-full p-2 border rounded" placeholder="e.g., Q3 Security Audit" />
                     </div>
                     
@@ -98,11 +99,11 @@ const AddEditProjectModal = ({ isOpen, onClose, onSave, projectToEdit }) => {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                            <label className="block text-sm font-bold text-gray-700 mb-1">Start Date</label>
                             <input type="date" name="projectStart" value={formData.projectStart} onChange={handleChange} required className="w-full p-2 border rounded" />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                            <label className="block text-sm font-bold text-gray-700 mb-1">End Date</label>
                             <input type="date" name="projectEnd" value={formData.projectEnd} onChange={handleChange} required className="w-full p-2 border rounded" />
                         </div>
                     </div>
