@@ -7,17 +7,21 @@ import { createContext, useState, useContext } from 'react';
 const UIContext = createContext();
 
 export const UIProvider = ({ children }) => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-    const toggleSidebar = () => {
-        setIsSidebarOpen(!isSidebarOpen);
-    };
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
 
-    const value = { isSidebarOpen, toggleSidebar };
+  const value = { isSidebarOpen, toggleSidebar };
 
-    return <UIContext.Provider value={value}>{children}</UIContext.Provider>;
+  return (
+    <UIContext.Provider value={value}>
+      {children}
+    </UIContext.Provider>
+  );
 };
 
 export const useUI = () => {
-    return useContext(UIContext);
+  return useContext(UIContext);
 };

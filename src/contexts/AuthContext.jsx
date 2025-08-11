@@ -8,9 +8,9 @@ const AuthContext = createContext(null);
 
 // Helper function to read a specific cookie
 const getCookie = (name) => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
 };
 
 export const AuthProvider = ({ children }) => {
@@ -57,14 +57,14 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-        await fetch(`${API_URL}/auth/logout`, { 
-            method: 'POST',
-            credentials: 'include',
-        });
-        setUser(null);
-        toast.success('Logged out successfully.');
+      await fetch(`${API_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      setUser(null);
+      toast.success('Logged out successfully.');
     } catch (error) {
-        toast.error('Logout failed. Please try again.');
+      toast.error('Logout failed. Please try again.');
     }
   };
 
