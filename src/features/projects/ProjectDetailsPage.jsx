@@ -1,10 +1,10 @@
 // =======================================================================
-// FILE: src/features/projects/ProjectDetailsPage.jsx (UPDATED)
-// PURPOSE: The main container page for all project details.
+// FILE: src/features/projects/ProjectDetailsPage.jsx (UPDATED & COMPLETE)
 // =======================================================================
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getProjectById, getProjectConfig, getProjectTimesheet, getProjectVulnerabilities, getProjectNotes, addProjectNote } from '../../api/projectDetailsApi';
+import { generateReport } from '../../api/reportApi'; // Import the new API function
 import toast from 'react-hot-toast';
 import Spinner from '../../components/Spinner';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,7 +15,6 @@ import AddVulnerabilityModal from './AddVulnerabilityModal';
 // Icons
 const BackIcon = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>;
 const ReportIcon = () => <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V7a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>;
-const DownloadIcon = () => <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>;
 const EditIcon = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>;
 const AddIcon = () => <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"></path></svg>;
 
@@ -26,14 +25,14 @@ const ProjectSummary = ({ project, timesheet, config }) => (
             <h3 className="text-lg font-semibold text-gray-800">{config?.reportDetails?.clientName || project?.clientId?.clientName}</h3>
             <p className="text-sm text-gray-500">Version: {config?.reportDetails?.version || 'N/A'}</p>
             <div className="mt-4 text-sm text-gray-600">
-                <p><strong>Start Date:</strong> {new Date(timesheet?.startDate).toLocaleDateString()}</p>
-                <p><strong>End Date:</strong> {new Date(timesheet?.endDate).toLocaleDateString()}</p>
+                <p><strong>Start Date:</strong> {timesheet?.startDate ? new Date(timesheet.startDate).toLocaleDateString() : 'N/A'}</p>
+                <p><strong>End Date:</strong> {timesheet?.endDate ? new Date(timesheet.endDate).toLocaleDateString() : 'N/A'}</p>
             </div>
         </div>
         <div className="bg-white shadow rounded-lg p-6">
             <h3 className="text-lg font-semibold text-gray-800">{project?.project_name}</h3>
             <ul className="mt-4 space-y-2 text-sm text-gray-600 max-h-32 overflow-y-auto">
-                {timesheet?.userTimeDetails.map(user => (
+                {timesheet?.userTimeDetails?.map(user => (
                     <li key={user.userName}><strong>{user.userName}:</strong> {user.hours}h {user.mins}m</li>
                 ))}
             </ul>
@@ -155,7 +154,13 @@ const ProjectVulnerabilities = ({ vulnerabilities, onAdd, project }) => {
     const columns = useMemo(() => [
         { accessorKey: 'vulnerability_name', header: 'Vulnerability Name' },
         { accessorKey: 'total_count', header: 'Instances' },
-        { accessorKey: 'severity', header: 'Severity', /* ... */ },
+        { accessorKey: 'severity', header: 'Severity', cell: info => {
+            const severity = info.getValue().toLowerCase();
+            const colors = {
+                critical: 'text-red-700', high: 'text-red-500', medium: 'text-yellow-500', low: 'text-green-500', info: 'text-blue-500'
+            };
+            return <span className={`font-bold capitalize ${colors[severity]}`}>{severity}</span>
+        }},
         { id: 'actions', header: 'Actions', cell: ({ row }) => (
             <Link 
                 to={`/vulnerabilities/${encodeURIComponent(row.original.vulnerability_name)}?projectName=${encodeURIComponent(project.project_name)}`}
@@ -193,6 +198,7 @@ const ProjectDetailsPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
     const [isVulnModalOpen, setIsVulnModalOpen] = useState(false);
+    const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
     const loadAllData = async () => {
         setIsLoading(true);
@@ -229,10 +235,23 @@ const ProjectDetailsPage = () => {
     
     const handleVulnSaved = () => {
         setIsVulnModalOpen(false);
-        // Refetch just the vulnerabilities to update the table
         getProjectVulnerabilities(projectId).then(res => {
             if (res.success) setVulnerabilities(res.data);
         });
+    };
+    
+    const handleGenerateReport = async () => {
+        if (!project) return;
+        setIsGeneratingReport(true);
+        try {
+            const reportType = project.projectType.includes('Network') ? 'Network' : 'WebApp';
+            await generateReport(project._id, reportType);
+            toast.success("Report download started!");
+        } catch (error) {
+            toast.error(error.message);
+        } finally {
+            setIsGeneratingReport(false);
+        }
     };
 
     if (isLoading) return <Spinner fullPage />;
@@ -247,8 +266,13 @@ const ProjectDetailsPage = () => {
                         <h1 className="text-3xl font-bold text-gray-800">Project Details</h1>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button onClick={() => toast.info("Report generation coming soon!")} className="flex items-center px-4 py-2 bg-pink-600 text-white rounded-md"><ReportIcon /> Generate Report</button>
-                        <button onClick={() => toast.info("Download will be available after generation.")} className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-md"><DownloadIcon /> Download</button>
+                        <button 
+                            onClick={handleGenerateReport} 
+                            disabled={isGeneratingReport}
+                            className="flex items-center px-4 py-2 bg-pink-600 text-white rounded-md disabled:opacity-50"
+                        >
+                            {isGeneratingReport ? 'Generating...' : <><ReportIcon /> Generate Report</>}
+                        </button>
                     </div>
                 </div>
 
