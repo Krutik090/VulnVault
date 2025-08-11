@@ -12,17 +12,33 @@ const UsersIcon = () => <svg className="w-6 h-6" fill="none" stroke="currentColo
 const ProjectsIcon = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>;
 const TimeIcon = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>;
 const ChevronDownIcon = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>;
+const DabaseIcon = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7l8 4 8-4m-8 12v-4"></path></svg>;
+const ToolsIcon = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>;
 
 const Sidebar = () => {
     const { user } = useAuth();
     const { isSidebarOpen } = useUI();
     const location = useLocation();
-    
+
     const isUserManagementActive = location.pathname.startsWith('/manage-users') || location.pathname.startsWith('/user-tracker');
     const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(isUserManagementActive);
 
     const isProjectManagementActive = location.pathname.startsWith('/project-records') || location.pathname.startsWith('/add-client');
     const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(isProjectManagementActive);
+
+    const isVulnManagementActive = location.pathname.startsWith('/vulnerability-database');
+    const [isVulnDropdownOpen, setIsVulnDropdownOpen] = useState(isVulnManagementActive);
+
+    const isToolsActive = location.pathname.startsWith('/subdomain-finder');
+    const [isToolsDropdownOpen, setIsToolsDropdownOpen] = useState(isToolsActive);
+
+    useEffect(() => {
+        if (isToolsActive) setIsToolsDropdownOpen(true);
+    }, [location.pathname, isToolsActive]);
+
+    useEffect(() => {
+        if (isVulnManagementActive) setIsVulnDropdownOpen(true);
+    }, [location.pathname, isVulnManagementActive]);
 
     useEffect(() => {
         if (isUserManagementActive) {
@@ -35,7 +51,7 @@ const Sidebar = () => {
             setIsProjectDropdownOpen(true);
         }
     }, [location.pathname, isProjectManagementActive]);
-    
+
     const linkClasses = "flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100 transition-colors duration-200";
     const activeLinkClasses = "bg-pink-100 text-pink-600 border-r-4 border-pink-500 font-semibold";
     const subLinkClasses = "flex items-center py-2 pl-16 pr-6 text-gray-600 hover:bg-gray-100 text-sm";
@@ -44,7 +60,7 @@ const Sidebar = () => {
     return (
         <aside className={`fixed inset-y-0 left-0 bg-white shadow-lg z-30 transform transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full lg:w-20 lg:translate-x-0'}`}>
             <div className="h-16 flex items-center justify-center border-b">
-                 <img src="/default/logo.svg" alt="logo" className={`transition-all duration-300 ${isSidebarOpen ? 'h-8' : 'h-10'}`} />
+                <img src="/default/logo.svg" alt="logo" className={`transition-all duration-300 ${isSidebarOpen ? 'h-8' : 'h-10'}`} />
             </div>
             <nav className="mt-4">
                 <NavLink to="/dashboard" className={({ isActive }) => `${linkClasses} ${isActive ? activeLinkClasses : ''}`}>
@@ -53,7 +69,7 @@ const Sidebar = () => {
                 </NavLink>
 
                 {user?.role !== 'admin' && (
-                     <NavLink to="/time-tracker" className={({ isActive }) => `${linkClasses} ${isActive ? activeLinkClasses : ''}`}>
+                    <NavLink to="/time-tracker" className={({ isActive }) => `${linkClasses} ${isActive ? activeLinkClasses : ''}`}>
                         <TimeIcon />
                         <span className={`mx-4 font-medium whitespace-nowrap transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>Time Tracker</span>
                     </NavLink>
@@ -72,10 +88,10 @@ const Sidebar = () => {
                             </button>
                             <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isProjectDropdownOpen ? 'max-h-40' : 'max-h-0'}`}>
                                 <NavLink to="/add-client" className={({ isActive }) => `${subLinkClasses} ${isActive ? activeSubLinkClasses : ''}`}>
-                                     <span className={`whitespace-nowrap transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>Add Client</span>
+                                    <span className={`whitespace-nowrap transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>Add Client</span>
                                 </NavLink>
                                 <NavLink to="/project-records" className={({ isActive }) => `${subLinkClasses} ${isActive ? activeSubLinkClasses : ''}`}>
-                                     <span className={`whitespace-nowrap transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>Project Records</span>
+                                    <span className={`whitespace-nowrap transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>Project Records</span>
                                 </NavLink>
                             </div>
                         </div>
@@ -91,10 +107,40 @@ const Sidebar = () => {
                             </button>
                             <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isUserDropdownOpen ? 'max-h-40' : 'max-h-0'}`}>
                                 <NavLink to="/manage-users" className={({ isActive }) => `${subLinkClasses} ${isActive ? activeSubLinkClasses : ''}`}>
-                                     <span className={`whitespace-nowrap transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>User List</span>
+                                    <span className={`whitespace-nowrap transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>User List</span>
                                 </NavLink>
                                 <NavLink to="/user-tracker" className={({ isActive }) => `${subLinkClasses} ${isActive ? activeSubLinkClasses : ''}`}>
                                     <span className={`whitespace-nowrap transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>Track Activities</span>
+                                </NavLink>
+                            </div>
+                        </div>
+                        {/* Vulnerability Management Dropdown */}
+                        <div>
+                            <button onClick={() => setIsVulnDropdownOpen(!isVulnDropdownOpen)} className={`${linkClasses} w-full justify-between ${isVulnManagementActive ? 'bg-gray-100' : ''}`}>
+                                <div className="flex items-center">
+                                    <DabaseIcon />
+                                    <span className={`mx-4 font-medium ...`}>Vulnerabilities</span>
+                                </div>
+                                <ChevronDownIcon className={`transition-transform ... ${isVulnDropdownOpen && 'rotate-180'} ${!isSidebarOpen && 'hidden'}`} />
+                            </button>
+                            <div className={`overflow-hidden ... ${isVulnDropdownOpen ? 'max-h-40' : 'max-h-0'}`}>
+                                <NavLink to="/vulnerability-database" className={({ isActive }) => `${subLinkClasses} ${isActive ? activeSubLinkClasses : ''}`}>
+                                    <span className={`whitespace-nowrap ...`}>Manage Database</span>
+                                </NavLink>
+                            </div>
+                        </div>
+                        {/* Tools Dropdown */}
+                        <div>
+                            <button onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)} className={`${linkClasses} w-full justify-between ${isToolsActive ? 'bg-gray-100' : ''}`}>
+                                <div className="flex items-center">
+                                    <ToolsIcon />
+                                    <span className={`mx-4 font-medium ...`}>Tools</span>
+                                </div>
+                                <ChevronDownIcon className={`transition-transform ... ${isToolsDropdownOpen && 'rotate-180'} ${!isSidebarOpen && 'hidden'}`} />
+                            </button>
+                            <div className={`overflow-hidden ... ${isToolsDropdownOpen ? 'max-h-40' : 'max-h-0'}`}>
+                                <NavLink to="/subdomain-finder" className={({ isActive }) => `${subLinkClasses} ${isActive ? activeSubLinkClasses : ''}`}>
+                                    <span className={`whitespace-nowrap ...`}>Subdomain Finder</span>
                                 </NavLink>
                             </div>
                         </div>

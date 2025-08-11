@@ -25,7 +25,8 @@ import ClientProjectsPage from './features/clients/ClientProjectsPage';
 import ProjectDetailsPage from './features/projects/ProjectDetailsPage';
 import VulnerabilityInstancesPage from './features/vulnerabilities/VulnerabilityInstancesPage';
 import VulnerabilityInstanceDetailsPage from './features/vulnerabilities/VulnerabilityInstanceDetailsPage';
-
+import VulnerabilityDatabasePage from './features/vulnerabilities/VulnerabilityDatabasePage';
+import SubdomainFinderPage from './features/tools/SubdomainFinderPage';
 
 function App() {
   const { user, loading } = useAuth();
@@ -52,6 +53,8 @@ function App() {
           <Route path="/projects/:projectId" element={<ProjectDetailsPage />} /> {/* ADDED ROUTE */}
           <Route path="/vulnerabilities/:vulnName" element={<VulnerabilityInstancesPage />} /> {/* ADDED ROUTE */}
           <Route path="/project-vulnerabilities/:vulnId" element={<VulnerabilityInstanceDetailsPage />} /> {/* ADDED ROUTE */}
+          <Route path="/vulnerability-database" element={<VulnerabilityDatabasePage />} /> {/* ADDED ROUTE */}
+          <Route path="/subdomain-finder" element={<SubdomainFinderPage />} /> {/* ADDED ROUTE */}
 
         </Route>
 
