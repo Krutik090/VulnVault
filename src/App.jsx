@@ -57,7 +57,7 @@ function App() {
             <Route path="/clients/:clientId/projects" element={<ClientProjectsPage />} />
             <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
             <Route path="/vulnerabilities/:vulnName" element={<VulnerabilityInstancesPage />} />
-            <Route path="/project-vulnerabilities/:vulnId" element={<VulnerabilityInstanceDetailsPage />} />
+            <Route path="/vulnerabilities/instance/:vulnId" element={<VulnerabilityInstanceDetailsPage />} />
             <Route path="/vulnerability-database" element={<VulnerabilityDatabasePage />} />
             <Route path="/subdomain-finder" element={<SubdomainFinderPage />} />
           </Route>
