@@ -1,16 +1,17 @@
 // =======================================================================
-// FILE: src/features/admin/AddUserModal.jsx (UPDATED)
-// PURPOSE: Modal for adding new users with theme support and enhanced validation.
+// FILE: src/features/admin/AddUserModal.jsx (FIXED FOCUS LOSS ISSUE)
+// PURPOSE: Modal for adding new users with enhanced layout and fixed input focus
 // =======================================================================
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Modal from '../../components/Modal';
+import FormInput from '../../components/FormInput'; // ✅ Import existing FormInput
 import { createUser } from '../../api/adminApi';
 import { useTheme } from '../../contexts/ThemeContext';
 import toast from 'react-hot-toast';
 
 // Icons
 const UserPlusIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
   </svg>
 );
@@ -39,17 +40,30 @@ const LockIcon = () => (
   </svg>
 );
 
-const EyeIcon = () => (
+const ShieldIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
   </svg>
 );
 
-const EyeOffIcon = () => (
+const InfoIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
   </svg>
+);
+
+const CheckboxIcon = ({ checked }) => (
+  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+    checked 
+      ? 'bg-primary border-primary text-primary-foreground' 
+      : 'border-input bg-background'
+  }`}>
+    {checked && (
+      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+      </svg>
+    )}
+  </div>
 );
 
 const AddUserModal = ({ isOpen, onClose, onUserAdded }) => {
@@ -59,56 +73,88 @@ const AddUserModal = ({ isOpen, onClose, onUserAdded }) => {
     password: '',
     role: 'tester'
   });
+
   const [isSaving, setIsSaving] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
+  const [activeTab, setActiveTab] = useState('basic');
   const { theme, color } = useTheme();
 
   const roleOptions = [
-    { value: 'tester', label: 'Tester', description: 'Can perform penetration tests and create reports' },
-    { value: 'admin', label: 'Admin', description: 'Full system access and user management' },
-    { value: 'pmo', label: 'PMO', description: 'Project management and oversight' },
-    { value: 'client', label: 'Client', description: 'View-only access to assigned projects' }
+    { 
+      value: 'tester', 
+      label: 'Tester', 
+      description: 'Can perform penetration tests and create reports',
+      icon: ShieldIcon,
+      color: 'text-green-600 bg-green-50 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800'
+    },
+    { 
+      value: 'admin', 
+      label: 'Admin', 
+      description: 'Full system access and user management',
+      icon: UserIcon,
+      color: 'text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800'
+    },
+    { 
+      value: 'pmo', 
+      label: 'PMO', 
+      description: 'Project management and oversight',
+      icon: InfoIcon,
+      color: 'text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'
+    },
+    { 
+      value: 'client', 
+      label: 'Client', 
+      description: 'View-only access to assigned projects',
+      icon: UserIcon,
+      color: 'text-purple-600 bg-purple-50 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800'
+    }
   ];
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
     } else if (formData.name.length < 2) {
       newErrors.name = 'Name must be at least 2 characters';
     }
-    
+
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
-    
+
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      newErrors.password = 'Password must contain at least one uppercase letter, one lowercase letter, and one number';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleChange = (e) => {
+  // ✅ FIXED: Memoized handlers to prevent re-creation
+  const handleChange = useCallback((e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: null }));
-    }
-  };
+    setErrors(prev => {
+      if (prev[name]) {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      }
+      return prev;
+    });
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!validateForm()) {
       toast.error('Please fix the errors below');
       return;
@@ -119,10 +165,11 @@ const AddUserModal = ({ isOpen, onClose, onUserAdded }) => {
       await createUser(formData);
       toast.success("User created successfully!");
       onUserAdded();
+      
       // Reset form
       setFormData({ name: '', email: '', password: '', role: 'tester' });
       setErrors({});
-      setShowPassword(false);
+      setActiveTab('basic');
       onClose();
     } catch (error) {
       console.error('Error creating user:', error);
@@ -135,204 +182,217 @@ const AddUserModal = ({ isOpen, onClose, onUserAdded }) => {
   const handleCancel = () => {
     setFormData({ name: '', email: '', password: '', role: 'tester' });
     setErrors({});
-    setShowPassword(false);
+    setActiveTab('basic');
     onClose();
   };
 
   const getRoleBadgeColor = (role) => {
-    const colors = {
-      'admin': 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
-      'pmo': 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
-      'tester': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
-      'client': 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
-    };
-    return colors[role] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
+    const selectedRole = roleOptions.find(r => r.value === role);
+    return selectedRole ? selectedRole.color : 'text-gray-600 bg-gray-50 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800';
   };
 
+  const tabs = [
+    { id: 'basic', label: 'Basic Information', icon: UserIcon },
+    { id: 'role', label: 'Role & Permissions', icon: ShieldIcon },
+  ];
+
+  if (!isOpen) return null;
+
   return (
-    <div className={`${theme} theme-${color}`}>
-      <Modal
-        isOpen={isOpen}
-        onClose={handleCancel}
-        title={
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="5xl" showCloseButton={false}>
+      <div className={`${theme} theme-${color} flex flex-col max-h-[90vh]`}>
+        {/* Enhanced Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <UserPlusIcon className="text-primary" />
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+              <UserPlusIcon className="text-blue-600 w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold">Add New User</h3>
-              <p className="text-sm text-muted-foreground">Create a new user account</p>
-            </div>
-          </div>
-        }
-        size="md"
-      >
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Name Field */}
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-card-foreground mb-2">
-              Full Name *
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <UserIcon className="text-muted-foreground" />
-              </div>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className={`
-                  w-full pl-10 pr-4 py-3 border rounded-lg bg-background text-foreground 
-                  placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent
-                  ${errors.name ? 'border-red-500' : 'border-input'}
-                  transition-all duration-200
-                `}
-                placeholder="e.g., John Doe"
-                disabled={isSaving}
-              />
-            </div>
-            {errors.name && (
-              <p className="mt-1 text-sm text-red-500">{errors.name}</p>
-            )}
-          </div>
-
-          {/* Email Field */}
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-card-foreground mb-2">
-              Email Address *
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MailIcon className="text-muted-foreground" />
-              </div>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className={`
-                  w-full pl-10 pr-4 py-3 border rounded-lg bg-background text-foreground 
-                  placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent
-                  ${errors.email ? 'border-red-500' : 'border-input'}
-                  transition-all duration-200
-                `}
-                placeholder="e.g., john.doe@example.com"
-                disabled={isSaving}
-              />
-            </div>
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-500">{errors.email}</p>
-            )}
-          </div>
-
-          {/* Password Field */}
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-card-foreground mb-2">
-              Password *
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <LockIcon className="text-muted-foreground" />
-              </div>
-              <input
-                type={showPassword ? "text" : "password"}
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className={`
-                  w-full pl-10 pr-12 py-3 border rounded-lg bg-background text-foreground 
-                  placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent
-                  ${errors.password ? 'border-red-500' : 'border-input'}
-                  transition-all duration-200
-                `}
-                placeholder="Must be at least 8 characters"
-                disabled={isSaving}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                disabled={isSaving}
-              >
-                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-              </button>
-            </div>
-            {errors.password && (
-              <p className="mt-1 text-sm text-red-500">{errors.password}</p>
-            )}
-            <p className="mt-1 text-xs text-muted-foreground">
-              Password must be at least 8 characters long
-            </p>
-          </div>
-
-          {/* Role Field */}
-          <div>
-            <label htmlFor="role" className="block text-sm font-medium text-card-foreground mb-2">
-              User Role *
-            </label>
-            <select
-              id="role"
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all duration-200"
-              disabled={isSaving}
-            >
-              {roleOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            
-            {/* Role Description */}
-            <div className="mt-2 p-3 bg-muted/30 rounded-lg border border-border">
-              <div className="flex items-center gap-2 mb-1">
-                <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${getRoleBadgeColor(formData.role)}`}>
-                  {roleOptions.find(r => r.value === formData.role)?.label}
-                </span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {roleOptions.find(r => r.value === formData.role)?.description}
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                Create New User
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Add a new user account to the system
               </p>
             </div>
           </div>
+          
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-lg hover:bg-white/50 dark:hover:bg-gray-800/50"
+            disabled={isSaving}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
-          {/* Form Actions */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-end pt-6 border-t border-border">
-            <button
-              type="button"
-              onClick={handleCancel}
-              disabled={isSaving}
-              className="px-6 py-2.5 border border-input text-muted-foreground bg-background hover:bg-accent hover:text-accent-foreground rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="px-6 py-2.5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[120px]"
-            >
-              {isSaving ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <SaveIcon />
-                  Add User
-                </>
-              )}
-            </button>
+        {/* Tab Navigation */}
+        <div className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+          <div className="flex">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-3 px-6 py-4 text-sm font-semibold transition-colors whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'text-blue-600 border-b-2 border-blue-500 bg-white dark:bg-gray-800'
+                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                }`}
+              >
+                <tab.icon />
+                {tab.label}
+              </button>
+            ))}
           </div>
-        </form>
-      </Modal>
-    </div>
+        </div>
+
+        {/* Form Content */}
+        <div className="flex-1 overflow-y-auto">
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            
+            {activeTab === 'basic' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* ✅ FIXED: Using imported FormInput component */}
+                  <FormInput
+                    label="Full Name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Enter full name"
+                    required
+                    error={errors.name}
+                    description="User's full name as it should appear in the system"
+                  />
+
+                  <FormInput
+                    label="Email Address"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="user@example.com"
+                    required
+                    error={errors.email}
+                    description="This will be used for login and notifications"
+                  />
+                </div>
+
+                {/* Password Field */}
+                <FormInput
+                  label="Password"
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Enter a secure password"
+                  required
+                  error={errors.password}
+                  description="Password must be at least 8 characters with uppercase, lowercase, and numbers"
+                />
+              </div>
+            )}
+
+            {activeTab === 'role' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                    <ShieldIcon className="text-blue-600" />
+                    Select User Role
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {roleOptions.map((role) => (
+                      <div
+                        key={role.value}
+                        className={`relative rounded-lg border-2 transition-all duration-200 cursor-pointer hover:shadow-md ${
+                          formData.role === role.value
+                            ? role.color + ' border-current shadow-lg'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                        }`}
+                        onClick={() => setFormData(prev => ({ ...prev, role: role.value }))}
+                      >
+                        <div className="p-4">
+                          <div className="flex items-start gap-3">
+                            <div className={`p-2 rounded-lg ${formData.role === role.value ? 'bg-white/20' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                              <role.icon className={formData.role === role.value ? 'text-current' : 'text-gray-500'} />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="radio"
+                                  name="role"
+                                  value={role.value}
+                                  checked={formData.role === role.value}
+                                  onChange={handleChange}
+                                  className="text-blue-600 focus:ring-blue-500 border-gray-300"
+                                />
+                                <h4 className={`font-semibold ${formData.role === role.value ? 'text-current' : 'text-gray-900 dark:text-gray-100'}`}>
+                                  {role.label}
+                                </h4>
+                              </div>
+                              <p className={`text-sm mt-1 ${formData.role === role.value ? 'text-current opacity-90' : 'text-gray-600 dark:text-gray-400'}`}>
+                                {role.description}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Role Summary */}
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                    Selected Role Summary
+                  </h4>
+                  <div className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${getRoleBadgeColor(formData.role)}`}>
+                    {roleOptions.find(r => r.value === formData.role)?.icon && (
+                      <span className="mr-2">
+                        {roleOptions.find(r => r.value === formData.role).icon({ className: "w-4 h-4" })}
+                      </span>
+                    )}
+                    {roleOptions.find(r => r.value === formData.role)?.label} - {roleOptions.find(r => r.value === formData.role)?.description}
+                  </div>
+                </div>
+              </div>
+            )}
+          </form>
+        </div>
+
+        {/* Enhanced Footer */}
+        <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+          <button
+            type="button"
+            onClick={handleCancel}
+            disabled={isSaving}
+            className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg font-medium transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isSaving}
+            className="px-6 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 min-w-[120px] justify-center"
+          >
+            {isSaving ? (
+              <>
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <SaveIcon />
+                Create User
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 };
 

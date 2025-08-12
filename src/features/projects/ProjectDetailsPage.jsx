@@ -1,6 +1,6 @@
 // =======================================================================
-// FILE: src/features/projects/ProjectDetailsPage.jsx (UPDATED)
-// PURPOSE: Comprehensive project details with all information from old UI
+// FILE: src/features/projects/ProjectDetailsPage.jsx (PROFESSIONAL REDESIGN)
+// PURPOSE: Comprehensive project details with enhanced layout and full configuration display
 // =======================================================================
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
@@ -15,7 +15,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import ProjectConfigModal from './ProjectConfigModal';
 import AddVulnerabilityModal from './AddVulnerabilityModal';
 
-// Icons
+// Enhanced Icons
 const BackIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -90,112 +90,305 @@ const SettingsIcon = () => (
   </svg>
 );
 
-// Project Summary Component with all information from old UI
-const ProjectSummary = ({ project, timesheet, config }) => {
+const DocumentIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
+);
+
+const ScopeIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  </svg>
+);
+
+const TeamIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+  </svg>
+);
+
+const ShieldIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+  </svg>
+);
+
+const ClockIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+// Enhanced Data Display Component
+const DataField = ({ label, value, icon: Icon, className = "" }) => (
+  <div className={`${className}`}>
+    <div className="flex items-center gap-2 mb-2">
+      {Icon && <Icon className="text-muted-foreground" />}
+      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
+    </div>
+    <div className="text-sm text-card-foreground">
+      {value || <span className="text-muted-foreground italic">Not specified</span>}
+    </div>
+  </div>
+);
+
+// Comprehensive Project Overview Component
+const ProjectOverview = ({ project, timesheet, config }) => {
+  const [activeTab, setActiveTab] = useState('overview');
+
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: ProjectIcon },
+    { id: 'report', label: 'Report Details', icon: DocumentIcon },
+    { id: 'scope', label: 'Scope', icon: ScopeIcon },
+    { id: 'methodology', label: 'Methodology', icon: ShieldIcon },
+  ];
+
   return (
-    <div className="bg-card rounded-xl border border-border p-6">
-      <h3 className="text-lg font-semibold text-card-foreground mb-6">Project Summary</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        
-        {/* Basic Information */}
-        <div className="space-y-4">
-          <h4 className="font-medium text-card-foreground border-b border-border pb-2">Basic Information</h4>
-          <div className="space-y-3">
-            <div>
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Version:</span>
-              <p className="text-sm text-card-foreground mt-1">{config?.reportDetails?.version || 'N/A'}</p>
-            </div>
-            <div>
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Client:</span>
-              <p className="text-sm text-card-foreground mt-1">{project?.clientName || 'N/A'}</p>
-            </div>
-            <div>
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Project Type:</span>
-              <p className="text-sm text-card-foreground mt-1">
-                {Array.isArray(project?.projectType) 
-                  ? project.projectType.join(', ') 
-                  : project?.projectType || 'N/A'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Dates */}
-        <div className="space-y-4">
-          <h4 className="font-medium text-card-foreground border-b border-border pb-2">Timeline</h4>
-          <div className="space-y-3">
-            <div>
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Start Date:</span>
-              <div className="flex items-center gap-2 mt-1">
-                <CalendarIcon className="w-3 h-3 text-muted-foreground" />
-                <p className="text-sm text-card-foreground">
-                  {project?.projectStart ? new Date(project.projectStart).toLocaleDateString() : 'N/A'}
-                </p>
-              </div>
-            </div>
-            <div>
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">End Date:</span>
-              <div className="flex items-center gap-2 mt-1">
-                <CalendarIcon className="w-3 h-3 text-muted-foreground" />
-                <p className="text-sm text-card-foreground">
-                  {project?.projectEnd ? new Date(project.projectEnd).toLocaleDateString() : 'N/A'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Team Information */}
-        <div className="space-y-4">
-          <h4 className="font-medium text-card-foreground border-b border-border pb-2">Assigned Testers</h4>
-          <div className="space-y-2">
-            {project?.assets?.length ? (
-              project.assets.map((tester, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <UserIcon className="w-3 h-3 text-primary" />
-                  <span className="text-sm text-card-foreground">{tester.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {tester.hours || 0}h {tester.mins || 0}m
-                  </span>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">Not assigned</p>
-            )}
-          </div>
-        </div>
-
-        {/* Configuration Status */}
-        <div className="space-y-4">
-          <h4 className="font-medium text-card-foreground border-b border-border pb-2">Configuration</h4>
-          <div className="space-y-3">
-            <div>
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Testing Type:</span>
-              <p className="text-sm text-card-foreground mt-1">
-                {config?.methodology || 'Black box Testing'}
-              </p>
-            </div>
-            <div>
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Business Risk Included:</span>
-              <p className="text-sm text-card-foreground mt-1">
-                {config?.businessRisk ? 'Yes' : 'No'}
-              </p>
-            </div>
-            <div>
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">CVSS Included:</span>
-              <p className="text-sm text-card-foreground mt-1">
-                {config?.cvssIncluded ? 'Yes' : 'No'}
-              </p>
-            </div>
-          </div>
+    <div className="bg-card rounded-xl border border-border overflow-hidden">
+      {/* Tab Navigation */}
+      <div className="border-b border-border bg-muted/30">
+        <div className="flex overflow-x-auto">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'text-primary border-b-2 border-primary bg-background'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              }`}
+            >
+              <tab.icon />
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
-      
+
+      {/* Tab Content */}
+      <div className="p-6">
+        {activeTab === 'overview' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <DataField
+              label="Project Name"
+              value={project?.project_name}
+              icon={ProjectIcon}
+            />
+            <DataField
+              label="Client Name"
+              value={project?.clientName || config?.reportDetails?.clientName}
+              icon={UserIcon}
+            />
+            <DataField
+              label="Project Type"
+              value={Array.isArray(project?.projectType) ? project.projectType.join(', ') : project?.projectType}
+              icon={SettingsIcon}
+            />
+            <DataField
+              label="Start Date"
+              value={project?.projectStart ? new Date(project.projectStart).toLocaleDateString() : null}
+              icon={CalendarIcon}
+            />
+            <DataField
+              label="End Date"
+              value={project?.projectEnd ? new Date(project.projectEnd).toLocaleDateString() : null}
+              icon={CalendarIcon}
+            />
+            <DataField
+              label="Status"
+              value={
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  project?.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
+                  project?.status === 'in-progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' :
+                  'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                }`}>
+                  {project?.status || 'Active'}
+                </span>
+              }
+              icon={ClockIcon}
+            />
+            <div className="col-span-full">
+              <DataField
+                label="Assigned Testers"
+                value={
+                  project?.assets?.length ? (
+                    <div className="flex flex-wrap gap-2">
+                      {project.assets.map((tester, index) => (
+                        <div key={index} className="flex items-center gap-2 bg-muted/50 px-3 py-1 rounded-lg">
+                          <UserIcon className="w-3 h-3" />
+                          <span className="text-sm">{tester.name}</span>
+                          {(tester.hours || tester.mins) && (
+                            <span className="text-xs text-muted-foreground">
+                              ({tester.hours || 0}h {tester.mins || 0}m)
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null
+                }
+                icon={TeamIcon}
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'report' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <DataField
+              label="Report Document Name"
+              value={config?.reportDetails?.reportDocName}
+              icon={DocumentIcon}
+            />
+            <DataField
+              label="Version"
+              value={config?.reportDetails?.version}
+              icon={SettingsIcon}
+            />
+            <DataField
+              label="Client Name"
+              value={config?.reportDetails?.clientName}
+              icon={UserIcon}
+            />
+            <DataField
+              label="Exhibit"
+              value={config?.reportDetails?.exhibit}
+              icon={DocumentIcon}
+            />
+          </div>
+        )}
+
+        {activeTab === 'scope' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <DataField
+                label="Testing Type"
+                value={config?.scope?.testingType}
+                icon={ScopeIcon}
+              />
+              <DataField
+                label="Domains"
+                value={
+                  config?.scope?.domains?.length ? (
+                    <div className="space-y-1">
+                      {config.scope.domains.map((domain, index) => (
+                        <div key={index} className="text-sm bg-muted/50 px-2 py-1 rounded">
+                          {domain}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null
+                }
+                icon={SettingsIcon}
+              />
+            </div>
+            <DataField
+              label="Application Description"
+              value={config?.scope?.appDescription}
+              icon={DocumentIcon}
+              className="col-span-full"
+            />
+            <DataField
+              label="Functionality Not Tested"
+              value={config?.scope?.functionalityNotTested}
+              icon={AlertTriangleIcon}
+              className="col-span-full"
+            />
+          </div>
+        )}
+
+        {activeTab === 'methodology' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <DataField
+                label="CVSS Included"
+                value={
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                    config?.methodology?.cvssIncluded ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {config?.methodology?.cvssIncluded ? 'Yes' : 'No'}
+                  </span>
+                }
+                icon={ShieldIcon}
+              />
+              <DataField
+                label="Business Risk Included"
+                value={
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                    config?.methodology?.businessRisk ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {config?.methodology?.businessRisk ? 'Yes' : 'No'}
+                  </span>
+                }
+                icon={AlertTriangleIcon}
+              />
+              <DataField
+                label="Communication Methods"
+                value={config?.methodology?.communicationMethods}
+                icon={SettingsIcon}
+              />
+              <DataField
+                label="Session Management"
+                value={config?.methodology?.sessionManagement}
+                icon={ShieldIcon}
+              />
+              <DataField
+                label="User Role Tested"
+                value={config?.methodology?.userRoleTested}
+                icon={UserIcon}
+              />
+            </div>
+
+            <DataField
+              label="Team Members"
+              value={
+                config?.methodology?.teamMembers?.length ? (
+                  <div className="flex flex-wrap gap-2">
+                    {config.methodology.teamMembers.map((member, index) => (
+                      <div key={index} className="flex items-center gap-2 bg-muted/50 px-3 py-1 rounded-lg">
+                        <UserIcon className="w-3 h-3" />
+                        <span className="text-sm">{member}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null
+              }
+              icon={TeamIcon}
+            />
+
+            <DataField
+              label="Limitations"
+              value={config?.methodology?.limitations}
+              icon={AlertTriangleIcon}
+              className="col-span-full"
+            />
+          </div>
+        )}
+
+        {config?.notes && (
+          <div className="mt-8 pt-6 border-t border-border">
+            <DataField
+              label="Project Notes"
+              value={config.notes}
+              icon={NoteIcon}
+            />
+          </div>
+        )}
+      </div>
+
       {!config && (
-        <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+        <div className="p-6 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-400">
           <div className="flex items-center gap-2">
-            <SettingsIcon className="w-4 h-4 text-amber-600" />
-            <p className="text-sm text-amber-800 dark:text-amber-200 font-medium">No configuration set for this project.</p>
+            <SettingsIcon className="w-5 h-5 text-amber-600" />
+            <div>
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                No Configuration Available
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                Please configure this project to see detailed information.
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -242,7 +435,7 @@ const ProjectDetailsPage = () => {
         getProjectById(projectId),
         getProjectConfig(projectId),
         getProjectTimesheet(projectId),
-        getProjectVulnerabilities(projectId), // This returns aggregated vulnerabilities
+        getProjectVulnerabilities(projectId),
         getProjectNotes(projectId),
       ]);
 
@@ -250,7 +443,7 @@ const ProjectDetailsPage = () => {
       setConfig(configRes.data);
       setTimesheet(timesheetRes.data);
       
-      // FIXED: Transform API response to match UI expectations
+      // Transform API response to match UI expectations
       const vulnData = vulnerabilitiesRes.data || [];
       const transformedVulnerabilities = vulnData.map(vuln => ({
         vulnName: vuln.vulnerability_name,
@@ -303,7 +496,6 @@ const ProjectDetailsPage = () => {
       toast.success('Note added successfully');
       setNoteText('');
       
-      // Refresh notes
       const notesRes = await getProjectNotes(projectId);
       setNotes(notesRes.data || []);
     } catch (error) {
@@ -314,7 +506,7 @@ const ProjectDetailsPage = () => {
     }
   };
 
-  // Vulnerability table columns with corrected data structure
+  // Vulnerability table columns
   const vulnerabilityColumns = useMemo(() => [
     { 
       accessorKey: 'vulnName', 
@@ -399,29 +591,36 @@ const ProjectDetailsPage = () => {
 
   return (
     <div className={`${theme} theme-${color} min-h-screen bg-background`}>
-      <div className="max-w-7xl mx-auto py-8 px-4">
-        {/* Header */}
-        <div className="mb-8">
+      {/* Professional Header */}
+      <div className="bg-gradient-to-r from-primary/5 via-primary/3 to-primary/5 border-b border-border">
+        <div className="max-w-7xl mx-auto py-8 px-6">
           <button
             onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
+            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6 text-sm"
           >
             <BackIcon />
-            <span className="text-sm">Back</span>
+            Back to Projects
           </button>
           
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-primary/10 rounded-xl">
-                <ProjectIcon className="text-primary" />
+              <div className="p-4 bg-primary/10 rounded-2xl">
+                <ProjectIcon className="w-8 h-8 text-primary" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-card-foreground">
-                  Project Details
+                <h1 className="text-3xl font-bold text-card-foreground mb-2">
+                  {project.project_name}
                 </h1>
-                <p className="text-muted-foreground mt-1">
-                  {project.project_name} • {project.clientName}
-                </p>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <UserIcon />
+                    {project.clientName || 'No client assigned'}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <CalendarIcon />
+                    {project.createdAt ? new Date(project.createdAt).toLocaleDateString() : 'Unknown date'}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -429,7 +628,7 @@ const ProjectDetailsPage = () => {
               <button
                 onClick={handleGenerateReport}
                 disabled={isGeneratingReport}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               >
                 {isGeneratingReport ? (
                   <>
@@ -447,55 +646,67 @@ const ProjectDetailsPage = () => {
               {user?.role === 'admin' && (
                 <button
                   onClick={() => setIsConfigModalOpen(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 border border-input text-muted-foreground bg-background hover:bg-accent hover:text-accent-foreground rounded-lg font-medium transition-colors"
+                  className="inline-flex items-center gap-2 px-6 py-3 border border-input text-muted-foreground bg-background hover:bg-accent hover:text-accent-foreground rounded-lg font-medium transition-colors shadow-sm"
                 >
                   <EditIcon />
-                  Configure
+                  Configure Project
                 </button>
               )}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Project Summary - Now includes all information from old UI */}
+      <div className="max-w-7xl mx-auto py-8 px-6">
+        {/* Enhanced Project Overview */}
         <div className="mb-8">
-          <ProjectSummary project={project} timesheet={timesheet} config={config} />
+          <ProjectOverview project={project} timesheet={timesheet} config={config} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="xl:col-span-3">
             {/* Vulnerabilities Section */}
-            <div className="bg-card rounded-xl border border-border overflow-hidden">
-              <div className="p-6 border-b border-border flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-card-foreground">Vulnerabilities</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {vulnerabilities.reduce((sum, v) => sum + (v.instanceCount || 0), 0)} total instances across {vulnerabilities.length} unique vulnerabilities
-                  </p>
+            <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
+              <div className="p-6 border-b border-border bg-gradient-to-r from-red-50/50 to-orange-50/50 dark:from-red-900/10 dark:to-orange-900/10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
+                      <BugIcon className="w-5 h-5 text-red-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-card-foreground">Security Vulnerabilities</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {vulnerabilities.reduce((sum, v) => sum + (v.instanceCount || 0), 0)} total instances across {vulnerabilities.length} unique vulnerability types
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsVulnModalOpen(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium shadow-sm"
+                  >
+                    <AddIcon />
+                    Add Vulnerability
+                  </button>
                 </div>
-                <button
-                  onClick={() => setIsVulnModalOpen(true)}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm"
-                >
-                  <AddIcon />
-                  Add Vulnerability
-                </button>
               </div>
               
               {vulnerabilities.length === 0 ? (
                 <div className="p-12 text-center">
-                  <BugIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h4 className="text-lg font-semibold text-card-foreground mb-2">0 total instances across 1 vulnerability types</h4>
-                  <p className="text-muted-foreground mb-4">
-                    No vulnerabilities have been reported for this project yet.
+                  <div className="w-20 h-20 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <ShieldIcon className="w-10 h-10 text-green-600" />
+                  </div>
+                  <h4 className="text-lg font-semibold text-card-foreground mb-2">No Vulnerabilities Found</h4>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    Great news! No security vulnerabilities have been identified for this project yet. 
+                    This indicates a strong security posture.
                   </p>
                   <button
                     onClick={() => setIsVulnModalOpen(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
                   >
                     <AddIcon />
-                    Add Vulnerability
+                    Report First Vulnerability
                   </button>
                 </div>
               ) : (
@@ -508,48 +719,54 @@ const ProjectDetailsPage = () => {
             </div>
           </div>
 
-          {/* Sidebar */}
+          {/* Enhanced Sidebar */}
           <div className="space-y-6">
             {/* Vulnerability Overview */}
-            <div className="bg-card rounded-xl border border-border p-6">
-              <h3 className="text-lg font-semibold text-card-foreground mb-4">Vulnerability Overview</h3>
+            <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-card-foreground mb-4 flex items-center gap-2">
+                <AlertTriangleIcon />
+                Security Overview
+              </h3>
               <div className="space-y-4">
-                <div className="text-center p-4 bg-primary/5 rounded-lg">
+                <div className="text-center p-4 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg">
                   <div className="text-3xl font-bold text-primary mb-1">
                     {vulnerabilities.length}
                   </div>
                   <div className="text-sm text-muted-foreground">Unique Vulnerabilities</div>
                 </div>
                 
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Total Instances</span>
+                <div className="grid grid-cols-2 gap-3 text-center">
+                  <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                    <div className="text-xl font-bold text-red-600">
+                      {vulnerabilities.filter(v => v.maxSeverity === 'Critical').length}
+                    </div>
+                    <div className="text-xs text-red-600">Critical</div>
+                  </div>
+                  <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                    <div className="text-xl font-bold text-orange-600">
+                      {vulnerabilities.filter(v => v.maxSeverity === 'High').length}
+                    </div>
+                    <div className="text-xs text-orange-600">High</div>
+                  </div>
+                  <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                    <div className="text-xl font-bold text-yellow-600">
+                      {vulnerabilities.filter(v => v.maxSeverity === 'Medium').length}
+                    </div>
+                    <div className="text-xs text-yellow-600">Medium</div>
+                  </div>
+                  <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <div className="text-xl font-bold text-green-600">
+                      {vulnerabilities.filter(v => v.maxSeverity === 'Low').length}
+                    </div>
+                    <div className="text-xs text-green-600">Low</div>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-border">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Total Instances</span>
                     <span className="font-semibold text-card-foreground">
                       {vulnerabilities.reduce((sum, v) => sum + (v.instanceCount || 0), 0)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Critical</span>
-                    <span className="font-semibold text-red-600">
-                      {vulnerabilities.filter(v => v.maxSeverity === 'Critical').length}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">High</span>
-                    <span className="font-semibold text-orange-600">
-                      {vulnerabilities.filter(v => v.maxSeverity === 'High').length}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Medium</span>
-                    <span className="font-semibold text-yellow-600">
-                      {vulnerabilities.filter(v => v.maxSeverity === 'Medium').length}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Low</span>
-                    <span className="font-semibold text-green-600">
-                      {vulnerabilities.filter(v => v.maxSeverity === 'Low').length}
                     </span>
                   </div>
                 </div>
@@ -557,8 +774,11 @@ const ProjectDetailsPage = () => {
             </div>
 
             {/* Project Notes */}
-            <div className="bg-card rounded-xl border border-border p-6">
-              <h3 className="text-lg font-semibold text-card-foreground mb-4">Project Notes</h3>
+            <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-card-foreground mb-4 flex items-center gap-2">
+                <NoteIcon />
+                Project Notes
+              </h3>
               
               {/* Add Note Form */}
               <div className="mb-6">
@@ -566,14 +786,14 @@ const ProjectDetailsPage = () => {
                   value={noteText}
                   onChange={(e) => setNoteText(e.target.value)}
                   placeholder="Add a note about this project..."
-                  className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent resize-none"
+                  className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent resize-none"
                   rows={3}
                   disabled={isAddingNote}
                 />
                 <button
                   onClick={handleAddNote}
                   disabled={isAddingNote || !noteText.trim()}
-                  className="mt-2 w-full bg-primary text-primary-foreground py-2 px-4 rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  className="mt-3 w-full bg-primary text-primary-foreground py-2 px-4 rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   {isAddingNote ? (
                     <>
@@ -590,16 +810,19 @@ const ProjectDetailsPage = () => {
               </div>
 
               {/* Notes List */}
-              <div className="space-y-4 max-h-96 overflow-y-auto">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {notes.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">No notes available.</p>
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No notes have been added to this project yet.
+                  </p>
                 ) : (
                   notes.map((note, index) => (
                     <div key={index} className="p-4 bg-muted/30 rounded-lg border border-border">
-                      <p className="text-card-foreground mb-2">{note.text}</p>
-                      <div className="text-xs text-muted-foreground">
-                        <span className="font-medium">by {note.addedBy}</span>
-                        <span className="mx-1">•</span>
+                      <p className="text-card-foreground mb-3">{note.text}</p>
+                      <div className="text-xs text-muted-foreground flex items-center gap-2">
+                        <UserIcon />
+                        <span className="font-medium">{note.addedBy}</span>
+                        <span>•</span>
                         <span>{new Date(note.dateAdded).toLocaleString()}</span>
                       </div>
                     </div>
