@@ -179,11 +179,11 @@ const AddEditProjectModal = ({ isOpen, onClose, onSave, projectToEdit, clientId 
       newErrors.projectType = 'Please select at least one project type';
     }
     // ✅ Enhanced date validation
-    if (formData.projectStart && formData.projectEnd) {
-      if (formData.projectStart >= formData.projectEnd) {
-        newErrors.projectEnd = 'End date must be after start date';
-      }
-    }
+    // if (formData.projectStart && formData.projectEnd) {
+    //   if (formData.projectStart >= formData.projectEnd) {
+    //     newErrors.projectEnd = 'End date must be after start date';
+    //   }
+    // }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -356,7 +356,7 @@ const AddEditProjectModal = ({ isOpen, onClose, onSave, projectToEdit, clientId 
                   onChange={(date) => handleDateChange('projectStart', date)}
                   placeholder="Select start date"
                   showToday={true}
-                  minDate={new Date()} // Disable past dates
+                  // minDate={new Date()} // Disable past dates
                 />
 
                 {/* ✅ Modern End Date Picker */}

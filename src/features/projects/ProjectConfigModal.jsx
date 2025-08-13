@@ -1,15 +1,15 @@
 // =======================================================================
-// FILE: src/features/projects/ProjectConfigModal.jsx (FIXED FOCUS ISSUE)
-// PURPOSE: Modal with guaranteed visible save button, proper scrolling, and fixed input focus
+// FILE: src/features/projects/ProjectConfigModal.jsx (DATABASE SCHEMA ALIGNED)
+// PURPOSE: Modal for creating and editing project configuration with database schema fields only
 // =======================================================================
 import { useState, useEffect, useCallback } from 'react';
 import Modal from '../../components/Modal';
-import FormInput from '../../components/FormInput'; // ✅ Import existing FormInput
+import FormInput from '../../components/FormInput';
 import { getProjectConfig, saveProjectConfig } from '../../api/projectDetailsApi';
 import { useTheme } from '../../contexts/ThemeContext';
 import toast from 'react-hot-toast';
 
-// Icons
+// Icons (keeping all existing icons)
 const ConfigIcon = () => (
   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -41,24 +41,6 @@ const ShieldIcon = () => (
   </svg>
 );
 
-const PlusIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-  </svg>
-);
-
-const TrashIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-  </svg>
-);
-
-const AlertTriangleIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-  </svg>
-);
-
 const CheckboxIcon = ({ checked }) => (
   <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
     checked 
@@ -73,33 +55,39 @@ const CheckboxIcon = ({ checked }) => (
   </div>
 );
 
-const ProjectConfigModal = ({ isOpen, onClose, project, onConfigSaved }) => {
-  const [config, setConfig] = useState({
-    report_title: '',
-    report_subtitle: '',
-    report_prepared_by: '',
-    report_prepared_for: '',
-    report_version: '',
-    project_scope: '',
-    project_limitations: '',
-    executive_summary: '',
-    methodology: '',
-    disclaimer: '',
-    include_appendices: true,
-    include_raw_output: false,
-    include_scope_details: true,
-    include_methodology: true,
-    include_executive_summary: true,
-    page_numbering: true,
-    table_of_contents: true,
-    cover_page: true,
-    custom_sections: []
-  });
+// ✅ DATABASE SCHEMA ALIGNED: Default configuration values
+const defaultConfig = {
+  reportDetails: {
+    reportDocName: '',
+    clientName: '',
+    version: '1.0',
+    exhibit: ''
+  },
+  scope: {
+    testingType: '',
+    domains: [],
+    functionalityNotTested: '',
+    appDescription: ''
+  },
+  methodology: {
+    // teamMembers: [],
+    communicationMethods: '',
+    cvssIncluded: true,
+    businessRisk: false,
+    sessionManagement: '',
+    userRoleTested: '',
+    limitations: ''
+  },
+  notes: ''
+};
 
+const ProjectConfigModal = ({ isOpen, onClose, project, onConfigSaved }) => {
+  const [config, setConfig] = useState(defaultConfig);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [activeTab, setActiveTab] = useState('report');
+  const [isEditMode, setIsEditMode] = useState(false);
   const { theme, color } = useTheme();
 
   useEffect(() => {
@@ -112,30 +100,78 @@ const ProjectConfigModal = ({ isOpen, onClose, project, onConfigSaved }) => {
     setIsLoading(true);
     try {
       const response = await getProjectConfig(project._id);
-      if (response.data) {
+      if (response.data && Object.keys(response.data).length > 0) {
+        setIsEditMode(true);
+        // ✅ DATABASE SCHEMA ALIGNED: Proper nested structure mapping
         setConfig({
-          ...config,
-          ...response.data,
-          custom_sections: response.data.custom_sections || []
+          reportDetails: {
+            ...defaultConfig.reportDetails,
+            ...response.data.reportDetails
+          },
+          scope: {
+            ...defaultConfig.scope,
+            ...response.data.scope,
+            domains: response.data.scope?.domains || []
+          },
+          methodology: {
+            ...defaultConfig.methodology,
+            ...response.data.methodology,
+            // teamMembers: response.data.methodology?.teamMembers || []
+          },
+          notes: response.data.notes || ''
+        });
+      } else {
+        setIsEditMode(false);
+        setConfig({
+          ...defaultConfig,
+          reportDetails: {
+            ...defaultConfig.reportDetails,
+            reportDocName: `${project.project_name} - Penetration Testing Report`,
+            clientName: project.clientId?.clientName || project.clientName || ''
+          },
+          scope: {
+            ...defaultConfig.scope,
+            appDescription: `Penetration testing assessment for ${project.project_name}`
+          }
         });
       }
     } catch (error) {
       console.error('Error loading project config:', error);
-      toast.error('Failed to load project configuration');
+      setIsEditMode(false);
+      setConfig({
+        ...defaultConfig,
+        reportDetails: {
+          ...defaultConfig.reportDetails,
+          reportDocName: `${project.project_name} - Penetration Testing Report`,
+          clientName: project.clientId?.clientName || project.clientName || ''
+        }
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ✅ FIXED: Memoized handlers to prevent re-creation
+  // ✅ DATABASE SCHEMA ALIGNED: Handle nested field changes
   const handleChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
-    setConfig(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    const finalValue = type === 'checkbox' ? checked : value;
 
-    // Clear error when user starts typing
+    if (name.includes('.')) {
+      const [section, field] = name.split('.');
+      setConfig(prev => ({
+        ...prev,
+        [section]: {
+          ...prev[section],
+          [field]: finalValue
+        }
+      }));
+    } else {
+      setConfig(prev => ({
+        ...prev,
+        [name]: finalValue
+      }));
+    }
+
     if (errors[name]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -145,40 +181,26 @@ const ProjectConfigModal = ({ isOpen, onClose, project, onConfigSaved }) => {
     }
   }, [errors]);
 
-  const handleCustomSectionChange = useCallback((index, field, value) => {
+  // ✅ DATABASE SCHEMA ALIGNED: Handle array fields (domains, teamMembers)
+  const handleArrayChange = useCallback((section, field, value) => {
+    const arrayValue = value.split(',').map(item => item.trim()).filter(item => item);
     setConfig(prev => ({
       ...prev,
-      custom_sections: prev.custom_sections.map((section, i) =>
-        i === index ? { ...section, [field]: value } : section
-      )
+      [section]: {
+        ...prev[section],
+        [field]: arrayValue
+      }
     }));
   }, []);
-
-  const addCustomSection = () => {
-    setConfig(prev => ({
-      ...prev,
-      custom_sections: [...prev.custom_sections, { name: '', content: '', enabled: true }]
-    }));
-  };
-
-  const removeCustomSection = (index) => {
-    setConfig(prev => ({
-      ...prev,
-      custom_sections: prev.custom_sections.filter((_, i) => i !== index)
-    }));
-  };
 
   const validateForm = () => {
     const newErrors = {};
 
-    if (!config.report_title?.trim()) {
-      newErrors.report_title = 'Report title is required';
+    if (!config.reportDetails.reportDocName?.trim()) {
+      newErrors['reportDetails.reportDocName'] = 'Report document name is required';
     }
-    if (!config.report_prepared_by?.trim()) {
-      newErrors.report_prepared_by = 'Prepared by field is required';
-    }
-    if (!config.report_prepared_for?.trim()) {
-      newErrors.report_prepared_for = 'Prepared for field is required';
+    if (!config.reportDetails.clientName?.trim()) {
+      newErrors['reportDetails.clientName'] = 'Client name is required';
     }
 
     setErrors(newErrors);
@@ -194,7 +216,7 @@ const ProjectConfigModal = ({ isOpen, onClose, project, onConfigSaved }) => {
     setIsSaving(true);
     try {
       await saveProjectConfig(project._id, config);
-      toast.success('Project configuration saved successfully!');
+      toast.success(isEditMode ? 'Project configuration updated successfully!' : 'Project configuration created successfully!');
       onConfigSaved?.();
       onClose();
     } catch (error) {
@@ -206,32 +228,13 @@ const ProjectConfigModal = ({ isOpen, onClose, project, onConfigSaved }) => {
   };
 
   const handleCancel = () => {
-    setConfig({
-      report_title: '',
-      report_subtitle: '',
-      report_prepared_by: '',
-      report_prepared_for: '',
-      report_version: '',
-      project_scope: '',
-      project_limitations: '',
-      executive_summary: '',
-      methodology: '',
-      disclaimer: '',
-      include_appendices: true,
-      include_raw_output: false,
-      include_scope_details: true,
-      include_methodology: true,
-      include_executive_summary: true,
-      page_numbering: true,
-      table_of_contents: true,
-      cover_page: true,
-      custom_sections: []
-    });
+    setConfig(defaultConfig);
     setErrors({});
+    setActiveTab('report');
+    setIsEditMode(false);
     onClose();
   };
 
-  // ✅ FIXED: FormCheckbox moved outside to prevent re-creation
   const FormCheckbox = ({ label, checked, onChange, description, name }) => (
     <div className="flex items-start space-x-4 p-4 bg-muted/30 rounded-lg border border-border hover:bg-muted/50 transition-colors">
       <button
@@ -256,9 +259,9 @@ const ProjectConfigModal = ({ isOpen, onClose, project, onConfigSaved }) => {
   );
 
   const tabs = [
-    { id: 'report', label: 'Report Settings', icon: ReportIcon },
-    { id: 'scope', label: 'Scope & Methodology', icon: ScopeIcon },
-    { id: 'advanced', label: 'Advanced Options', icon: ShieldIcon },
+    { id: 'report', label: 'Report Details', icon: ReportIcon },
+    { id: 'scope', label: 'Scope & Testing', icon: ScopeIcon },
+    { id: 'methodology', label: 'Methodology', icon: ShieldIcon },
   ];
 
   if (!isOpen) return null;
@@ -266,7 +269,7 @@ const ProjectConfigModal = ({ isOpen, onClose, project, onConfigSaved }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} maxWidth="7xl" showCloseButton={false}>
       <div className={`${theme} theme-${color} flex flex-col max-h-[90vh]`}>
-        {/* Enhanced Header */}
+        {/* Header - UI Unchanged */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
@@ -274,10 +277,10 @@ const ProjectConfigModal = ({ isOpen, onClose, project, onConfigSaved }) => {
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                Project Configuration
+                {isEditMode ? 'Edit Project Configuration' : 'Create Project Configuration'}
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Configure settings for {project?.project_name}
+                {isEditMode ? 'Update settings' : 'Configure settings'} for {project?.project_name}
               </p>
             </div>
           </div>
@@ -293,7 +296,7 @@ const ProjectConfigModal = ({ isOpen, onClose, project, onConfigSaved }) => {
           </button>
         </div>
 
-        {/* Tab Navigation */}
+        {/* Tab Navigation - UI Unchanged */}
         <div className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
           <div className="flex overflow-x-auto">
             {tabs.map((tab) => (
@@ -314,7 +317,7 @@ const ProjectConfigModal = ({ isOpen, onClose, project, onConfigSaved }) => {
           </div>
         </div>
 
-        {/* Form Content */}
+        {/* Form Content - ✅ ONLY FIELDS CHANGED */}
         <div className="flex-1 overflow-y-auto p-6">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
@@ -329,262 +332,177 @@ const ProjectConfigModal = ({ isOpen, onClose, project, onConfigSaved }) => {
               {activeTab === 'report' && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* ✅ FIXED: Using imported FormInput component */}
                     <FormInput
-                      label="Report Title"
-                      name="report_title"
-                      value={config.report_title}
+                      label="Report Document Name"
+                      name="reportDetails.reportDocName"
+                      value={config.reportDetails.reportDocName}
                       onChange={handleChange}
-                      placeholder="Enter report title"
+                      placeholder="Enter report document name"
                       required
-                      error={errors.report_title}
-                      description="Main title that will appear on the report cover"
+                      error={errors['reportDetails.reportDocName']}
+                      description="Name of the report document"
                     />
 
                     <FormInput
-                      label="Report Subtitle"
-                      name="report_subtitle"
-                      value={config.report_subtitle}
+                      label="Client Name"
+                      name="reportDetails.clientName"
+                      value={config.reportDetails.clientName}
                       onChange={handleChange}
-                      placeholder="Enter report subtitle"
-                      description="Optional subtitle for additional context"
-                    />
-
-                    <FormInput
-                      label="Prepared By"
-                      name="report_prepared_by"
-                      value={config.report_prepared_by}
-                      onChange={handleChange}
-                      placeholder="Your company/organization name"
+                      placeholder="Enter client name"
                       required
-                      error={errors.report_prepared_by}
-                      description="Organization or individual preparing the report"
+                      error={errors['reportDetails.clientName']}
+                      description="Name of the client organization"
                     />
 
                     <FormInput
-                      label="Prepared For"
-                      name="report_prepared_for"
-                      value={config.report_prepared_for}
-                      onChange={handleChange}
-                      placeholder="Client organization name"
-                      required
-                      error={errors.report_prepared_for}
-                      description="Client or organization receiving the report"
-                    />
-
-                    <FormInput
-                      label="Report Version"
-                      name="report_version"
-                      value={config.report_version}
+                      label="Version"
+                      name="reportDetails.version"
+                      value={config.reportDetails.version}
                       onChange={handleChange}
                       placeholder="e.g., v1.0, v2.1"
                       description="Version number of this report"
                     />
-                  </div>
 
-                  {/* Report Layout Options */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Report Layout Options</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormCheckbox
-                        label="Cover Page"
-                        name="cover_page"
-                        checked={config.cover_page}
-                        onChange={handleChange}
-                        description="Include a professional cover page with report details"
-                      />
-
-                      <FormCheckbox
-                        label="Table of Contents"
-                        name="table_of_contents"
-                        checked={config.table_of_contents}
-                        onChange={handleChange}
-                        description="Generate automatic table of contents with page numbers"
-                      />
-
-                      <FormCheckbox
-                        label="Page Numbering"
-                        name="page_numbering"
-                        checked={config.page_numbering}
-                        onChange={handleChange}
-                        description="Add page numbers to all report pages"
-                      />
-
-                      <FormCheckbox
-                        label="Include Executive Summary"
-                        name="include_executive_summary"
-                        checked={config.include_executive_summary}
-                        onChange={handleChange}
-                        description="Include executive summary section in the report"
-                      />
-                    </div>
+                    <FormInput
+                      label="Exhibit"
+                      name="reportDetails.exhibit"
+                      value={config.reportDetails.exhibit}
+                      onChange={handleChange}
+                      placeholder="Enter exhibit information"
+                      description="Exhibit reference or identifier"
+                    />
                   </div>
                 </div>
               )}
 
               {activeTab === 'scope' && (
                 <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormInput
+                      label="Testing Type"
+                      name="scope.testingType"
+                      value={config.scope.testingType}
+                      onChange={handleChange}
+                      placeholder="e.g., Web Application, Network, API"
+                      description="Type of penetration testing being performed"
+                    />
+
+                    <FormInput
+                      label="Domains"
+                      name="domains"
+                      value={config.scope.domains.join(', ')}
+                      onChange={(e) => handleArrayChange('scope', 'domains', e.target.value)}
+                      placeholder="domain1.com, domain2.com"
+                      description="Comma-separated list of domains in scope"
+                    />
+                  </div>
+
                   <FormInput
-                    label="Project Scope"
-                    name="project_scope"
+                    label="Application Description"
+                    name="scope.appDescription"
                     type="textarea"
-                    value={config.project_scope}
+                    value={config.scope.appDescription}
                     onChange={handleChange}
-                    placeholder="Describe the scope of this penetration test..."
-                    description="Define what is included in the testing scope"
+                    placeholder="Describe the application being tested..."
+                    description="Detailed description of the application or system"
                   />
 
                   <FormInput
-                    label="Project Limitations"
-                    name="project_limitations"
+                    label="Functionality Not Tested"
+                    name="scope.functionalityNotTested"
                     type="textarea"
-                    value={config.project_limitations}
+                    value={config.scope.functionalityNotTested}
                     onChange={handleChange}
-                    placeholder="Describe any limitations or constraints..."
-                    description="Define what is excluded or limited in the testing"
-                  />
-
-                  <FormInput
-                    label="Executive Summary"
-                    name="executive_summary"
-                    type="textarea"
-                    value={config.executive_summary}
-                    onChange={handleChange}
-                    placeholder="Enter executive summary content..."
-                    description="High-level summary for executives and decision makers"
-                  />
-
-                  <FormInput
-                    label="Methodology"
-                    name="methodology"
-                    type="textarea"
-                    value={config.methodology}
-                    onChange={handleChange}
-                    placeholder="Describe the testing methodology used..."
-                    description="Explain the approach and methods used for testing"
-                  />
-
-                  <FormInput
-                    label="Disclaimer"
-                    name="disclaimer"
-                    type="textarea"
-                    value={config.disclaimer}
-                    onChange={handleChange}
-                    placeholder="Enter legal disclaimer and limitations..."
-                    description="Legal disclaimer and liability limitations"
+                    placeholder="Describe any functionality that was not tested..."
+                    description="List any features or functionality excluded from testing"
                   />
                 </div>
               )}
 
-              {activeTab === 'advanced' && (
+              {activeTab === 'methodology' && (
                 <div className="space-y-6">
-                  {/* Advanced Report Options */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Advanced Report Options</h3>
-                    <div className="grid grid-cols-1 gap-4">
-                      <FormCheckbox
-                        label="Include Methodology Section"
-                        name="include_methodology"
-                        checked={config.include_methodology}
-                        onChange={handleChange}
-                        description="Include detailed methodology section explaining testing approach"
-                      />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* <FormInput
+                      label="Team Members"
+                      name="teamMembers"
+                      value={config.methodology.teamMembers.join(', ')}
+                      onChange={(e) => handleArrayChange('methodology', 'teamMembers', e.target.value)}
+                      placeholder="John Doe, Jane Smith"
+                      description="Comma-separated list of team members"
+                    /> */}
 
-                      <FormCheckbox
-                        label="Include Scope Details"
-                        name="include_scope_details"
-                        checked={config.include_scope_details}
-                        onChange={handleChange}
-                        description="Include detailed scope and limitations sections"
-                      />
+                    <FormInput
+                      label="Communication Methods"
+                      name="methodology.communicationMethods"
+                      value={config.methodology.communicationMethods}
+                      onChange={handleChange}
+                      placeholder="Email, Slack, Teams"
+                      description="Methods used for communication during testing"
+                    />
 
-                      <FormCheckbox
-                        label="Include Appendices"
-                        name="include_appendices"
-                        checked={config.include_appendices}
-                        onChange={handleChange}
-                        description="Include appendices with additional technical details"
-                      />
+                    <FormInput
+                      label="Session Management"
+                      name="methodology.sessionManagement"
+                      value={config.methodology.sessionManagement}
+                      onChange={handleChange}
+                      placeholder="Describe session management approach"
+                      description="How sessions were managed during testing"
+                    />
 
-                      <FormCheckbox
-                        label="Include Raw Tool Output"
-                        name="include_raw_output"
-                        checked={config.include_raw_output}
-                        onChange={handleChange}
-                        description="Include raw output from security tools (can make report very long)"
-                      />
-                    </div>
+                    <FormInput
+                      label="User Role Tested"
+                      name="methodology.userRoleTested"
+                      value={config.methodology.userRoleTested}
+                      onChange={handleChange}
+                      placeholder="Admin, User, Guest"
+                      description="User roles that were tested"
+                    />
                   </div>
 
-                  {/* Custom Sections */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Custom Sections</h3>
-                      <button
-                        type="button"
-                        onClick={addCustomSection}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                      >
-                        <PlusIcon />
-                        Add Section
-                      </button>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormCheckbox
+                      label="CVSS Included"
+                      name="methodology.cvssIncluded"
+                      checked={config.methodology.cvssIncluded}
+                      onChange={handleChange}
+                      description="Include CVSS scores in vulnerability ratings"
+                    />
 
-                    {config.custom_sections.map((section, index) => (
-                      <div key={index} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-medium text-gray-900 dark:text-gray-100">
-                            Custom Section {index + 1}
-                          </h4>
-                          <button
-                            type="button"
-                            onClick={() => removeCustomSection(index)}
-                            className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                          >
-                            <TrashIcon />
-                          </button>
-                        </div>
-                        
-                        <div className="space-y-4">
-                          <FormInput
-                            label="Section Name"
-                            value={section.name}
-                            onChange={(e) => handleCustomSectionChange(index, 'name', e.target.value)}
-                            placeholder="Enter section name"
-                          />
-
-                          <FormInput
-                            label="Section Content"
-                            type="textarea"
-                            value={section.content}
-                            onChange={(e) => handleCustomSectionChange(index, 'content', e.target.value)}
-                            placeholder="Enter section content"
-                          />
-
-                          <FormCheckbox
-                            label="Enable This Section"
-                            checked={section.enabled}
-                            onChange={(e) => handleCustomSectionChange(index, 'enabled', e.target.checked)}
-                            description="Include this section in the generated report"
-                          />
-                        </div>
-                      </div>
-                    ))}
-
-                    {config.custom_sections.length === 0 && (
-                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                        <p>No custom sections added yet.</p>
-                        <p className="text-sm">Click "Add Section" to create custom content for your report.</p>
-                      </div>
-                    )}
+                    <FormCheckbox
+                      label="Business Risk Assessment"
+                      name="methodology.businessRisk"
+                      checked={config.methodology.businessRisk}
+                      onChange={handleChange}
+                      description="Include business risk assessment in findings"
+                    />
                   </div>
+
+                  <FormInput
+                    label="Limitations"
+                    name="methodology.limitations"
+                    type="textarea"
+                    value={config.methodology.limitations}
+                    onChange={handleChange}
+                    placeholder="Describe any limitations of the testing..."
+                    description="Any constraints or limitations that affected the testing"
+                  />
+
+                  <FormInput
+                    label="Notes"
+                    name="notes"
+                    type="textarea"
+                    value={config.notes}
+                    onChange={handleChange}
+                    placeholder="Additional notes about the project..."
+                    description="General notes about the project configuration"
+                  />
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* Fixed Footer */}
+        {/* Footer - UI Unchanged */}
         <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
           <button
             type="button"
@@ -597,17 +515,17 @@ const ProjectConfigModal = ({ isOpen, onClose, project, onConfigSaved }) => {
           <button
             onClick={handleSave}
             disabled={isSaving || isLoading}
-            className="px-6 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 min-w-[120px] justify-center"
+            className="px-6 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 min-w-[140px] justify-center"
           >
             {isSaving ? (
               <>
                 <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                Saving...
+                {isEditMode ? 'Updating...' : 'Saving...'}
               </>
             ) : (
               <>
                 <SaveIcon />
-                Save Config
+                {isEditMode ? 'Update Configuration' : 'Save Configuration'}
               </>
             )}
           </button>

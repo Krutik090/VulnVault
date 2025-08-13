@@ -1,6 +1,6 @@
 // =======================================================================
-// FILE: src/features/projects/ProjectDetailsPage.jsx (PROFESSIONAL REDESIGN)
-// PURPOSE: Comprehensive project details with enhanced layout and full configuration display
+// FILE: src/features/projects/ProjectDetailsPage.jsx (DATABASE SCHEMA ALIGNED)
+// PURPOSE: Comprehensive project details with database schema configuration display
 // =======================================================================
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
@@ -15,7 +15,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import ProjectConfigModal from './ProjectConfigModal';
 import AddVulnerabilityModal from './AddVulnerabilityModal';
 
-// Enhanced Icons
+// Enhanced Icons (keeping all existing icons unchanged)
 const BackIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -120,7 +120,7 @@ const ClockIcon = () => (
   </svg>
 );
 
-// Enhanced Data Display Component
+// Enhanced Data Display Component (UI unchanged)
 const DataField = ({ label, value, icon: Icon, className = "" }) => (
   <div className={`${className}`}>
     <div className="flex items-center gap-2 mb-2">
@@ -133,7 +133,7 @@ const DataField = ({ label, value, icon: Icon, className = "" }) => (
   </div>
 );
 
-// Comprehensive Project Overview Component
+// ✅ DATABASE SCHEMA ALIGNED: Updated ProjectOverview Component
 const ProjectOverview = ({ project, timesheet, config }) => {
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -146,7 +146,7 @@ const ProjectOverview = ({ project, timesheet, config }) => {
 
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden">
-      {/* Tab Navigation */}
+      {/* Tab Navigation - UI Unchanged */}
       <div className="border-b border-border bg-muted/30">
         <div className="flex overflow-x-auto">
           {tabs.map((tab) => (
@@ -166,7 +166,7 @@ const ProjectOverview = ({ project, timesheet, config }) => {
         </div>
       </div>
 
-      {/* Tab Content */}
+      {/* Tab Content - ✅ ONLY DATA FIELDS CHANGED */}
       <div className="p-6">
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -177,7 +177,7 @@ const ProjectOverview = ({ project, timesheet, config }) => {
             />
             <DataField
               label="Client Name"
-              value={project?.clientName || config?.reportDetails?.clientName}
+              value={project?.clientName || project?.clientId?.clientName || config?.reportDetails?.clientName}
               icon={UserIcon}
             />
             <DataField
@@ -234,6 +234,7 @@ const ProjectOverview = ({ project, timesheet, config }) => {
           </div>
         )}
 
+        {/* ✅ DATABASE SCHEMA ALIGNED: Report Details Tab */}
         {activeTab === 'report' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <DataField
@@ -242,14 +243,14 @@ const ProjectOverview = ({ project, timesheet, config }) => {
               icon={DocumentIcon}
             />
             <DataField
-              label="Version"
-              value={config?.reportDetails?.version}
-              icon={SettingsIcon}
-            />
-            <DataField
               label="Client Name"
               value={config?.reportDetails?.clientName}
               icon={UserIcon}
+            />
+            <DataField
+              label="Version"
+              value={config?.reportDetails?.version}
+              icon={SettingsIcon}
             />
             <DataField
               label="Exhibit"
@@ -259,6 +260,7 @@ const ProjectOverview = ({ project, timesheet, config }) => {
           </div>
         )}
 
+        {/* ✅ DATABASE SCHEMA ALIGNED: Scope Tab */}
         {activeTab === 'scope' && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -298,6 +300,7 @@ const ProjectOverview = ({ project, timesheet, config }) => {
           </div>
         )}
 
+        {/* ✅ DATABASE SCHEMA ALIGNED: Methodology Tab */}
         {activeTab === 'methodology' && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -340,7 +343,7 @@ const ProjectOverview = ({ project, timesheet, config }) => {
               />
             </div>
 
-            <DataField
+            {/* <DataField
               label="Team Members"
               value={
                 config?.methodology?.teamMembers?.length ? (
@@ -355,7 +358,7 @@ const ProjectOverview = ({ project, timesheet, config }) => {
                 ) : null
               }
               icon={TeamIcon}
-            />
+            /> */}
 
             <DataField
               label="Limitations"
@@ -366,6 +369,7 @@ const ProjectOverview = ({ project, timesheet, config }) => {
           </div>
         )}
 
+        {/* ✅ DATABASE SCHEMA ALIGNED: Notes */}
         {config?.notes && (
           <div className="mt-8 pt-6 border-t border-border">
             <DataField
@@ -461,18 +465,19 @@ const ProjectDetailsPage = () => {
     }
   };
 
+  // ✅ FIXED: Report generation handler
   const handleGenerateReport = async () => {
     setIsGeneratingReport(true);
     try {
       const response = await generateReport(projectId);
-      if (response.success && response.data?.reportPath) {
-        const link = document.createElement('a');
-        link.href = response.data.reportPath;
-        link.download = `${project.project_name}_Report.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        toast.success('Report generated and downloaded successfully!');
+      
+      if (response.success) {
+        toast.success('Report generated successfully!');
+        
+        // If response contains a download URL, open it
+        if (response.data?.reportPath) {
+          window.open(response.data.reportPath, '_blank');
+        }
       } else {
         throw new Error(response.message || 'Report generation failed');
       }
@@ -506,7 +511,7 @@ const ProjectDetailsPage = () => {
     }
   };
 
-  // Vulnerability table columns
+  // Vulnerability table columns (unchanged)
   const vulnerabilityColumns = useMemo(() => [
     { 
       accessorKey: 'vulnName', 
@@ -567,7 +572,7 @@ const ProjectDetailsPage = () => {
     return (
       <div className={`${theme} theme-${color} min-h-screen bg-background flex items-center justify-center`}>
         <Spinner message="Loading project details..." />
-      </div>
+      </div>  
     );
   }
 
@@ -591,7 +596,7 @@ const ProjectDetailsPage = () => {
 
   return (
     <div className={`${theme} theme-${color} min-h-screen bg-background`}>
-      {/* Professional Header */}
+      {/* Professional Header - UI Unchanged */}
       <div className="bg-gradient-to-r from-primary/5 via-primary/3 to-primary/5 border-b border-border">
         <div className="max-w-7xl mx-auto py-8 px-6">
           <button
@@ -658,11 +663,12 @@ const ProjectDetailsPage = () => {
       </div>
 
       <div className="max-w-7xl mx-auto py-8 px-6">
-        {/* Enhanced Project Overview */}
+        {/* Enhanced Project Overview - ✅ ONLY DATA CHANGED */}
         <div className="mb-8">
           <ProjectOverview project={project} timesheet={timesheet} config={config} />
         </div>
 
+        {/* Rest of the component remains unchanged */}
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Main Content */}
           <div className="xl:col-span-3">
@@ -839,6 +845,7 @@ const ProjectDetailsPage = () => {
         project={project} 
         onClose={() => setIsConfigModalOpen(false)}
         isOpen={isConfigModalOpen}
+        onConfigSaved={fetchAllData}
       />
       <AddVulnerabilityModal 
         isOpen={isVulnModalOpen}
