@@ -82,15 +82,15 @@ const Sidebar = () => {
   const isUserManagementActive = location.pathname.startsWith('/manage-users') || location.pathname.startsWith('/user-tracker');
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(isUserManagementActive);
 
-  const isProjectManagementActive = location.pathname.startsWith('/project-records') || 
-                                    location.pathname.startsWith('/add-client') || 
-                                    location.pathname.startsWith('/clients/') ||
-                                    location.pathname.startsWith('/projects/');
+  const isProjectManagementActive = location.pathname.startsWith('/project-records') ||
+    location.pathname.startsWith('/add-client') ||
+    location.pathname.startsWith('/clients/') ||
+    location.pathname.startsWith('/projects/');
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(isProjectManagementActive);
 
-  const isVulnManagementActive = location.pathname.startsWith('/vulnerability-database') || 
-                                 location.pathname.startsWith('/vulnerabilities/') ||
-                                 location.pathname.startsWith('/project-vulnerabilities/');
+  const isVulnManagementActive = location.pathname.startsWith('/vulnerability-database') ||
+    location.pathname.startsWith('/vulnerabilities/') ||
+    location.pathname.startsWith('/project-vulnerabilities/');
   const [isVulnDropdownOpen, setIsVulnDropdownOpen] = useState(isVulnManagementActive);
 
   const isToolsActive = location.pathname.startsWith('/subdomain-finder');
@@ -122,24 +122,24 @@ const Sidebar = () => {
 
   const linkClasses = ({ isActive }) => `
     flex items-center px-6 py-3 transition-all duration-200 group
-    ${isActive 
-      ? 'bg-primary/10 text-primary border-r-4 border-primary font-semibold' 
+    ${isActive
+      ? 'bg-primary/10 text-primary border-r-4 border-primary font-semibold'
       : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
     }
   `;
 
   const dropdownButtonClasses = (isActive) => `
     flex items-center justify-between w-full px-6 py-3 transition-all duration-200 group
-    ${isActive 
-      ? 'bg-primary/10 text-primary font-semibold' 
+    ${isActive
+      ? 'bg-primary/10 text-primary font-semibold'
       : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
     }
   `;
 
   const subLinkClasses = ({ isActive }) => `
     flex items-center py-2 pl-16 pr-6 text-sm transition-all duration-200
-    ${isActive 
-      ? 'text-primary font-semibold bg-primary/5' 
+    ${isActive
+      ? 'text-primary font-semibold bg-primary/5'
       : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
     }
   `;
@@ -164,7 +164,7 @@ const Sidebar = () => {
         <div className="space-y-1">
           {/* Dashboard */}
           <NavLink
-            to="/dashboard"
+            to={`/${user?.role}/dashboard`}
             className={linkClasses}
             onClick={handleLinkClick}
           >
@@ -187,7 +187,7 @@ const Sidebar = () => {
                   </div>
                   <ChevronDownIcon className={isUserDropdownOpen ? 'rotate-180' : ''} />
                 </button>
-                
+
                 {isUserDropdownOpen && (
                   <div className="bg-muted/30">
                     <NavLink
@@ -222,7 +222,7 @@ const Sidebar = () => {
                   </div>
                   <ChevronDownIcon className={isProjectDropdownOpen ? 'rotate-180' : ''} />
                 </button>
-                
+
                 {isProjectDropdownOpen && (
                   <div className="bg-muted/30">
                     <NavLink
@@ -257,7 +257,7 @@ const Sidebar = () => {
                   </div>
                   <ChevronDownIcon className={isVulnDropdownOpen ? 'rotate-180' : ''} />
                 </button>
-                
+
                 {isVulnDropdownOpen && (
                   <div className="bg-muted/30">
                     <NavLink
@@ -286,7 +286,7 @@ const Sidebar = () => {
               </div>
               <ChevronDownIcon className={isToolsDropdownOpen ? 'rotate-180' : ''} />
             </button>
-            
+
             {isToolsDropdownOpen && (
               <div className="bg-muted/30">
                 <NavLink

@@ -62,7 +62,7 @@ const Navbar = () => {
   const { user, logout } = useAuth();
   const { toggleSidebar } = useUI();
   const { theme, color, toggleTheme, setColor, COLOR_THEMES } = useTheme();
-  
+
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -117,7 +117,7 @@ const Navbar = () => {
             >
               <MenuIcon />
             </button>
-            
+
             {/* App Logo/Title */}
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
@@ -157,8 +157,8 @@ const Navbar = () => {
                           onClick={toggleTheme}
                           className={`
                             flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200
-                            ${theme === 'light' 
-                              ? 'bg-primary text-primary-foreground' 
+                            ${theme === 'light'
+                              ? 'bg-primary text-primary-foreground'
                               : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                             }
                           `}
@@ -170,8 +170,8 @@ const Navbar = () => {
                           onClick={toggleTheme}
                           className={`
                             flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200
-                            ${theme === 'dark' 
-                              ? 'bg-primary text-primary-foreground' 
+                            ${theme === 'dark'
+                              ? 'bg-primary text-primary-foreground'
                               : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                             }
                           `}
@@ -194,8 +194,8 @@ const Navbar = () => {
                             onClick={() => setColor(colorTheme)}
                             className={`
                               flex flex-col items-center gap-1 p-2 rounded-lg transition-all duration-200
-                              ${color === colorTheme 
-                                ? 'bg-primary/10 ring-2 ring-primary text-primary' 
+                              ${color === colorTheme
+                                ? 'bg-primary/10 ring-2 ring-primary text-primary'
                                 : 'hover:bg-accent hover:text-accent-foreground'
                               }
                             `}
@@ -246,14 +246,14 @@ const Navbar = () => {
                   {/* Menu Items */}
                   <div className="py-2">
                     <Link
-                      to="/profile"
+                      to={`/${user?.role}/profile`}
                       className="flex items-center gap-2 px-4 py-2 text-sm text-card-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
                       onClick={() => setDropdownOpen(false)}
                     >
                       <UserCircleIcon />
                       Profile Settings
                     </Link>
-                    
+
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"

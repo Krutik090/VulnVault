@@ -1,10 +1,10 @@
 // =======================================================================
-// FILE: src/App.jsx (UPDATED FOR THEMING & REMOVED PMO)
-// PURPOSE: Add dark/light/multi-color theme + clean up routes for tester
+// FILE: src/App.jsx
+// PURPOSE: Add dark/light/multi-color theme + clean up shared routes
 // =======================================================================
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
-import { useTheme } from './contexts/ThemeContext'; // Theme Context
+import { useTheme } from './contexts/ThemeContext';
 
 // Layouts
 import AdminLayout from './layouts/AdminLayout';
@@ -30,26 +30,45 @@ import SubdomainFinderPage from './features/tools/SubdomainFinderPage';
 
 function App() {
   const { user, loading } = useAuth();
-  const { theme, color } = useTheme(); // Dark/light & color theme
+  const { theme, color } = useTheme();
 
   if (loading) {
     return <Spinner fullPage />;
   }
 
   return (
-    // Apply selected theme & color variables
     <div className={`${theme} theme-${color} min-h-screen bg-background text-foreground`}>
       <BrowserRouter>
         <Routes>
-          {/* Public / Auth Routes */}
-          <Route element={!user ? <AuthLayout /> : <Navigate to="/" />}>
+          {/* Public / Auth */}
+          <Route element={!user ? <AuthLayout /> : <Navigate to="/" replace />}>
             <Route path="/login" element={<LoginPage />} />
           </Route>
 
-          {/* Admin Routes */}
-          <Route element={user && user.role === 'admin' ? <AdminLayout /> : <Navigate to="/login" />}>
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
+          {/* Redirect root based on role */}
+          <Route
+            path="/"
+            element={
+              user
+                ? user.role === 'admin'
+                  ? <Navigate to="/admin/dashboard" replace />
+                  : user.role === 'tester'
+                    ? <Navigate to="/tester/dashboard" replace />
+                    : <Navigate to="/login" replace />
+                : <Navigate to="/login" replace />
+            }
+          />
+
+          {/* Tester */}
+          <Route element={user?.role === 'tester' ? <TesterLayout /> : <Navigate to="/login" replace />}>
+            <Route path="/tester/dashboard" element={<DashboardPage />} />
+            <Route path="/tester/profile" element={<ProfilePage />} />
+          </Route>
+
+          {/* Admin */}
+          <Route element={user?.role === 'admin' ? <AdminLayout /> : <Navigate to="/login" replace />}>
+            <Route path="/admin/dashboard" element={<DashboardPage />} />
+            <Route path="/admin/profile" element={<ProfilePage />} />
             <Route path="/manage-users" element={<ManageUsersPage />} />
             <Route path="/user-tracker" element={<UserTrackerPage />} />
             <Route path="/project-records" element={<ProjectRecordsPage />} />
@@ -59,29 +78,12 @@ function App() {
             <Route path="/ProjectVulnerabilities/instances/:vulnName" element={<VulnerabilityInstancesPage />} />
             <Route path="/ProjectVulnerabilities/instances/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} />
             <Route path="/vulnerability-database" element={<VulnerabilityDatabasePage />} />
-            <Route path="/subdomain-finder" element={<SubdomainFinderPage />} />
           </Route>
 
-          {/* Tester Routes - ONLY THESE THREE */}
-          <Route element={user && user.role === 'tester' ? <TesterLayout /> : <Navigate to="/login" />}>
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
+          {/* Shared between admin & tester */}
+          {(user?.role === 'admin' || user?.role === 'tester') && (
             <Route path="/subdomain-finder" element={<SubdomainFinderPage />} />
-          </Route>
-
-          {/* Redirect based on role */}
-          <Route
-            path="/"
-            element={
-              user
-                ? <Navigate to={
-                    user.role === 'admin' ? '/dashboard' :
-                    user.role === 'tester' ? '/dashboard' :
-                    '/login'
-                  } replace />
-                : <Navigate to="/login" replace />
-            }
-          />
+          )}
 
           {/* 404 */}
           <Route path="*" element={<div>404 Not Found</div>} />
