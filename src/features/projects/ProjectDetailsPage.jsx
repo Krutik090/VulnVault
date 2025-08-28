@@ -851,6 +851,7 @@ const ProjectDetailsPage = () => {
         isOpen={isVulnModalOpen}
         onClose={() => setIsVulnModalOpen(false)}
         projectId={projectId}
+        project={project}
         onVulnerabilityAdded={fetchAllData}
       />
     </div>
