@@ -9,13 +9,10 @@ import { getActiveProjects } from '../../api/projectApi';
 import { getAllClients } from '../../api/clientApi';
 import toast from 'react-hot-toast';
 import Spinner from '../../components/Spinner';
-import DataTable from '../../components/DataTable';
-import SearchableDropdown from '../../components/SearchableDropdown';
-import ProjectConfigModal from './ProjectConfigModal';
-import DeleteProjectModal from './DeleteProjectModal';
-import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-
+import { useTheme } from '../../contexts/ThemeContext';
+import SearchableDropdown from '../../components/SearchableDropdown';
+import DataTable from '../../components/DataTable';
 // Icons
 const PlusIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,13 +49,13 @@ const TrashIcon = () => (
 const ActiveProjectsPage = () => {
   const { user } = useAuth();
   const { theme, color } = useTheme();
-  
+
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState([]);
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
-  
+
   // Modal states
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -110,7 +107,7 @@ const ActiveProjectsPage = () => {
       accessorKey: 'project_name',
       header: 'Project Name',
       cell: ({ row }) => (
-        <Link 
+        <Link
           to={`/projects/${row.original._id}`}
           className="font-medium text-primary hover:text-primary/80 hover:underline"
         >
@@ -132,15 +129,15 @@ const ActiveProjectsPage = () => {
       header: 'Type',
       cell: ({ row }) => (
         <div className="flex flex-wrap gap-1">
-          {Array.isArray(row.original.project_type) 
+          {Array.isArray(row.original.project_type)
             ? row.original.project_type.slice(0, 2).map((type, idx) => (
-                <span 
-                  key={idx}
-                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
-                >
-                  {type}
-                </span>
-              ))
+              <span
+                key={idx}
+                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
+              >
+                {type}
+              </span>
+            ))
             : <span className="text-muted-foreground text-xs">No type</span>
           }
           {Array.isArray(row.original.project_type) && row.original.project_type.length > 2 && (
@@ -160,7 +157,7 @@ const ActiveProjectsPage = () => {
           'Completed': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
           'Archived': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
         };
-        
+
         return (
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[row.original.status] || statusColors['Not Started']}`}>
             {row.original.status}
@@ -174,7 +171,7 @@ const ActiveProjectsPage = () => {
       cell: ({ row }) => {
         const counts = row.original.vulnerabilityCounts || {};
         const total = (counts.Critical || 0) + (counts.High || 0) + (counts.Medium || 0) + (counts.Low || 0) + (counts.Info || 0);
-        
+
         return (
           <div className="flex items-center gap-2">
             {counts.Critical > 0 && (
@@ -199,7 +196,7 @@ const ActiveProjectsPage = () => {
       header: 'Start Date',
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
-          {row.original.start_date 
+          {row.original.start_date
             ? new Date(row.original.start_date).toLocaleDateString()
             : 'N/A'
           }
@@ -284,7 +281,7 @@ const ActiveProjectsPage = () => {
 
   return (
     <div className={`${theme} theme-${color} space-y-6`}>
-      
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -353,8 +350,8 @@ const ActiveProjectsPage = () => {
           )}
         </div>
       ) : (
-        <DataTable 
-          data={filteredProjects} 
+        <DataTable
+          data={filteredProjects}
           columns={columns}
           title="Active Projects"
         />

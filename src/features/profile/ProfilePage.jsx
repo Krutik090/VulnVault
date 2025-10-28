@@ -1,13 +1,15 @@
 // =======================================================================
-// FILE: src/features/profile/ProfilePage.jsx (UPDATED)
-// PURPOSE: Displays and allows editing of the user's profile with theme support.
+// FILE: src/features/user/ProfilePage.jsx (COMPLETELY UPDATED)
+// PURPOSE: User profile management with modern UI and proper backend integration
 // =======================================================================
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { getProfile, updateProfile, updatePassword } from '../../api/userApi';
-import toast from 'react-hot-toast';
+import { getCurrentUser, updateProfile, changePassword } from '../../api/userApi';
+import FormInput from '../../components/FormInput';
 import Spinner from '../../components/Spinner';
+import toast from 'react-hot-toast';
 
 // Icons
 const UserIcon = () => (
@@ -16,34 +18,9 @@ const UserIcon = () => (
   </svg>
 );
 
-const LockIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-  </svg>
-);
-
-const EditIcon = () => (
+const MailIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-  </svg>
-);
-
-const SaveIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-  </svg>
-);
-
-const EyeIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-  </svg>
-);
-
-const EyeOffIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
   </svg>
 );
 
@@ -53,461 +30,418 @@ const ShieldIcon = () => (
   </svg>
 );
 
+const LockIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+  </svg>
+);
+
+const SaveIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+  </svg>
+);
+
+const EditIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  </svg>
+);
+
+const CalendarIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+  </svg>
+);
+
 const ProfilePage = () => {
-  const { user, setUser } = useAuth();
+  const { user: authUser, updateUser } = useAuth();
   const { theme, color } = useTheme();
-  const [profile, setProfile] = useState(null);
+  
   const [isLoading, setIsLoading] = useState(true);
-  
-  // State for the Edit Profile form
-  const [name, setName] = useState('');
-  const [bio, setBio] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [profileErrors, setProfileErrors] = useState({});
-  
-  // State for the Change Password form
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSavingPassword, setIsSavingPassword] = useState(false);
-  const [passwordErrors, setPasswordErrors] = useState({});
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState('profile'); // 'profile' or 'security'
+
+  // Profile form state
+  const [profileData, setProfileData] = useState({
+    name: '',
+    email: ''
+  });
+
+  // Password form state
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await getProfile();
-        setProfile(response.data);
-        setName(response.data.name || '');
-        setBio(response.data.bio || '');
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-        toast.error('Could not load profile data.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchProfile();
+    fetchUserProfile();
   }, []);
 
-  const validateProfileForm = () => {
-    const errors = {};
-    
-    if (!name.trim()) {
-      errors.name = 'Name is required';
-    } else if (name.length < 2) {
-      errors.name = 'Name must be at least 2 characters';
+  const fetchUserProfile = async () => {
+    setIsLoading(true);
+    try {
+      const response = await getCurrentUser();
+      if (response.success) {
+        setProfileData({
+          name: response.data.name || '',
+          email: response.data.email || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      toast.error('Failed to load profile');
+    } finally {
+      setIsLoading(false);
     }
-    
-    if (bio && bio.length > 500) {
-      errors.bio = 'Bio must be less than 500 characters';
-    }
-    
-    setProfileErrors(errors);
-    return Object.keys(errors).length === 0;
   };
 
-  const validatePasswordForm = () => {
-    const errors = {};
-    
-    if (!currentPassword) {
-      errors.currentPassword = 'Current password is required';
+  const handleProfileChange = (e) => {
+    const { name, value } = e.target;
+    setProfileData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
     }
-    
-    if (!newPassword) {
-      errors.newPassword = 'New password is required';
-    } else if (newPassword.length < 8) {
-      errors.newPassword = 'Password must be at least 8 characters long';
-    }
-    
-    if (!confirmPassword) {
-      errors.confirmPassword = 'Please confirm your password';
-    } else if (newPassword !== confirmPassword) {
-      errors.confirmPassword = 'Passwords do not match';
-    }
-    
-    setPasswordErrors(errors);
-    return Object.keys(errors).length === 0;
   };
 
-  const handleProfileUpdate = async (e) => {
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validateProfile = () => {
+    const newErrors = {};
+    
+    if (!profileData.name.trim()) {
+      newErrors.name = 'Name is required';
+    }
+    
+    if (!profileData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(profileData.email)) {
+      newErrors.email = 'Email is invalid';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validatePassword = () => {
+    const newErrors = {};
+    
+    if (!passwordData.currentPassword) {
+      newErrors.currentPassword = 'Current password is required';
+    }
+    
+    if (!passwordData.newPassword) {
+      newErrors.newPassword = 'New password is required';
+    } else if (passwordData.newPassword.length < 6) {
+      newErrors.newPassword = 'Password must be at least 6 characters';
+    }
+    
+    if (!passwordData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (passwordData.newPassword !== passwordData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleProfileSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateProfileForm()) {
-      toast.error('Please fix the errors below');
+    if (!validateProfile()) {
+      toast.error('Please fix the errors in the form');
       return;
     }
 
     setIsSavingProfile(true);
     try {
-      const response = await updateProfile({ name: name.trim(), bio: bio.trim() });
-      setProfile(response.data);
-      
-      // Update the user in the global context
-      setUser(prevUser => ({ ...prevUser, name: response.data.name }));
-      
-      toast.success('Profile updated successfully!');
-      setProfileErrors({});
+      const response = await updateProfile(profileData);
+      if (response.success) {
+        toast.success('Profile updated successfully!');
+        updateUser(response.data); // Update AuthContext
+      } else {
+        toast.error(response.message || 'Failed to update profile');
+      }
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error(error.message || 'Failed to update profile.');
+      toast.error(error.message || 'Failed to update profile');
     } finally {
       setIsSavingProfile(false);
     }
   };
 
-  const handlePasswordChange = async (e) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validatePasswordForm()) {
-      toast.error('Please fix the errors below');
+    if (!validatePassword()) {
+      toast.error('Please fix the errors in the form');
       return;
     }
 
     setIsSavingPassword(true);
     try {
-      const response = await updatePassword({ currentPassword, newPassword });
-      toast.success(response.message || 'Password updated successfully!');
+      const response = await changePassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
       
-      // Clear password fields after successful update
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setPasswordErrors({});
-      
-      // Hide password visibility
-      setShowCurrentPassword(false);
-      setShowNewPassword(false);
-      setShowConfirmPassword(false);
+      if (response.success) {
+        toast.success('Password changed successfully!');
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+      } else {
+        toast.error(response.message || 'Failed to change password');
+      }
     } catch (error) {
-      console.error('Error updating password:', error);
-      toast.error(error.message || 'Failed to change password.');
+      console.error('Error changing password:', error);
+      toast.error(error.message || 'Failed to change password');
     } finally {
       setIsSavingPassword(false);
     }
   };
 
+  const getRoleBadgeColor = (role) => {
+    const colors = {
+      'admin': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800',
+      'tester': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800',
+      'client': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800'
+    };
+    return colors[role] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
+  };
+
   if (isLoading) {
     return (
-      <div className={`${theme} theme-${color} min-h-screen bg-background flex items-center justify-center`}>
-        <Spinner message="Loading your profile..." />
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Spinner size="large" />
       </div>
     );
   }
 
   return (
-    <div className={`${theme} theme-${color} min-h-screen bg-background`}>
-      <div className="max-w-4xl mx-auto py-8 px-4">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-primary/10 rounded-xl">
-              <UserIcon className="text-primary" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-card-foreground">Profile Settings</h1>
-              <p className="text-muted-foreground mt-1">
-                Manage your account settings and security preferences
-              </p>
-            </div>
+    <div className={`${theme} theme-${color} space-y-6`}>
+      
+      {/* Header */}
+      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-border rounded-lg p-6">
+        <div className="flex items-center gap-4">
+          <div className="p-4 bg-primary/10 rounded-2xl">
+            <UserIcon className="text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">My Profile</h1>
+            <p className="text-muted-foreground mt-1">
+              Manage your account settings and preferences
+            </p>
           </div>
         </div>
+      </div>
 
-        {/* Profile Overview Card */}
-        <div className="bg-card rounded-xl border border-border p-6 mb-8">
-          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
-              <span className="text-2xl font-bold text-primary">
-                {profile?.name?.charAt(0)?.toUpperCase() || 'U'}
+      {/* Profile Overview Card */}
+      <div className="bg-card border border-border rounded-lg p-6">
+        <div className="flex items-center gap-6">
+          <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
+            <span className="text-4xl font-bold text-primary">
+              {authUser?.name?.charAt(0).toUpperCase() || 'U'}
+            </span>
+          </div>
+          
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold text-foreground">{authUser?.name}</h2>
+            <div className="flex items-center gap-4 mt-2">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <MailIcon />
+                <span className="text-sm">{authUser?.email}</span>
+              </div>
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getRoleBadgeColor(authUser?.role)}`}>
+                <ShieldIcon />
+                {authUser?.role?.charAt(0).toUpperCase() + authUser?.role?.slice(1)}
               </span>
             </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold text-card-foreground">{profile?.name}</h2>
-              <p className="text-muted-foreground">{profile?.email}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <ShieldIcon className="text-primary" />
-                <span className="text-sm text-primary font-medium capitalize">
-                  {profile?.role} Account
+            {authUser?.createdAt && (
+              <div className="flex items-center gap-2 text-muted-foreground mt-2">
+                <CalendarIcon />
+                <span className="text-sm">
+                  Member since {new Date(authUser.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                 </span>
               </div>
-            </div>
+            )}
           </div>
-          {profile?.bio && (
-            <div className="mt-4 pt-4 border-t border-border">
-              <p className="text-card-foreground">{profile.bio}</p>
-            </div>
-          )}
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="border-b border-border">
+          <div className="flex">
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
+                activeTab === 'profile'
+                  ? 'text-primary border-b-2 border-primary bg-primary/5'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <EditIcon />
+                Profile Information
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('security')}
+              className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
+                activeTab === 'security'
+                  ? 'text-primary border-b-2 border-primary bg-primary/5'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <LockIcon />
+                Security Settings
+              </div>
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Edit Profile Form */}
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
-            <div className="p-6 border-b border-border bg-muted/30">
-              <div className="flex items-center gap-3">
-                <EditIcon className="text-primary" />
-                <h3 className="text-lg font-semibold text-card-foreground">Edit Profile</h3>
+        <div className="p-6">
+          {/* Profile Tab */}
+          {activeTab === 'profile' && (
+            <form onSubmit={handleProfileSubmit} className="space-y-6 max-w-2xl">
+              <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-sm text-blue-800 dark:text-blue-300">
+                  Update your profile information. Changes will be reflected across the system.
+                </p>
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                Update your personal information
-              </p>
-            </div>
 
-            <form onSubmit={handleProfileUpdate} className="p-6">
-              <div className="space-y-6">
-                {/* Name Field */}
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-card-foreground mb-2">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    value={name}
-                    onChange={(e) => {
-                      setName(e.target.value);
-                      if (profileErrors.name) {
-                        setProfileErrors(prev => ({ ...prev, name: null }));
-                      }
-                    }}
-                    className={`
-                      w-full px-4 py-3 border rounded-lg bg-background text-foreground 
-                      placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent
-                      ${profileErrors.name ? 'border-red-500' : 'border-input'}
-                      transition-all duration-200
-                    `}
-                    placeholder="Enter your full name"
-                    disabled={isSavingProfile}
-                  />
-                  {profileErrors.name && (
-                    <p className="mt-1 text-sm text-red-500">{profileErrors.name}</p>
-                  )}
-                </div>
+              <FormInput
+                label="Full Name"
+                name="name"
+                value={profileData.name}
+                onChange={handleProfileChange}
+                placeholder="Enter your full name"
+                icon={<UserIcon />}
+                required
+                error={errors.name}
+              />
 
-                {/* Bio Field */}
-                <div>
-                  <label htmlFor="bio" className="block text-sm font-medium text-card-foreground mb-2">
-                    Bio
-                  </label>
-                  <textarea
-                    id="bio"
-                    value={bio}
-                    onChange={(e) => {
-                      setBio(e.target.value);
-                      if (profileErrors.bio) {
-                        setProfileErrors(prev => ({ ...prev, bio: null }));
-                      }
-                    }}
-                    rows={4}
-                    className={`
-                      w-full px-4 py-3 border rounded-lg bg-background text-foreground 
-                      placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent
-                      ${profileErrors.bio ? 'border-red-500' : 'border-input'}
-                      transition-all duration-200 resize-none
-                    `}
-                    placeholder="Tell us about yourself..."
-                    disabled={isSavingProfile}
-                  />
-                  <div className="flex justify-between mt-1">
-                    {profileErrors.bio && (
-                      <p className="text-sm text-red-500">{profileErrors.bio}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground ml-auto">
-                      {bio.length}/500 characters
-                    </p>
-                  </div>
-                </div>
+              <FormInput
+                label="Email Address"
+                name="email"
+                type="email"
+                value={profileData.email}
+                onChange={handleProfileChange}
+                placeholder="Enter your email address"
+                icon={<MailIcon />}
+                required
+                error={errors.email}
+              />
 
-                {/* Submit Button */}
+              <div className="pt-4 border-t border-border">
                 <button
                   type="submit"
                   disabled={isSavingProfile}
-                  className="w-full bg-primary text-primary-foreground py-3 px-4 rounded-lg font-semibold hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSavingProfile ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      Updating Profile...
+                      <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      Saving...
                     </>
                   ) : (
                     <>
                       <SaveIcon />
-                      Update Profile
+                      Save Changes
                     </>
                   )}
                 </button>
               </div>
             </form>
-          </div>
+          )}
 
-          {/* Change Password Form */}
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
-            <div className="p-6 border-b border-border bg-muted/30">
-              <div className="flex items-center gap-3">
-                <LockIcon className="text-primary" />
-                <h3 className="text-lg font-semibold text-card-foreground">Change Password</h3>
+          {/* Security Tab */}
+          {activeTab === 'security' && (
+            <form onSubmit={handlePasswordSubmit} className="space-y-6 max-w-2xl">
+              <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <p className="text-sm text-amber-800 dark:text-amber-300">
+                  Choose a strong password to keep your account secure. Password must be at least 6 characters long.
+                </p>
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                Update your account password for better security
-              </p>
-            </div>
 
-            <form onSubmit={handlePasswordChange} className="p-6">
-              <div className="space-y-6">
-                {/* Current Password */}
-                <div>
-                  <label htmlFor="currentPassword" className="block text-sm font-medium text-card-foreground mb-2">
-                    Current Password *
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showCurrentPassword ? "text" : "password"}
-                      id="currentPassword"
-                      value={currentPassword}
-                      onChange={(e) => {
-                        setCurrentPassword(e.target.value);
-                        if (passwordErrors.currentPassword) {
-                          setPasswordErrors(prev => ({ ...prev, currentPassword: null }));
-                        }
-                      }}
-                      className={`
-                        w-full px-4 py-3 pr-12 border rounded-lg bg-background text-foreground 
-                        placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent
-                        ${passwordErrors.currentPassword ? 'border-red-500' : 'border-input'}
-                        transition-all duration-200
-                      `}
-                      placeholder="Enter current password"
-                      disabled={isSavingPassword}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      disabled={isSavingPassword}
-                    >
-                      {showCurrentPassword ? <EyeOffIcon /> : <EyeIcon />}
-                    </button>
-                  </div>
-                  {passwordErrors.currentPassword && (
-                    <p className="mt-1 text-sm text-red-500">{passwordErrors.currentPassword}</p>
-                  )}
-                </div>
+              <FormInput
+                label="Current Password"
+                name="currentPassword"
+                type="password"
+                value={passwordData.currentPassword}
+                onChange={handlePasswordChange}
+                placeholder="Enter your current password"
+                icon={<LockIcon />}
+                required
+                error={errors.currentPassword}
+              />
 
-                {/* New Password */}
-                <div>
-                  <label htmlFor="newPassword" className="block text-sm font-medium text-card-foreground mb-2">
-                    New Password *
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showNewPassword ? "text" : "password"}
-                      id="newPassword"
-                      value={newPassword}
-                      onChange={(e) => {
-                        setNewPassword(e.target.value);
-                        if (passwordErrors.newPassword) {
-                          setPasswordErrors(prev => ({ ...prev, newPassword: null }));
-                        }
-                      }}
-                      className={`
-                        w-full px-4 py-3 pr-12 border rounded-lg bg-background text-foreground 
-                        placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent
-                        ${passwordErrors.newPassword ? 'border-red-500' : 'border-input'}
-                        transition-all duration-200
-                      `}
-                      placeholder="Enter new password"
-                      disabled={isSavingPassword}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      disabled={isSavingPassword}
-                    >
-                      {showNewPassword ? <EyeOffIcon /> : <EyeIcon />}
-                    </button>
-                  </div>
-                  {passwordErrors.newPassword && (
-                    <p className="mt-1 text-sm text-red-500">{passwordErrors.newPassword}</p>
-                  )}
-                </div>
+              <FormInput
+                label="New Password"
+                name="newPassword"
+                type="password"
+                value={passwordData.newPassword}
+                onChange={handlePasswordChange}
+                placeholder="Enter new password (min. 6 characters)"
+                icon={<LockIcon />}
+                required
+                error={errors.newPassword}
+              />
 
-                {/* Confirm Password */}
-                <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-card-foreground mb-2">
-                    Confirm New Password *
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      id="confirmPassword"
-                      value={confirmPassword}
-                      onChange={(e) => {
-                        setConfirmPassword(e.target.value);
-                        if (passwordErrors.confirmPassword) {
-                          setPasswordErrors(prev => ({ ...prev, confirmPassword: null }));
-                        }
-                      }}
-                      className={`
-                        w-full px-4 py-3 pr-12 border rounded-lg bg-background text-foreground 
-                        placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent
-                        ${passwordErrors.confirmPassword ? 'border-red-500' : 'border-input'}
-                        transition-all duration-200
-                      `}
-                      placeholder="Confirm new password"
-                      disabled={isSavingPassword}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      disabled={isSavingPassword}
-                    >
-                      {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
-                    </button>
-                  </div>
-                  {passwordErrors.confirmPassword && (
-                    <p className="mt-1 text-sm text-red-500">{passwordErrors.confirmPassword}</p>
-                  )}
-                </div>
+              <FormInput
+                label="Confirm New Password"
+                name="confirmPassword"
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={handlePasswordChange}
+                placeholder="Confirm your new password"
+                icon={<LockIcon />}
+                required
+                error={errors.confirmPassword}
+              />
 
-                {/* Submit Button */}
+              <div className="pt-4 border-t border-border">
                 <button
                   type="submit"
                   disabled={isSavingPassword}
-                  className="w-full bg-secondary text-secondary-foreground py-3 px-4 rounded-lg font-semibold hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSavingPassword ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      Updating Password...
+                      <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      Updating...
                     </>
                   ) : (
                     <>
-                      <LockIcon />
-                      Change Password
+                      <SaveIcon />
+                      Update Password
                     </>
                   )}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-
-        {/* Security Notice */}
-        <div className="mt-8 p-4 bg-muted/30 border border-border rounded-lg">
-          <div className="flex items-start gap-3">
-            <ShieldIcon className="text-primary mt-1 flex-shrink-0" />
-            <div>
-              <h4 className="text-sm font-medium text-card-foreground mb-1">Security Notice</h4>
-              <p className="text-sm text-muted-foreground">
-                Keep your account secure by using a strong password and updating your profile information regularly. 
-                Never share your credentials with others.
-              </p>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

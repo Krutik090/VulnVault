@@ -1,6 +1,6 @@
 // =======================================================================
-// FILE: src/components/Sidebar.jsx (FIXED COLLAPSE ANIMATION)
-// PURPOSE: Fixed dropdown collapse with proper animations
+// FILE: src/components/Sidebar.jsx (UPDATED WITH STATISTICS)
+// PURPOSE: Fixed dropdown collapse with Statistics Dashboard
 // =======================================================================
 
 import { useState, useEffect } from 'react';
@@ -9,11 +9,17 @@ import { useUI } from '../contexts/UIContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 
-// Icons (keep all your existing icons)
+// Icons
 const DashboardIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z" />
+  </svg>
+);
+
+const ChartBarIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
   </svg>
 );
 
@@ -46,7 +52,6 @@ const FolderIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
   </svg>
 );
-
 
 const ToolsIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -99,6 +104,7 @@ const Sidebar = () => {
   const isProjectManagementActive = location.pathname.startsWith('/project-records') ||
     location.pathname.startsWith('/add-client') ||
     location.pathname.startsWith('/clients/') ||
+    location.pathname.startsWith('/active-projects') ||
     location.pathname.startsWith('/projects/');
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(isProjectManagementActive);
 
@@ -125,6 +131,7 @@ const Sidebar = () => {
   useEffect(() => {
     if (isVulnManagementActive) setIsVulnDropdownOpen(true);
   }, [isVulnManagementActive]);
+
   useEffect(() => {
     if (isClientManagementActive) setIsClientDropdownOpen(true);
   }, [isClientManagementActive]);
@@ -204,10 +211,22 @@ const Sidebar = () => {
               <span className="text-sm font-medium">Dashboard</span>
             </NavLink>
 
+            {/* Statistics Dashboard - Admin & Tester */}
+            {(user?.role === 'admin' || user?.role === 'tester') && (
+              <NavLink
+                to="/statistics"
+                className={linkClasses}
+                onClick={handleLinkClick}
+              >
+                <ChartBarIcon />
+                <span className="text-sm font-medium">Statistics</span>
+              </NavLink>
+            )}
+
             {/* Admin-only sections */}
             {user?.role === 'admin' && (
               <>
-                {/* User Management - ✅ FIXED COLLAPSE */}
+                {/* User Management */}
                 <div>
                   <button
                     onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
@@ -222,7 +241,6 @@ const Sidebar = () => {
                     </div>
                   </button>
 
-                  {/* ✅ FIXED: Proper collapse animation */}
                   {isUserDropdownOpen && (
                     <div className="mt-1 space-y-1 animate-slideIn">
                       <NavLink
@@ -245,7 +263,7 @@ const Sidebar = () => {
                   )}
                 </div>
 
-                {/* Project Management - ✅ FIXED COLLAPSE */}
+                {/* Project Management */}
                 <div>
                   <button
                     onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
@@ -281,7 +299,7 @@ const Sidebar = () => {
                       </NavLink>
                       {user?.role === 'admin' && (
                         <NavLink
-                          to="/projects/add"  // ✅ Changed from modal to page
+                          to="/projects/add"
                           className={subLinkClasses}
                           onClick={handleLinkClick}
                         >
@@ -324,7 +342,7 @@ const Sidebar = () => {
                   </div>
                 )}
 
-                {/* Vulnerability Management - ✅ FIXED COLLAPSE */}
+                {/* Vulnerability Management */}
                 <div>
                   <button
                     onClick={() => setIsVulnDropdownOpen(!isVulnDropdownOpen)}
@@ -355,7 +373,7 @@ const Sidebar = () => {
               </>
             )}
 
-            {/* Tools Section - ✅ FIXED COLLAPSE */}
+            {/* Tools Section */}
             <div>
               <button
                 onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)}

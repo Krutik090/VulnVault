@@ -7,12 +7,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getClientProjects } from '../../api/projectApi';
 import toast from 'react-hot-toast';
-import Spinner from '../../components/Spinner';
-import DataTable from '../../components/DataTable';
-import ProjectConfigModal from '../projects/ProjectConfigModal';
-import AddEditProjectModal from '../projects/AddEditProjectModal';
-import DeleteProjectModal from '../projects/DeleteProjectModal';
-import { useTheme } from '../../contexts/ThemeContext';
 
 // Icons
 const EditIcon = () => (

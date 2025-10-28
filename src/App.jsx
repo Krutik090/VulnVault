@@ -1,6 +1,6 @@
 // =======================================================================
-// FILE: src/App.jsx
-// PURPOSE: Add dark/light/multi-color theme + clean up shared routes
+// FILE: src/App.jsx (COMPLETELY REFACTORED)
+// PURPOSE: Clean routing structure with shared routes
 // =======================================================================
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
@@ -10,6 +10,7 @@ import { useTheme } from './contexts/ThemeContext';
 import AdminLayout from './layouts/AdminLayout';
 import TesterLayout from './layouts/TesterLayout';
 import AuthLayout from './layouts/AuthLayout';
+import SharedLayout from './layouts/SharedLayout';
 
 // Pages
 import LoginPage from './features/auth/LoginPage';
@@ -31,6 +32,7 @@ import ClientDetailsPage from './features/clients/ClientDetailsPage';
 import AddProjectPage from './features/projects/AddProjectPage';
 import ProjectConfigPage from './features/projects/ProjectConfigPage';
 import AddVulnerabilityPage from './features/projects/AddVulnerabilityPage';
+import StatisticsDashboardPage from './features/dashboard/StatisticsDashboardPage';
 
 function App() {
   const { user, loading } = useAuth();
@@ -44,12 +46,12 @@ function App() {
     <div className={`${theme} theme-${color} min-h-screen bg-background text-foreground`}>
       <BrowserRouter>
         <Routes>
-          {/* Public / Auth */}
+          {/* ==================== PUBLIC ROUTES ==================== */}
           <Route element={!user ? <AuthLayout /> : <Navigate to="/" replace />}>
             <Route path="/login" element={<LoginPage />} />
           </Route>
 
-          {/* Redirect root based on role */}
+          {/* ==================== ROOT REDIRECT ==================== */}
           <Route
             path="/"
             element={
@@ -63,18 +65,33 @@ function App() {
             }
           />
 
-          {/* Tester */}
+          {/* ==================== SHARED ROUTES (Admin + Tester) ==================== */}
+          <Route element={
+            (user?.role === 'admin' || user?.role === 'tester') 
+              ? <SharedLayout /> 
+              : <Navigate to="/login" replace />
+          }>
+            <Route path="/subdomain-finder" element={<SubdomainFinderPage />} />
+          </Route>
+
+          {/* ==================== TESTER ONLY ROUTES ==================== */}
           <Route element={user?.role === 'tester' ? <TesterLayout /> : <Navigate to="/login" replace />}>
             <Route path="/tester/dashboard" element={<DashboardPage />} />
             <Route path="/tester/profile" element={<ProfilePage />} />
           </Route>
 
-          {/* Admin */}
+          {/* ==================== ADMIN ONLY ROUTES ==================== */}
           <Route element={user?.role === 'admin' ? <AdminLayout /> : <Navigate to="/login" replace />}>
+            {/* Dashboard & Profile */}
             <Route path="/admin/dashboard" element={<DashboardPage />} />
             <Route path="/admin/profile" element={<ProfilePage />} />
+            <Route path="/statistics" element={<StatisticsDashboardPage />} />
+
+            {/* User Management */}
             <Route path="/manage-users" element={<ManageUsersPage />} />
             <Route path="/user-tracker" element={<UserTrackerPage />} />
+
+            {/* Project Management */}
             <Route path="/active-projects" element={<ActiveProjectsPage />} />
             <Route path="/project-records" element={<ProjectRecordsPage />} />
             <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
@@ -82,23 +99,26 @@ function App() {
             <Route path="/projects/:projectId/config" element={<ProjectConfigPage />} />
             <Route path="/projects/:projectId/add-vulnerability" element={<AddVulnerabilityPage />} />
 
+            {/* Vulnerability Management */}
             <Route path="/ProjectVulnerabilities/instances/:vulnName" element={<VulnerabilityInstancesPage />} />
             <Route path="/ProjectVulnerabilities/instances/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} />
             <Route path="/vulnerability-database" element={<VulnerabilityDatabasePage />} />
-            // Client Management Routes
+
+            {/* Client Management */}
             <Route path="/clients" element={<ClientsPage />} />
             <Route path="/clients/:clientId" element={<ClientDetailsPage />} />
             <Route path="/clients/:clientId/projects" element={<ClientProjectsPage />} />
-
           </Route>
 
-          {/* Shared between admin & tester */}
-          {(user?.role === 'admin' || user?.role === 'tester') && (
-            <Route path="/subdomain-finder" element={<SubdomainFinderPage />} />
-          )}
-
-          {/* 404 */}
-          <Route path="*" element={<div>404 Not Found</div>} />
+          {/* ==================== 404 NOT FOUND ==================== */}
+          <Route path="*" element={
+            <div className="flex items-center justify-center min-h-screen">
+              <div className="text-center">
+                <h1 className="text-6xl font-bold text-primary">404</h1>
+                <p className="text-xl text-muted-foreground mt-4">Page Not Found</p>
+              </div>
+            </div>
+          } />
         </Routes>
       </BrowserRouter>
     </div>
