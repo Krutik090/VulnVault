@@ -279,14 +279,16 @@ const Sidebar = () => {
                         <ProjectsIcon />
                         <span>Project Records</span>
                       </NavLink>
-                      <NavLink
-                        to="/add-client"
-                        className={subLinkClasses}
-                        onClick={handleLinkClick}
-                      >
-                        <PlusIcon />
-                        <span>Add Client</span>
-                      </NavLink>
+                      {user?.role === 'admin' && (
+                        <NavLink
+                          to="/projects/add"  // ✅ Changed from modal to page
+                          className={subLinkClasses}
+                          onClick={handleLinkClick}
+                        >
+                          <PlusIcon />
+                          <span>Add Project</span>
+                        </NavLink>
+                      )}
                     </div>
                   )}
                 </div>
@@ -316,14 +318,6 @@ const Sidebar = () => {
                         >
                           <UsersIcon />
                           <span>All Clients</span>
-                        </NavLink>
-                        <NavLink
-                          to="/add-client"
-                          className={subLinkClasses}
-                          onClick={handleLinkClick}
-                        >
-                          <PlusIcon />
-                          <span>Add Client</span>
                         </NavLink>
                       </div>
                     )}
