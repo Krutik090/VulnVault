@@ -1,7 +1,8 @@
 // =======================================================================
-// FILE: src/layouts/DashboardLayout.jsx (UPDATED)
-// PURPOSE: A shared layout component for all dashboard pages with theme support.
+// FILE: src/layouts/DashboardLayout.jsx (UPDATED - MAXIMUM SPACE USAGE)
+// PURPOSE: A shared layout component with minimal padding for maximum space
 // =======================================================================
+
 import { Outlet } from 'react-router-dom';
 import { UIProvider, useUI } from '../contexts/UIContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -14,46 +15,37 @@ const DashboardContent = () => {
   const { theme, color } = useTheme();
 
   return (
-    <div className={`${theme} theme-${color} min-h-screen bg-background`}>
-      <div className="flex h-screen overflow-hidden">
-        {/* Sidebar */}
-        <div className={`
-          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border
-          transform transition-transform duration-300 ease-in-out
-          lg:translate-x-0 lg:static lg:inset-0
-        `}>
-          <Sidebar />
-        </div>
+    <div className={`${theme} theme-${color} flex h-screen overflow-hidden bg-background`}>
+      {/* Sidebar */}
+      <Sidebar />
 
-        {/* Overlay for mobile */}
-        {isSidebarOpen && (
-          <div
-            className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
-            onClick={toggleSidebar}
-          />
-        )}
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-black/50 backdrop-blur-sm lg:hidden"
+          onClick={toggleSidebar}
+          aria-hidden="true"
+        />
+      )}
 
-        {/* Main content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Navbar */}
-          <header className="bg-card border-b border-border shadow-sm">
-            <Navbar />
-          </header>
+      {/* Main Content Area */}
+      <div className="flex flex-col flex-1 overflow-hidden w-full">
+        {/* Navbar */}
+        <Navbar />
 
-          {/* Page content */}
-          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background">
-            <div className="container mx-auto px-6 py-8">
-              <Outlet />
-            </div>
-          </main>
-        </div>
+        {/* Page Content - MINIMAL PADDING FOR MAXIMUM SPACE */}
+        <main className="flex-1 overflow-y-auto bg-background w-full">
+          {/* Reduced padding: p-3 on mobile, p-4 on desktop */}  
+          <div className="w-full h-full p-3 md:p-4 lg:p-10">
+            <Outlet />
+          </div>
+        </main>
       </div>
     </div>
   );
 };
 
-// Main component with UIProvider wrapper
+// Main component that provides context
 const DashboardLayout = () => {
   return (
     <UIProvider>

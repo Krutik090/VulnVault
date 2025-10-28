@@ -1,7 +1,8 @@
 // =======================================================================
-// FILE: src/features/clients/AddClientPage.jsx (UPDATED)
-// PURPOSE: A page for admins to add a new client with theme support and advanced UI.
+// FILE: src/features/clients/AddClientPage.jsx (UPDATED - PROPER SPACING)
+// PURPOSE: Add new client with consistent spacing
 // =======================================================================
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -23,7 +24,7 @@ const BuildingIcon = () => (
 
 const MailIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
   </svg>
 );
 
@@ -35,13 +36,13 @@ const LocationIcon = () => (
 );
 
 const ArrowLeftIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
   </svg>
 );
 
 const CheckIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
   </svg>
 );
@@ -60,8 +61,7 @@ const AddClientPage = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
-    // Clear error when user starts typing
+
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
     }
@@ -69,19 +69,19 @@ const AddClientPage = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.clientName.trim()) {
       newErrors.clientName = 'Client name is required';
     } else if (formData.clientName.length < 2) {
       newErrors.clientName = 'Client name must be at least 2 characters';
     }
-    
+
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -99,11 +99,9 @@ const AddClientPage = () => {
       const response = await addClient(formData);
       toast.success(response.message || 'Client added successfully!');
       
-      // Reset the form
       setFormData({ clientName: '', location: '', email: '' });
       setErrors({});
       
-      // Navigate back to project records or clients list after a delay
       setTimeout(() => {
         navigate('/project-records');
       }, 1500);
@@ -115,172 +113,162 @@ const AddClientPage = () => {
   };
 
   const handleCancel = () => {
-    navigate(-1); // Go back to previous page
+    navigate(-1);
   };
 
   return (
-    <div className={`${theme} theme-${color} min-h-screen bg-background`}>
-      <div className="max-w-4xl mx-auto py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={handleCancel}
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
-          >
-            <ArrowLeftIcon />
-            <span className="text-sm">Back</span>
-          </button>
-          
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-primary/10 rounded-xl">
+    // ✅ REMOVED: max-w-7xl mx-auto - uses parent container spacing
+    <div className={`${theme} theme-${color} space-y-6`}>
+      
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
               <UserGroupIcon className="text-primary" />
             </div>
+            Add New Client
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Create a new client record to start managing their penetration testing projects.
+          </p>
+        </div>
+        
+        <button
+          onClick={handleCancel}
+          className="inline-flex items-center gap-2 px-4 py-2 border border-input rounded-lg hover:bg-accent transition-colors text-sm font-medium"
+        >
+          <ArrowLeftIcon />
+          Back
+        </button>
+      </div>
+
+      {/* Info Alert */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <p className="text-sm text-blue-800 dark:text-blue-200">
+          💡 Please fill in the client details below. All fields marked with <span className="text-red-500">*</span> are required.
+        </p>
+      </div>
+
+      {/* Form Card */}
+      <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-border bg-muted/30">
+          <h2 className="text-lg font-semibold text-foreground">Client Information</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Enter the basic details about the client organization
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="space-y-6">
+            
+            {/* Client Name */}
             <div>
-              <h1 className="text-3xl font-bold text-card-foreground">Add New Client</h1>
-              <p className="text-muted-foreground mt-1">
-                Create a new client record to start managing their penetration testing projects.
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Client Name <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <BuildingIcon className="text-muted-foreground" />
+                </div>
+                <input
+                  type="text"
+                  name="clientName"
+                  value={formData.clientName}
+                  onChange={handleChange}
+                  placeholder="Enter client or organization name"
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
+                    errors.clientName ? 'border-red-500' : 'border-input'
+                  }`}
+                  disabled={isSaving}
+                />
+              </div>
+              {errors.clientName && (
+                <p className="mt-2 text-sm text-red-600">{errors.clientName}</p>
+              )}
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Email Address <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <MailIcon className="text-muted-foreground" />
+                </div>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="client@example.com"
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
+                    errors.email ? 'border-red-500' : 'border-input'
+                  }`}
+                  disabled={isSaving}
+                />
+              </div>
+              {errors.email && (
+                <p className="mt-2 text-sm text-red-600">{errors.email}</p>
+              )}
+            </div>
+
+            {/* Location */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Location <span className="text-muted-foreground text-xs">(Optional)</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <LocationIcon className="text-muted-foreground" />
+                </div>
+                <input
+                  type="text"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  placeholder="City, Country"
+                  className="w-full pl-10 pr-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                  disabled={isSaving}
+                />
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Enter the client's primary location or headquarters
               </p>
             </div>
           </div>
-        </div>
 
-        {/* Form Card */}
-        <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
-          {/* Card Header */}
-          <div className="p-6 border-b border-border bg-muted/30">
-            <h2 className="text-xl font-semibold text-card-foreground">Client Information</h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Please fill in the client details below. All fields marked with * are required.
-            </p>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-4 mt-8 pt-6 border-t border-border">
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+            >
+              {isSaving ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  Adding Client...
+                </>
+              ) : (
+                <>
+                  <CheckIcon />
+                  Add Client
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={isSaving}
+              className="px-6 py-3 border border-input rounded-lg hover:bg-accent transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
           </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Client Name */}
-              <div className="md:col-span-2">
-                <label htmlFor="clientName" className="block text-sm font-medium text-card-foreground mb-2">
-                  Client Name *
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <BuildingIcon className="text-muted-foreground" />
-                  </div>
-                  <input
-                    type="text"
-                    id="clientName"
-                    name="clientName"
-                    value={formData.clientName}
-                    onChange={handleChange}
-                    className={`
-                      w-full pl-10 pr-4 py-3 border rounded-lg bg-background text-foreground 
-                      placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent
-                      ${errors.clientName ? 'border-red-500' : 'border-input'}
-                      transition-all duration-200
-                    `}
-                    placeholder="e.g., Secure Corp Technologies"
-                    disabled={isSaving}
-                  />
-                </div>
-                {errors.clientName && (
-                  <p className="mt-1 text-sm text-red-500">{errors.clientName}</p>
-                )}
-              </div>
-
-              {/* Email */}
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-card-foreground mb-2">
-                  Email Address *
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MailIcon className="text-muted-foreground" />
-                  </div>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className={`
-                      w-full pl-10 pr-4 py-3 border rounded-lg bg-background text-foreground 
-                      placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent
-                      ${errors.email ? 'border-red-500' : 'border-input'}
-                      transition-all duration-200
-                    `}
-                    placeholder="contact@securecorp.com"
-                    disabled={isSaving}
-                  />
-                </div>
-                {errors.email && (
-                  <p className="mt-1 text-sm text-red-500">{errors.email}</p>
-                )}
-              </div>
-
-              {/* Location */}
-              <div>
-                <label htmlFor="location" className="block text-sm font-medium text-card-foreground mb-2">
-                  Location
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <LocationIcon className="text-muted-foreground" />
-                  </div>
-                  <input
-                    type="text"
-                    id="location"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all duration-200"
-                    placeholder="New York, NY, USA"
-                    disabled={isSaving}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Form Actions */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-end pt-6 mt-6 border-t border-border">
-              <button
-                type="button"
-                onClick={handleCancel}
-                disabled={isSaving}
-                className="px-6 py-2.5 border border-input text-muted-foreground bg-background hover:bg-accent hover:text-accent-foreground rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSaving || !formData.clientName.trim() || !formData.email.trim()}
-                className="px-6 py-2.5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[140px]"
-              >
-                {isSaving ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <CheckIcon />
-                    Add Client
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Help Text */}
-        <div className="mt-6 p-4 bg-muted/30 border border-border rounded-lg">
-          <h3 className="text-sm font-medium text-card-foreground mb-2">What happens next?</h3>
-          <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• The client will be added to your system for project management</li>
-            <li>• You can create penetration testing projects for this client</li>
-            <li>• Client information can be updated later if needed</li>
-            <li>• Email notifications will be sent to the provided email address</li>
-          </ul>
-        </div>
+        </form>
       </div>
     </div>
   );

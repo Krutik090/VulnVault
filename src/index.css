@@ -1,6 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* =======================================================================
+   RESET & FONT CONFIGURATION
+   ======================================================================= */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Headings use Poppins */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+}
 
 /* =======================================================================
    BASE STYLES & CSS VARIABLES FOR THEME SYSTEM
@@ -8,220 +35,218 @@
 
 :root {
   /* Light theme default colors (blue theme) */
-  --color-primary: #2563eb;      /* blue-600 */
+  --color-primary: #2563eb; /* blue-600 */
   --color-primary-foreground: #ffffff;
-  --color-secondary: #64748b;    /* slate-500 */
+  --color-secondary: #64748b; /* slate-500 */
   --color-secondary-foreground: #ffffff;
-  --color-accent: #6366f1;       /* indigo-500 */
+  --color-accent: #6366f1; /* indigo-500 */
   --color-accent-foreground: #ffffff;
   --color-background: #ffffff;
-  --color-foreground: #0f172a;   /* slate-900 */
-  --color-muted: #f1f5f9;        /* slate-100 */
+  --color-foreground: #0f172a; /* slate-900 */
+  --color-muted: #f1f5f9; /* slate-100 */
   --color-muted-foreground: #64748b; /* slate-500 */
   --color-card: #ffffff;
   --color-card-foreground: #0f172a;
-  --color-border: #e2e8f0;       /* slate-200 */
+  --color-border: #e2e8f0; /* slate-200 */
   --color-input: #ffffff;
-  --color-ring: #2563eb;         /* blue-600 */
+  --color-ring: #2563eb; /* blue-600 */
 }
 
 /* Dark theme overrides */
 .dark {
-  --color-primary: #3b82f6;      /* blue-500 */
+  --color-primary: #3b82f6; /* blue-500 */
   --color-primary-foreground: #ffffff;
-  --color-secondary: #475569;    /* slate-600 */
-  --color-secondary-foreground: #ffffff;
-  --color-accent: #6366f1;       /* indigo-500 */
+  --color-secondary: #475569; /* slate-600 */
+  --color-secondary-foreground: #f1f5f9;
+  --color-accent: #818cf8; /* indigo-400 */
   --color-accent-foreground: #ffffff;
-  --color-background: #0f172a;   /* slate-900 */
-  --color-foreground: #f8fafc;   /* slate-50 */
-  --color-muted: #1e293b;        /* slate-800 */
+  --color-background: #0f172a; /* slate-900 */
+  --color-foreground: #f1f5f9; /* slate-100 */
+  --color-muted: #1e293b; /* slate-800 */
   --color-muted-foreground: #94a3b8; /* slate-400 */
-  --color-card: #1e293b;         /* slate-800 */
-  --color-card-foreground: #f8fafc;
-  --color-border: #334155;       /* slate-700 */
-  --color-input: #1e293b;        /* slate-800 */
-  --color-ring: #3b82f6;         /* blue-500 */
+  --color-card: #1e293b; /* slate-800 */
+  --color-card-foreground: #f1f5f9;
+  --color-border: #334155; /* slate-700 */
+  --color-input: #1e293b;
+  --color-ring: #3b82f6; /* blue-500 */
 }
 
 /* =======================================================================
    COLOR THEME VARIATIONS
    ======================================================================= */
 
-/* Rose Theme */
-.theme-rose {
-  --color-primary: #e11d48;      /* rose-600 */
-  --color-accent: #f43f5e;       /* rose-500 */
-  --color-ring: #e11d48;
+/* Blue Theme (Default) */
+.theme-blue {
+  --color-primary: #2563eb;
+  --color-ring: #2563eb;
 }
 
-.theme-rose.dark {
-  --color-primary: #f43f5e;      /* rose-500 */
-  --color-accent: #fb7185;       /* rose-400 */
-  --color-ring: #f43f5e;
+.dark.theme-blue {
+  --color-primary: #3b82f6;
+  --color-ring: #3b82f6;
 }
 
-/* Emerald Theme */
-.theme-emerald {
-  --color-primary: #059669;      /* emerald-600 */
-  --color-accent: #10b981;       /* emerald-500 */
-  --color-ring: #059669;
+/* Green Theme */
+.theme-green {
+  --color-primary: #16a34a;
+  --color-ring: #16a34a;
 }
 
-.theme-emerald.dark {
-  --color-primary: #10b981;      /* emerald-500 */
-  --color-accent: #34d399;       /* emerald-400 */
-  --color-ring: #10b981;
+.dark.theme-green {
+  --color-primary: #22c55e;
+  --color-ring: #22c55e;
 }
 
-/* Violet Theme */
-.theme-violet {
-  --color-primary: #7c3aed;      /* violet-600 */
-  --color-accent: #8b5cf6;       /* violet-500 */
-  --color-ring: #7c3aed;
+/* Purple Theme */
+.theme-purple {
+  --color-primary: #9333ea;
+  --color-ring: #9333ea;
 }
 
-.theme-violet.dark {
-  --color-primary: #8b5cf6;      /* violet-500 */
-  --color-accent: #a78bfa;       /* violet-400 */
-  --color-ring: #8b5cf6;
+.dark.theme-purple {
+  --color-primary: #a855f7;
+  --color-ring: #a855f7;
 }
 
-/* Amber Theme */
-.theme-amber {
-  --color-primary: #d97706;      /* amber-600 */
-  --color-accent: #f59e0b;       /* amber-500 */
-  --color-ring: #d97706;
+/* Red Theme */
+.theme-red {
+  --color-primary: #dc2626;
+  --color-ring: #dc2626;
 }
 
-.theme-amber.dark {
-  --color-primary: #f59e0b;      /* amber-500 */
-  --color-accent: #fbbf24;       /* amber-400 */
-  --color-ring: #f59e0b;
-}
-
-/* Teal Theme */
-.theme-teal {
-  --color-primary: #0d9488;      /* teal-600 */
-  --color-accent: #14b8a6;       /* teal-500 */
-  --color-ring: #0d9488;
-}
-
-.theme-teal.dark {
-  --color-primary: #14b8a6;      /* teal-500 */
-  --color-accent: #2dd4bf;       /* teal-400 */
-  --color-ring: #14b8a6;
+.dark.theme-red {
+  --color-primary: #ef4444;
+  --color-ring: #ef4444;
 }
 
 /* Orange Theme */
 .theme-orange {
-  --color-primary: #ea580c;      /* orange-600 */
-  --color-accent: #f97316;       /* orange-500 */
+  --color-primary: #ea580c;
   --color-ring: #ea580c;
 }
 
-.theme-orange.dark {
-  --color-primary: #f97316;      /* orange-500 */
-  --color-accent: #fb923c;       /* orange-400 */
+.dark.theme-orange {
+  --color-primary: #f97316;
   --color-ring: #f97316;
 }
 
-/* Blue Theme (default) */
-.theme-blue {
-  --color-primary: #2563eb;      /* blue-600 */
-  --color-accent: #6366f1;       /* indigo-500 */
-  --color-ring: #2563eb;
-}
-
-.theme-blue.dark {
-  --color-primary: #3b82f6;      /* blue-500 */
-  --color-accent: #6366f1;       /* indigo-500 */
-  --color-ring: #3b82f6;
-}
-
 /* =======================================================================
-   UTILITY CLASSES FOR THEME VARIABLES
+   APPLY CSS VARIABLES AS TAILWIND UTILITIES
    ======================================================================= */
 
-.bg-background { background-color: var(--color-background); }
-.bg-foreground { background-color: var(--color-foreground); }
-.bg-primary { background-color: var(--color-primary); }
-.bg-secondary { background-color: var(--color-secondary); }
-.bg-accent { background-color: var(--color-accent); }
-.bg-muted { background-color: var(--color-muted); }
-.bg-card { background-color: var(--color-card); }
-
-.text-background { color: var(--color-background); }
-.text-foreground { color: var(--color-foreground); }
-.text-primary { color: var(--color-primary); }
-.text-secondary { color: var(--color-secondary); }
-.text-accent { color: var(--color-accent); }
-.text-muted-foreground { color: var(--color-muted-foreground); }
-.text-card-foreground { color: var(--color-card-foreground); }
-
-.border-border { border-color: var(--color-border); }
-.border-input { border-color: var(--color-border); }
-.border-primary { border-color: var(--color-primary); }
-
-.ring-ring { --tw-ring-color: var(--color-ring); }
-
-/* =======================================================================
-   CKEDITOR CUSTOM STYLES (EXISTING)
-   ======================================================================= */
-
-.ck-editor-container .ck.ck-editor__main > .ck-editor__editable {
-  @apply min-h-[150px];
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+  }
 }
 
-.ck-editor-container .ck.ck-toolbar {
-  @apply bg-gray-50 border-gray-300;
+/* Define custom color utilities that use CSS variables */
+@layer utilities {
+  /* Background colors */
+  .bg-background {
+    background-color: var(--color-background);
+  }
+  .bg-foreground {
+    background-color: var(--color-foreground);
+  }
+  .bg-card {
+    background-color: var(--color-card);
+  }
+  .bg-primary {
+    background-color: var(--color-primary);
+  }
+  .bg-secondary {
+    background-color: var(--color-secondary);
+  }
+  .bg-accent {
+    background-color: var(--color-accent);
+  }
+  .bg-muted {
+    background-color: var(--color-muted);
+  }
+  
+  /* Text colors */
+  .text-foreground {
+    color: var(--color-foreground);
+  }
+  .text-background {
+    color: var(--color-background);
+  }
+  .text-card-foreground {
+    color: var(--color-card-foreground);
+  }
+  .text-primary {
+    color: var(--color-primary);
+  }
+  .text-primary-foreground {
+    color: var(--color-primary-foreground);
+  }
+  .text-secondary {
+    color: var(--color-secondary);
+  }
+  .text-secondary-foreground {
+    color: var(--color-secondary-foreground);
+  }
+  .text-accent {
+    color: var(--color-accent);
+  }
+  .text-accent-foreground {
+    color: var(--color-accent-foreground);
+  }
+  .text-muted-foreground {
+    color: var(--color-muted-foreground);
+  }
+  
+  /* Border colors */
+  .border-border {
+    border-color: var(--color-border);
+  }
+  .border-input {
+    border-color: var(--color-border);
+  }
+  .border-primary {
+    border-color: var(--color-primary);
+  }
+  .border-accent {
+    border-color: var(--color-accent);
+  }
+  
+  /* Ring colors */
+  .ring-ring {
+    --tw-ring-color: var(--color-ring);
+  }
+  .ring-primary {
+    --tw-ring-color: var(--color-primary);
+  }
+  
+  /* Focus ring */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
 }
 
-.ck-editor-container .ck.ck-editor__editable:focus {
-  --tw-ring-color: #EC008C;
-  border-color: #EC008C !important;
-  box-shadow: 0 0 0 1px #EC008C !important;
-}
-
-/* Hide CKEditor branding */
-.ck-powered-by {
-  display: none !important;
-}
-
-/* Dark mode CKEditor adjustments */
-.dark .ck-editor-container .ck.ck-toolbar {
-  @apply bg-slate-800 border-slate-600;
-}
-
-.dark .ck-editor-container .ck.ck-editor__main > .ck-editor__editable {
-  @apply bg-slate-800 text-slate-100 border-slate-600;
-}
-
-/* =======================================================================
-   SMOOTH TRANSITIONS FOR THEME CHANGES
-   ======================================================================= */
-
+/* Smooth transitions for theme changes */
 * {
-  transition: background-color 0.2s ease-in-out, 
-              color 0.2s ease-in-out, 
-              border-color 0.2s ease-in-out;
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }
 
 /* =======================================================================
-   SCROLLBAR STYLING (OPTIONAL)
+   SCROLLBAR STYLING
    ======================================================================= */
-
-/* Webkit browsers */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
   background: var(--color-muted);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: var(--color-muted-foreground);
   border-radius: 4px;
 }
 
@@ -229,8 +254,49 @@
   background: var(--color-primary);
 }
 
-/* Firefox */
+/* Firefox scrollbar */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-border) var(--color-muted);
+  scrollbar-color: var(--color-muted-foreground) var(--color-muted);
+}
+
+/* =======================================================================
+   CUSTOM UTILITIES
+   ======================================================================= */
+.text-balance {
+  text-wrap: balance;
+}
+
+/* Ensure proper backdrop blur support */
+.backdrop-blur-sm {
+  backdrop-filter: blur(4px);
+}
+
+/* Animation utilities */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out;
 }

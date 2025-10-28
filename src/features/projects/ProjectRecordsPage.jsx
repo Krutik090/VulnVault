@@ -88,7 +88,7 @@ const ProjectRecordsPage = () => {
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [projectToEdit, setProjectToEdit] = useState(null);
   const [projectToDelete, setProjectToDelete] = useState(null);
-  
+
   const { theme, color } = useTheme();
   const { user } = useAuth();
 
@@ -162,11 +162,11 @@ const ProjectRecordsPage = () => {
   }, [projects]);
 
   const columns = useMemo(() => [
-    { 
-      accessorKey: 'project_name', 
+    {
+      accessorKey: 'project_name',
       header: 'Project Name',
       cell: ({ getValue, row }) => (
-        <Link 
+        <Link
           to={`/clients/${row.original.clientId}/projects`}
           className="text-primary hover:text-primary/80 font-medium hover:underline transition-colors"
         >
@@ -174,15 +174,15 @@ const ProjectRecordsPage = () => {
         </Link>
       )
     },
-    { 
-      accessorKey: 'clientName', 
+    {
+      accessorKey: 'clientName',
       header: 'Client',
       cell: ({ getValue }) => (
         <span className="text-card-foreground">{getValue() || 'Unknown Client'}</span>
       )
     },
-    { 
-      accessorKey: 'projectType', 
+    {
+      accessorKey: 'projectType',
       header: 'Project Type',
       cell: ({ getValue }) => {
         const types = getValue() || [];
@@ -202,13 +202,13 @@ const ProjectRecordsPage = () => {
         );
       }
     },
-    { 
-      accessorKey: 'projectStart', 
+    {
+      accessorKey: 'projectStart',
       header: 'Start Date',
       cell: ({ getValue }) => {
         const date = getValue();
         if (!date) return <span className="text-muted-foreground">Not set</span>;
-        
+
         return (
           <div className="flex items-center gap-2">
             <CalendarIcon className="text-muted-foreground" />
@@ -219,13 +219,13 @@ const ProjectRecordsPage = () => {
         );
       }
     },
-    { 
-      accessorKey: 'projectEnd', 
+    {
+      accessorKey: 'projectEnd',
       header: 'End Date',
       cell: ({ getValue }) => {
         const date = getValue();
         if (!date) return <span className="text-muted-foreground">Not set</span>;
-        
+
         return (
           <div className="flex items-center gap-2">
             <CalendarIcon className="text-muted-foreground" />
@@ -236,8 +236,8 @@ const ProjectRecordsPage = () => {
         );
       }
     },
-    { 
-      accessorKey: 'status', 
+    {
+      accessorKey: 'status',
       header: 'Status',
       cell: ({ getValue }) => {
         const status = statusMap[getValue()];
@@ -248,15 +248,15 @@ const ProjectRecordsPage = () => {
         );
       }
     },
-    { 
-      accessorKey: 'assets', 
+    {
+      accessorKey: 'assets',
       header: 'Pentesters',
       cell: ({ getValue }) => {
         const assets = getValue() || [];
         if (assets.length === 0) {
           return <span className="text-muted-foreground text-sm">Not assigned</span>;
         }
-        
+
         return (
           <div className="flex items-center gap-2">
             <UserIcon className="text-muted-foreground" />
@@ -267,8 +267,8 @@ const ProjectRecordsPage = () => {
         );
       }
     },
-    { 
-      id: 'actions', 
+    {
+      id: 'actions',
       header: 'Actions',
       cell: ({ row }) => (
         <div className="flex items-center gap-1">
@@ -282,9 +282,9 @@ const ProjectRecordsPage = () => {
           {user?.role === 'admin' && (
             <>
               <button
-                onClick={() => { 
-                  setProjectToEdit(row.original); 
-                  setIsProjectModalOpen(true); 
+                onClick={() => {
+                  setProjectToEdit(row.original);
+                  setIsProjectModalOpen(true);
                 }}
                 className="p-2 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
                 title="Edit Project"
@@ -314,7 +314,7 @@ const ProjectRecordsPage = () => {
 
   return (
     <div className={`${theme} theme-${color} min-h-screen bg-background`}>
-      <div className="max-w-7xl mx-auto py-8 px-4">
+      <div className={`${theme} theme-${color} space-y-6`}>
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -426,7 +426,7 @@ const ProjectRecordsPage = () => {
                 {projects.length === 0 ? 'No Projects Found' : 'No Results Found'}
               </h3>
               <p className="text-muted-foreground mb-6">
-                {projects.length === 0 
+                {projects.length === 0
                   ? 'No projects have been created yet. Create your first project to get started.'
                   : 'No projects match your current filter criteria. Try adjusting your filters.'
                 }
@@ -442,9 +442,9 @@ const ProjectRecordsPage = () => {
               )}
             </div>
           ) : (
-            <DataTable 
-              data={filteredProjects} 
-              columns={columns} 
+            <DataTable
+              data={filteredProjects}
+              columns={columns}
               title={`Project Records${statusFilter ? ' (Filtered)' : ''}`}
             />
           )}
@@ -464,20 +464,20 @@ const ProjectRecordsPage = () => {
       {/* Modals */}
       {user?.role === 'admin' && (
         <>
-          <ProjectConfigModal 
-            project={projectToConfig} 
-            onClose={() => setProjectToConfig(null)} 
+          <ProjectConfigModal
+            project={projectToConfig}
+            onClose={() => setProjectToConfig(null)}
           />
-          <AddEditProjectModal 
-            isOpen={isProjectModalOpen} 
-            onClose={() => setIsProjectModalOpen(false)} 
-            onSave={handleProjectSaved} 
+          <AddEditProjectModal
+            isOpen={isProjectModalOpen}
+            onClose={() => setIsProjectModalOpen(false)}
+            onSave={handleProjectSaved}
             projectToEdit={projectToEdit}
           />
-          <DeleteProjectModal 
-            project={projectToDelete} 
-            onClose={() => setProjectToDelete(null)} 
-            onProjectDeleted={fetchProjects} 
+          <DeleteProjectModal
+            project={projectToDelete}
+            onClose={() => setProjectToDelete(null)}
+            onProjectDeleted={fetchProjects}
           />
         </>
       )}

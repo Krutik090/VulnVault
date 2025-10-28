@@ -1,14 +1,17 @@
+// =======================================================================
+// FILE: src/contexts/ThemeContext.jsx (UPDATED - Export COLOR_THEMES)
+// PURPOSE: Theme context with color palette support
+// =======================================================================
+
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 
-// --- Available color themes. Extend as needed; these must match your CSS variable setup in index.css ---
-const COLOR_THEMES = [
-  "blue",      // Default/demo
-  "rose",
-  "emerald",
-  "violet",
-  "amber",
-  "teal",
-  "orange"
+// ✅ UPDATED: Color themes with proper labels and color classes for UI display
+export const COLOR_THEMES = [
+  { value: "blue", label: "Blue", colorClass: "bg-blue-600" },
+  { value: "green", label: "Green", colorClass: "bg-green-600" },
+  { value: "purple", label: "Purple", colorClass: "bg-purple-600" },
+  { value: "red", label: "Red", colorClass: "bg-red-600" },
+  { value: "orange", label: "Orange", colorClass: "bg-orange-600" }
 ];
 
 // --- Context + PROVIDER ---
@@ -28,13 +31,14 @@ export function ThemeProvider({ children }) {
   const getInitialColor = () => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("theme-color");
-      if (COLOR_THEMES.includes(stored)) return stored;
+      const validColor = COLOR_THEMES.find(t => t.value === stored);
+      if (validColor) return stored;
     }
-    return COLOR_THEMES[0];
+    return COLOR_THEMES[0].value; // Default to first color (blue)
   };
 
-  const [theme, setTheme] = useState(getInitialTheme);   // "light" | "dark"
-  const [color, setColor] = useState(getInitialColor);   // "blue" | "rose" | etc
+  const [theme, setTheme] = useState(getInitialTheme); // "light" | "dark"
+  const [color, setColor] = useState(getInitialColor); // "blue" | "green" | etc
 
   // --- Toggle dark/light ---
   const toggleTheme = useCallback(() => {
@@ -50,7 +54,7 @@ export function ThemeProvider({ children }) {
 
   // --- Apply color theme class to <html> (for CSS vars, etc.) ---
   useEffect(() => {
-    COLOR_THEMES.forEach((c) => document.documentElement.classList.remove(`theme-${c}`));
+    COLOR_THEMES.forEach((c) => document.documentElement.classList.remove(`theme-${c.value}`));
     document.documentElement.classList.add(`theme-${color}`);
     localStorage.setItem("theme-color", color);
   }, [color]);
@@ -67,14 +71,7 @@ export function ThemeProvider({ children }) {
   }, []);
 
   return (
-    <ThemeContext.Provider value={{
-      theme,
-      color,
-      setTheme,
-      setColor,
-      toggleTheme,
-      COLOR_THEMES
-    }}>
+    <ThemeContext.Provider value={{ theme, color, toggleTheme, setColor, COLOR_THEMES }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -153,11 +153,10 @@ const ProjectOverview = ({ project, timesheet, config }) => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'text-primary border-b-2 border-primary bg-background'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-              }`}
+              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors whitespace-nowrap ${activeTab === tab.id
+                ? 'text-primary border-b-2 border-primary bg-background'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
             >
               <tab.icon />
               {tab.label}
@@ -198,11 +197,10 @@ const ProjectOverview = ({ project, timesheet, config }) => {
             <DataField
               label="Status"
               value={
-                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                  project?.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${project?.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
                   project?.status === 'in-progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' :
-                  'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-                }`}>
+                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                  }`}>
                   {project?.status || 'Active'}
                 </span>
               }
@@ -307,9 +305,8 @@ const ProjectOverview = ({ project, timesheet, config }) => {
               <DataField
                 label="CVSS Included"
                 value={
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    config?.methodology?.cvssIncluded ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config?.methodology?.cvssIncluded ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
                     {config?.methodology?.cvssIncluded ? 'Yes' : 'No'}
                   </span>
                 }
@@ -318,9 +315,8 @@ const ProjectOverview = ({ project, timesheet, config }) => {
               <DataField
                 label="Business Risk Included"
                 value={
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    config?.methodology?.businessRisk ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config?.methodology?.businessRisk ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
                     {config?.methodology?.businessRisk ? 'Yes' : 'No'}
                   </span>
                 }
@@ -446,7 +442,7 @@ const ProjectDetailsPage = () => {
       setProject(projectRes.data);
       setConfig(configRes.data);
       setTimesheet(timesheetRes.data);
-      
+
       // Transform API response to match UI expectations
       const vulnData = vulnerabilitiesRes.data || [];
       const transformedVulnerabilities = vulnData.map(vuln => ({
@@ -455,7 +451,7 @@ const ProjectDetailsPage = () => {
         maxSeverity: vuln.severity
       }));
       setVulnerabilities(transformedVulnerabilities);
-      
+
       setNotes(notesRes.data || []);
     } catch (error) {
       console.error('Error fetching project data:', error);
@@ -470,10 +466,10 @@ const ProjectDetailsPage = () => {
     setIsGeneratingReport(true);
     try {
       const response = await generateReport(projectId);
-      
+
       if (response.success) {
         toast.success('Report generated successfully!');
-        
+
         // If response contains a download URL, open it
         if (response.data?.reportPath) {
           window.open(response.data.reportPath, '_blank');
@@ -500,7 +496,7 @@ const ProjectDetailsPage = () => {
       await addProjectNote(projectId, { text: noteText.trim() });
       toast.success('Note added successfully');
       setNoteText('');
-      
+
       const notesRes = await getProjectNotes(projectId);
       setNotes(notesRes.data || []);
     } catch (error) {
@@ -513,11 +509,11 @@ const ProjectDetailsPage = () => {
 
   // Vulnerability table columns (unchanged)
   const vulnerabilityColumns = useMemo(() => [
-    { 
-      accessorKey: 'vulnName', 
+    {
+      accessorKey: 'vulnName',
       header: 'Vulnerability Name',
       cell: ({ getValue, row }) => (
-        <Link 
+        <Link
           to={`/ProjectVulnerabilities/instances/${encodeURIComponent(getValue())}?projectName=${encodeURIComponent(project?.project_name || '')}`}
           className="text-primary hover:text-primary/80 font-medium hover:underline transition-colors flex items-center gap-2"
         >
@@ -526,8 +522,8 @@ const ProjectDetailsPage = () => {
         </Link>
       )
     },
-    { 
-      accessorKey: 'instanceCount', 
+    {
+      accessorKey: 'instanceCount',
       header: 'Instances',
       cell: ({ getValue }) => (
         <div className="flex items-center gap-2">
@@ -540,13 +536,13 @@ const ProjectDetailsPage = () => {
         </div>
       )
     },
-    { 
-      accessorKey: 'maxSeverity', 
+    {
+      accessorKey: 'maxSeverity',
       header: 'Highest Severity',
       cell: ({ getValue }) => {
         const severity = getValue();
         if (!severity) return <span className="text-muted-foreground">Unknown</span>;
-        
+
         const getSeverityColor = (sev) => {
           const colors = {
             'Critical': 'text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20 dark:text-red-400',
@@ -557,7 +553,7 @@ const ProjectDetailsPage = () => {
           };
           return colors[sev] || 'text-gray-600 bg-gray-50 border-gray-200';
         };
-        
+
         return (
           <div className={`inline-flex items-center px-3 py-1 rounded-md text-sm font-medium border ${getSeverityColor(severity)}`}>
             <AlertTriangleIcon className="w-3 h-3 mr-1" />
@@ -572,7 +568,7 @@ const ProjectDetailsPage = () => {
     return (
       <div className={`${theme} theme-${color} min-h-screen bg-background flex items-center justify-center`}>
         <Spinner message="Loading project details..." />
-      </div>  
+      </div>
     );
   }
 
@@ -598,7 +594,7 @@ const ProjectDetailsPage = () => {
     <div className={`${theme} theme-${color} min-h-screen bg-background`}>
       {/* Professional Header - UI Unchanged */}
       <div className="bg-gradient-to-r from-primary/5 via-primary/3 to-primary/5 border-b border-border">
-        <div className="max-w-7xl mx-auto py-8 px-6">
+        <div className="py-4">
           <button
             onClick={() => navigate(-1)}
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6 text-sm"
@@ -606,7 +602,7 @@ const ProjectDetailsPage = () => {
             <BackIcon />
             Back to Projects
           </button>
-          
+
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex items-center gap-4">
               <div className="p-4 bg-primary/10 rounded-2xl">
@@ -647,7 +643,7 @@ const ProjectDetailsPage = () => {
                   </>
                 )}
               </button>
-              
+
               {user?.role === 'admin' && (
                 <button
                   onClick={() => setIsConfigModalOpen(true)}
@@ -662,7 +658,8 @@ const ProjectDetailsPage = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto py-8 px-6">
+      <div className="space-y-8">
+
         {/* Enhanced Project Overview - ✅ ONLY DATA CHANGED */}
         <div className="mb-8">
           <ProjectOverview project={project} timesheet={timesheet} config={config} />
@@ -696,7 +693,7 @@ const ProjectDetailsPage = () => {
                   </button>
                 </div>
               </div>
-              
+
               {vulnerabilities.length === 0 ? (
                 <div className="p-12 text-center">
                   <div className="w-20 h-20 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -704,7 +701,7 @@ const ProjectDetailsPage = () => {
                   </div>
                   <h4 className="text-lg font-semibold text-card-foreground mb-2">No Vulnerabilities Found</h4>
                   <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                    Great news! No security vulnerabilities have been identified for this project yet. 
+                    Great news! No security vulnerabilities have been identified for this project yet.
                     This indicates a strong security posture.
                   </p>
                   <button
@@ -716,8 +713,8 @@ const ProjectDetailsPage = () => {
                   </button>
                 </div>
               ) : (
-                <DataTable 
-                  data={vulnerabilities} 
+                <DataTable
+                  data={vulnerabilities}
                   columns={vulnerabilityColumns}
                   showPagination={vulnerabilities.length > 10}
                 />
@@ -740,7 +737,7 @@ const ProjectDetailsPage = () => {
                   </div>
                   <div className="text-sm text-muted-foreground">Unique Vulnerabilities</div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-3 text-center">
                   <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
                     <div className="text-xl font-bold text-red-600">
@@ -785,7 +782,7 @@ const ProjectDetailsPage = () => {
                 <NoteIcon />
                 Project Notes
               </h3>
-              
+
               {/* Add Note Form */}
               <div className="mb-6">
                 <textarea
@@ -841,13 +838,13 @@ const ProjectDetailsPage = () => {
       </div>
 
       {/* Modals */}
-      <ProjectConfigModal 
-        project={project} 
+      <ProjectConfigModal
+        project={project}
         onClose={() => setIsConfigModalOpen(false)}
         isOpen={isConfigModalOpen}
         onConfigSaved={fetchAllData}
       />
-      <AddVulnerabilityModal 
+      <AddVulnerabilityModal
         isOpen={isVulnModalOpen}
         onClose={() => setIsVulnModalOpen(false)}
         projectId={projectId}

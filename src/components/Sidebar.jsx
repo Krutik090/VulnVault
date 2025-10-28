@@ -1,14 +1,15 @@
 // =======================================================================
-// FILE: src/components/Sidebar.jsx (UPDATED)
-// PURPOSE: Advanced sidebar navigation with theme support and role-based menu items.
+// FILE: src/components/Sidebar.jsx (FIXED COLLAPSE ANIMATION)
+// PURPOSE: Fixed dropdown collapse with proper animations
 // =======================================================================
+
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useUI } from '../contexts/UIContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 
-// Icons
+// Icons (keep all your existing icons)
 const DashboardIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
@@ -72,6 +73,12 @@ const EyeIcon = () => (
   </svg>
 );
 
+const CloseIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
 const Sidebar = () => {
   const { user } = useAuth();
   const { isSidebarOpen, toggleSidebar } = useUI();
@@ -121,15 +128,15 @@ const Sidebar = () => {
   };
 
   const linkClasses = ({ isActive }) => `
-    flex items-center px-6 py-3 transition-all duration-200 group
+    flex items-center gap-3 px-4 py-3 rounded-lg mx-2 transition-all duration-200 group
     ${isActive
-      ? 'bg-primary/10 text-primary border-r-4 border-primary font-semibold'
+      ? 'bg-primary text-primary-foreground shadow-md font-semibold'
       : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
     }
   `;
 
   const dropdownButtonClasses = (isActive) => `
-    flex items-center justify-between w-full px-6 py-3 transition-all duration-200 group
+    flex items-center justify-between w-full px-4 py-3 rounded-lg mx-2 transition-all duration-200 group
     ${isActive
       ? 'bg-primary/10 text-primary font-semibold'
       : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
@@ -137,203 +144,222 @@ const Sidebar = () => {
   `;
 
   const subLinkClasses = ({ isActive }) => `
-    flex items-center py-2 pl-16 pr-6 text-sm transition-all duration-200
+    flex items-center gap-3 py-2.5 pl-12 pr-4 mx-2 text-sm rounded-lg transition-all duration-200
     ${isActive
-      ? 'text-primary font-semibold bg-primary/5'
-      : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+      ? 'text-primary font-medium bg-primary/5 border-l-4 border-primary'
+      : 'text-muted-foreground hover:text-foreground hover:bg-accent/50 border-l-4 border-transparent'
     }
   `;
 
   return (
-    <div className={`${theme} theme-${color} h-full bg-card border-r border-border flex flex-col`}>
-      {/* Sidebar Header */}
-      <div className="p-6 border-b border-border">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-            <ShieldIcon />
+    <>
+      <aside
+        className={`${theme} theme-${color} fixed lg:static inset-y-0 left-0 z-30 w-72 h-screen overflow-hidden bg-card border-r border-border flex flex-col shadow-lg transform transition-transform duration-300 ease-in-out ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between h-16 px-6 border-b border-border bg-gradient-to-r from-primary/5 to-primary/10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg">
+              <ShieldIcon className="text-primary-foreground" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-card-foreground">PenTest Pro</h2>
+              <p className="text-xs text-muted-foreground capitalize">{user?.role} Panel</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-bold text-card-foreground">PenTest Pro</h2>
-            <p className="text-xs text-muted-foreground capitalize">{user?.role} Panel</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation Menu */}
-      <nav className="flex-1 py-4 overflow-y-auto">
-        <div className="space-y-1">
-          {/* Dashboard */}
-          <NavLink
-            to={`/${user?.role}/dashboard`}
-            className={linkClasses}
-            onClick={handleLinkClick}
+          
+          <button
+            onClick={toggleSidebar}
+            className="lg:hidden p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+            aria-label="Close sidebar"
           >
-            <DashboardIcon />
-            <span className="ml-3">Dashboard</span>
-          </NavLink>
+            <CloseIcon />
+          </button>
+        </div>
 
-          {/* Admin-only sections */}
-          {user?.role === 'admin' && (
-            <>
-              {/* User Management */}
-              <div>
-                <button
-                  onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                  className={dropdownButtonClasses(isUserManagementActive)}
-                >
-                  <div className="flex items-center">
-                    <UsersIcon />
-                    <span className="ml-3">User Management</span>
-                  </div>
-                  <ChevronDownIcon className={isUserDropdownOpen ? 'rotate-180' : ''} />
-                </button>
-
-                {isUserDropdownOpen && (
-                  <div className="bg-muted/30">
-                    <NavLink
-                      to="/manage-users"
-                      className={subLinkClasses}
-                      onClick={handleLinkClick}
-                    >
-                      <UsersIcon />
-                      <span className="ml-3">Manage Users</span>
-                    </NavLink>
-                    <NavLink
-                      to="/user-tracker"
-                      className={subLinkClasses}
-                      onClick={handleLinkClick}
-                    >
-                      <EyeIcon />
-                      <span className="ml-3">User Tracker</span>
-                    </NavLink>
-                  </div>
-                )}
-              </div>
-
-              {/* Project Management */}
-              <div>
-                <button
-                  onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
-                  className={dropdownButtonClasses(isProjectManagementActive)}
-                >
-                  <div className="flex items-center">
-                    <ProjectsIcon />
-                    <span className="ml-3">Projects</span>
-                  </div>
-                  <ChevronDownIcon className={isProjectDropdownOpen ? 'rotate-180' : ''} />
-                </button>
-
-                {isProjectDropdownOpen && (
-                  <div className="bg-muted/30">
-                    <NavLink
-                      to="/project-records"
-                      className={subLinkClasses}
-                      onClick={handleLinkClick}
-                    >
-                      <ProjectsIcon />
-                      <span className="ml-3">Project Records</span>
-                    </NavLink>
-                    <NavLink
-                      to="/add-client"
-                      className={subLinkClasses}
-                      onClick={handleLinkClick}
-                    >
-                      <PlusIcon />
-                      <span className="ml-3">Add Client</span>
-                    </NavLink>
-                  </div>
-                )}
-              </div>
-
-              {/* Vulnerability Management */}
-              <div>
-                <button
-                  onClick={() => setIsVulnDropdownOpen(!isVulnDropdownOpen)}
-                  className={dropdownButtonClasses(isVulnManagementActive)}
-                >
-                  <div className="flex items-center">
-                    <DatabaseIcon />
-                    <span className="ml-3">Vulnerabilities</span>
-                  </div>
-                  <ChevronDownIcon className={isVulnDropdownOpen ? 'rotate-180' : ''} />
-                </button>
-
-                {isVulnDropdownOpen && (
-                  <div className="bg-muted/30">
-                    <NavLink
-                      to="/vulnerability-database"
-                      className={subLinkClasses}
-                      onClick={handleLinkClick}
-                    >
-                      <DatabaseIcon />
-                      <span className="ml-3">Vulnerability Database</span>
-                    </NavLink>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* Tools Section - Available to both admin and tester */}
-          <div>
-            <button
-              onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)}
-              className={dropdownButtonClasses(isToolsActive)}
-            >
-              <div className="flex items-center">
-                <ToolsIcon />
-                <span className="ml-3">Security Tools</span>
-              </div>
-              <ChevronDownIcon className={isToolsDropdownOpen ? 'rotate-180' : ''} />
-            </button>
-
-            {isToolsDropdownOpen && (
-              <div className="bg-muted/30">
-                <NavLink
-                  to="/subdomain-finder"
-                  className={subLinkClasses}
-                  onClick={handleLinkClick}
-                >
-                  <ToolsIcon />
-                  <span className="ml-3">Subdomain Finder</span>
-                </NavLink>
-              </div>
-            )}
-          </div>
-
-          {/* Tester-only sections */}
-          {user?.role === 'tester' && (
+        {/* Navigation Menu */}
+        <nav className="flex-1 overflow-y-auto py-6 px-2">
+          <div className="space-y-2">
+            {/* Dashboard */}
             <NavLink
-              to="/time-tracker"
+              to={`/${user?.role}/dashboard`}
               className={linkClasses}
               onClick={handleLinkClick}
             >
-              <TimeIcon />
-              <span className="ml-3">Time Tracker</span>
+              <DashboardIcon />
+              <span className="text-sm font-medium">Dashboard</span>
             </NavLink>
-          )}
-        </div>
-      </nav>
 
-      {/* Sidebar Footer */}
-      <div className="p-4 border-t border-border">
-        <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-            <span className="text-primary font-semibold text-sm">
-              {user?.name?.charAt(0) || 'U'}
-            </span>
+            {/* Admin-only sections */}
+            {user?.role === 'admin' && (
+              <>
+                {/* User Management - ✅ FIXED COLLAPSE */}
+                <div>
+                  <button
+                    onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                    className={dropdownButtonClasses(isUserManagementActive)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <UsersIcon />
+                      <span className="text-sm font-medium">User Management</span>
+                    </div>
+                    <div className={isUserDropdownOpen ? 'rotate-180' : ''}>
+                      <ChevronDownIcon />
+                    </div>
+                  </button>
+
+                  {/* ✅ FIXED: Proper collapse animation */}
+                  {isUserDropdownOpen && (
+                    <div className="mt-1 space-y-1 animate-slideIn">
+                      <NavLink
+                        to="/manage-users"
+                        className={subLinkClasses}
+                        onClick={handleLinkClick}
+                      >
+                        <UsersIcon />
+                        <span>Manage Users</span>
+                      </NavLink>
+                      <NavLink
+                        to="/user-tracker"
+                        className={subLinkClasses}
+                        onClick={handleLinkClick}
+                      >
+                        <EyeIcon />
+                        <span>User Tracker</span>
+                      </NavLink>
+                    </div>
+                  )}
+                </div>
+
+                {/* Project Management - ✅ FIXED COLLAPSE */}
+                <div>
+                  <button
+                    onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+                    className={dropdownButtonClasses(isProjectManagementActive)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <ProjectsIcon />
+                      <span className="text-sm font-medium">Projects</span>
+                    </div>
+                    <div className={isProjectDropdownOpen ? 'rotate-180' : ''}>
+                      <ChevronDownIcon />
+                    </div>
+                  </button>
+
+                  {isProjectDropdownOpen && (
+                    <div className="mt-1 space-y-1 animate-slideIn">
+                      <NavLink
+                        to="/project-records"
+                        className={subLinkClasses}
+                        onClick={handleLinkClick}
+                      >
+                        <ProjectsIcon />
+                        <span>Project Records</span>
+                      </NavLink>
+                      <NavLink
+                        to="/add-client"
+                        className={subLinkClasses}
+                        onClick={handleLinkClick}
+                      >
+                        <PlusIcon />
+                        <span>Add Client</span>
+                      </NavLink>
+                    </div>
+                  )}
+                </div>
+
+                {/* Vulnerability Management - ✅ FIXED COLLAPSE */}
+                <div>
+                  <button
+                    onClick={() => setIsVulnDropdownOpen(!isVulnDropdownOpen)}
+                    className={dropdownButtonClasses(isVulnManagementActive)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <DatabaseIcon />
+                      <span className="text-sm font-medium">Vulnerabilities</span>
+                    </div>
+                    <div className={isVulnDropdownOpen ? 'rotate-180' : ''}>
+                      <ChevronDownIcon />
+                    </div>
+                  </button>
+
+                  {isVulnDropdownOpen && (
+                    <div className="mt-1 space-y-1 animate-slideIn">
+                      <NavLink
+                        to="/vulnerability-database"
+                        className={subLinkClasses}
+                        onClick={handleLinkClick}
+                      >
+                        <DatabaseIcon />
+                        <span>Vulnerability Database</span>
+                      </NavLink>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Tools Section - ✅ FIXED COLLAPSE */}
+            <div>
+              <button
+                onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)}
+                className={dropdownButtonClasses(isToolsActive)}
+              >
+                <div className="flex items-center gap-3">
+                  <ToolsIcon />
+                  <span className="text-sm font-medium">Security Tools</span>
+                </div>
+                <div className={isToolsDropdownOpen ? 'rotate-180' : ''}>
+                  <ChevronDownIcon />
+                </div>
+              </button>
+
+              {isToolsDropdownOpen && (
+                <div className="mt-1 space-y-1 animate-slideIn">
+                  <NavLink
+                    to="/subdomain-finder"
+                    className={subLinkClasses}
+                    onClick={handleLinkClick}
+                  >
+                    <ToolsIcon />
+                    <span>Subdomain Finder</span>
+                  </NavLink>
+                </div>
+              )}
+            </div>
+
+            {/* Tester-only sections */}
+            {user?.role === 'tester' && (
+              <NavLink
+                to="/time-tracker"
+                className={linkClasses}
+                onClick={handleLinkClick}
+              >
+                <TimeIcon />
+                <span className="text-sm font-medium">Time Tracker</span>
+              </NavLink>
+            )}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-card-foreground truncate">
-              {user?.name || 'User'}
-            </p>
-            <p className="text-xs text-muted-foreground capitalize">
-              {user?.role || 'Role'}
-            </p>
+        </nav>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-border bg-muted/30">
+          <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-card">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-sm font-bold text-primary uppercase">
+                {user?.name?.charAt(0) || 'U'}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground truncate">{user?.name || 'User'}</p>
+              <p className="text-xs text-muted-foreground capitalize">{user?.role || 'user'}</p>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </aside>
+    </>
   );
 };
 
