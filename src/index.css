@@ -50,6 +50,11 @@ h1, h2, h3, h4, h5, h6 {
   --color-border: #e2e8f0; /* slate-200 */
   --color-input: #ffffff;
   --color-ring: #2563eb; /* blue-600 */
+  
+  /* Toast Theme */
+  --toast-bg: #ffffff;
+  --toast-text: #0f172a;
+  --toast-border: #e2e8f0;
 }
 
 /* Dark theme overrides */
@@ -69,6 +74,11 @@ h1, h2, h3, h4, h5, h6 {
   --color-border: #334155; /* slate-700 */
   --color-input: #1e293b;
   --color-ring: #3b82f6; /* blue-500 */
+  
+  /* Toast Theme - Dark mode */
+  --toast-bg: #1e293b;
+  --toast-text: #f1f5f9;
+  --toast-border: #334155;
 }
 
 /* =======================================================================

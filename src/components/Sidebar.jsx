@@ -41,6 +41,13 @@ const DatabaseIcon = () => (
   </svg>
 );
 
+const FolderIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+  </svg>
+);
+
+
 const ToolsIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -100,6 +107,9 @@ const Sidebar = () => {
     location.pathname.startsWith('/project-vulnerabilities/');
   const [isVulnDropdownOpen, setIsVulnDropdownOpen] = useState(isVulnManagementActive);
 
+  const isClientManagementActive = location.pathname.startsWith('/clients') || location.pathname.startsWith('/add-client');
+  const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(isClientManagementActive);
+
   const isToolsActive = location.pathname.startsWith('/subdomain-finder');
   const [isToolsDropdownOpen, setIsToolsDropdownOpen] = useState(isToolsActive);
 
@@ -115,6 +125,9 @@ const Sidebar = () => {
   useEffect(() => {
     if (isVulnManagementActive) setIsVulnDropdownOpen(true);
   }, [isVulnManagementActive]);
+  useEffect(() => {
+    if (isClientManagementActive) setIsClientDropdownOpen(true);
+  }, [isClientManagementActive]);
 
   useEffect(() => {
     if (isToolsActive) setIsToolsDropdownOpen(true);
@@ -154,9 +167,8 @@ const Sidebar = () => {
   return (
     <>
       <aside
-        className={`${theme} theme-${color} fixed lg:static inset-y-0 left-0 z-30 w-72 h-screen overflow-hidden bg-card border-r border-border flex flex-col shadow-lg transform transition-transform duration-300 ease-in-out ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        className={`${theme} theme-${color} fixed lg:static inset-y-0 left-0 z-30 w-72 h-screen overflow-hidden bg-card border-r border-border flex flex-col shadow-lg transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          }`}
       >
         {/* Header */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-border bg-gradient-to-r from-primary/5 to-primary/10">
@@ -169,7 +181,7 @@ const Sidebar = () => {
               <p className="text-xs text-muted-foreground capitalize">{user?.role} Panel</p>
             </div>
           </div>
-          
+
           <button
             onClick={toggleSidebar}
             className="lg:hidden p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
@@ -251,6 +263,15 @@ const Sidebar = () => {
                   {isProjectDropdownOpen && (
                     <div className="mt-1 space-y-1 animate-slideIn">
                       <NavLink
+                        to="/active-projects"
+                        className={subLinkClasses}
+                        onClick={handleLinkClick}
+                      >
+                        <FolderIcon />
+                        <span>Active Projects</span>
+                      </NavLink>
+
+                      <NavLink
                         to="/project-records"
                         className={subLinkClasses}
                         onClick={handleLinkClick}
@@ -269,6 +290,45 @@ const Sidebar = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Client Management - Admin Only */}
+                {user?.role === 'admin' && (
+                  <div>
+                    <button
+                      onClick={() => setIsClientDropdownOpen(!isClientDropdownOpen)}
+                      className={dropdownButtonClasses(isClientManagementActive)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <UsersIcon />
+                        <span className="text-sm font-medium">Client Management</span>
+                      </div>
+                      <div className={isClientDropdownOpen ? 'rotate-180' : ''}>
+                        <ChevronDownIcon />
+                      </div>
+                    </button>
+
+                    {isClientDropdownOpen && (
+                      <div className="mt-1 space-y-1 animate-slideIn">
+                        <NavLink
+                          to="/clients"
+                          className={subLinkClasses}
+                          onClick={handleLinkClick}
+                        >
+                          <UsersIcon />
+                          <span>All Clients</span>
+                        </NavLink>
+                        <NavLink
+                          to="/add-client"
+                          className={subLinkClasses}
+                          onClick={handleLinkClick}
+                        >
+                          <PlusIcon />
+                          <span>Add Client</span>
+                        </NavLink>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Vulnerability Management - ✅ FIXED COLLAPSE */}
                 <div>

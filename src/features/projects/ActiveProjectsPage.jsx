@@ -1,18 +1,21 @@
 // =======================================================================
-// FILE: src/features/clients/ClientProjectsPage.jsx (UPDATED - PROPER SPACING)
-// PURPOSE: Display all projects for a specific client
+// FILE: src/features/dashboard/DashboardPage.jsx (UPDATED - FULL WIDTH)
+// PURPOSE: Dashboard page with full width usage and no restrictions
 // =======================================================================
 
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getClientProjects } from '../../api/projectApi';
+import { Link } from 'react-router-dom';
+import { getActiveProjects } from '../../api/projectApi';
+import { getAllClients } from '../../api/clientApi';
 import toast from 'react-hot-toast';
 import Spinner from '../../components/Spinner';
 import DataTable from '../../components/DataTable';
+import SearchableDropdown from '../../components/SearchableDropdown';
 import ProjectConfigModal from '../projects/ProjectConfigModal';
 import AddEditProjectModal from '../projects/AddEditProjectModal';
 import DeleteProjectModal from '../projects/DeleteProjectModal';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Icons
 const EditIcon = () => (
@@ -34,9 +37,15 @@ const ConfigIcon = () => (
   </svg>
 );
 
-const ArrowLeftIcon = () => (
+const PlusIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+  </svg>
+);
+
+const ChartBarIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
   </svg>
 );
 
@@ -46,9 +55,15 @@ const FolderIcon = () => (
   </svg>
 );
 
-const PlusIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+const UsersIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+  </svg>
+);
+
+const AlertTriangleIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L3.732 16c-.77 1.333.192 3 1.732 3z" />
   </svg>
 );
 
@@ -59,10 +74,10 @@ const EyeIcon = () => (
   </svg>
 );
 
-// Risk Level Cell Component
+// Enhanced Risk Cell component
 const RiskCell = ({ counts }) => {
   if (!counts) return <span className="text-muted-foreground">-</span>;
-
+  
   return (
     <div className="flex items-center gap-2 flex-wrap">
       {counts.Critical > 0 && (
@@ -94,43 +109,73 @@ const RiskCell = ({ counts }) => {
   );
 };
 
-const ClientProjectsPage = () => {
-  const { clientId } = useParams();
-  const navigate = useNavigate();
+const ActiveProjectsPage = () => {
+  const { user } = useAuth();
   const { theme, color } = useTheme();
-
+  
   const [projects, setProjects] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [selectedClient, setSelectedClient] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [clientName, setClientName] = useState('');
 
+  // Modal states
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
 
   useEffect(() => {
-    fetchProjects();
-  }, [clientId]);
+    fetchData();
+  }, []);
 
-  const fetchProjects = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await getClientProjects(clientId);
-      const projectData = response.data || response; // ✅ Extract data
-      setProjects(projectData);
-
-      // Get client info from first project if available
-      if (projectData.length > 0 && projectData[0].clientId) {
-        setClientName(projectData[0].clientId.clientName || projectData[0].client_name);
-      }
+      const [projectsRes, clientsRes] = await Promise.all([
+        getActiveProjects(),
+        getAllClients()
+      ]);
+      
+      setProjects(projectsRes.data || []);
+      setClients(clientsRes.data || []);
     } catch (error) {
-      console.error('Error fetching client projects:', error);
-      toast.error('Failed to load projects');
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
   };
 
+  const filteredProjects = useMemo(() => {
+    if (!selectedClient) return projects;
+    return projects.filter(p => p.client_name === selectedClient);
+  }, [projects, selectedClient]);
+
+  const dashboardStats = useMemo(() => {
+    const stats = {
+      totalProjects: filteredProjects.length,
+      totalClients: [...new Set(projects.map(p => p.client_name))].length,
+      criticalVulnerabilities: 0,
+      totalVulnerabilities: 0
+    };
+
+    filteredProjects.forEach(project => {
+      if (project.vulnerabilityCounts) {
+        stats.criticalVulnerabilities += project.vulnerabilityCounts.Critical || 0;
+        stats.totalVulnerabilities += Object.values(project.vulnerabilityCounts).reduce((a, b) => a + b, 0);
+      }
+    });
+
+    return stats;
+  }, [filteredProjects, projects]);
+
+  const clientOptions = useMemo(() => 
+    [...new Set(projects.map(p => p.client_name))].map(name => ({
+      value: name,
+      label: name
+    })),
+    [projects]
+  );
 
   const handleProjectAction = (action, project) => {
     setSelectedProject(project);
@@ -144,12 +189,19 @@ const ClientProjectsPage = () => {
       accessorKey: 'project_name',
       header: 'Project Name',
       cell: ({ row }) => (
-        <Link
+        <Link 
           to={`/projects/${row.original._id}`}
           className="text-primary hover:text-primary/80 font-medium hover:underline"
         >
           {row.original.project_name}
         </Link>
+      )
+    },
+    {
+      accessorKey: 'client_name',
+      header: 'Client',
+      cell: ({ row }) => (
+        <span className="text-foreground">{row.original.client_name}</span>
       )
     },
     {
@@ -195,7 +247,7 @@ const ClientProjectsPage = () => {
           'Retest': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
           'Recursive': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
         };
-
+        
         return (
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[row.original.status] || statusColors['Not Started']}`}>
             {row.original.status}
@@ -222,24 +274,28 @@ const ClientProjectsPage = () => {
           >
             <ConfigIcon />
           </button>
-          <button
-            onClick={() => handleProjectAction('edit', row.original)}
-            className="p-2 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg transition-colors"
-            title="Edit"
-          >
-            <EditIcon />
-          </button>
-          <button
-            onClick={() => handleProjectAction('delete', row.original)}
-            className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-            title="Delete"
-          >
-            <TrashIcon />
-          </button>
+          {user?.role === 'admin' && (
+            <>
+              <button
+                onClick={() => handleProjectAction('edit', row.original)}
+                className="p-2 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg transition-colors"
+                title="Edit"
+              >
+                <EditIcon />
+              </button>
+              <button
+                onClick={() => handleProjectAction('delete', row.original)}
+                className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                title="Delete"
+              >
+                <TrashIcon />
+              </button>
+            </>
+          )}
         </div>
       )
     }
-  ], []);
+  ], [user]);
 
   if (loading) {
     return (
@@ -250,42 +306,29 @@ const ClientProjectsPage = () => {
   }
 
   return (
-    // ✅ REMOVED: max-w-7xl mx-auto - uses parent container spacing
-    <div className={`${theme} theme-${color} space-y-6`}>
-
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <button
-              onClick={() => navigate('/project-records')}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
-            >
-              <ArrowLeftIcon />
-            </button>
-            <h1 className="text-3xl font-bold text-foreground">{clientName}</h1>
+    <div className={`${theme} theme-${color} w-full space-y-6`}>
+      {/* ✅ CHANGED: Removed max-w-7xl mx-auto, using w-full */}
+      
+      {/* Header Section */}
+      <div className="w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground mt-1">
+              Here's an overview of your penetration testing projects
+            </p>
           </div>
-          <p className="text-muted-foreground ml-14">
-            All penetration testing projects for this client
-          </p>
         </div>
-
-        <Link
-          to="/projects/add"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
-        >
-          <PlusIcon />
-          Add New Project
-        </Link>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Projects Card */}
         <div className="bg-card border border-border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total Projects</p>
-              <p className="text-3xl font-bold text-foreground mt-2">{projects.length}</p>
+              <p className="text-3xl font-bold text-foreground mt-2">{dashboardStats.totalProjects}</p>
             </div>
             <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
               <FolderIcon className="text-blue-600 dark:text-blue-400" />
@@ -293,81 +336,101 @@ const ClientProjectsPage = () => {
           </div>
         </div>
 
+        {/* Active Clients Card */}
+        <div className="bg-card border border-border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Active Clients</p>
+              <p className="text-3xl font-bold text-foreground mt-2">{dashboardStats.totalClients}</p>
+            </div>
+            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+              <UsersIcon className="text-green-600 dark:text-green-400" />
+            </div>
+          </div>
+        </div>
+
+        {/* Critical Issues Card */}
         <div className="bg-card border border-border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Critical Issues</p>
-              <p className="text-3xl font-bold text-foreground mt-2">
-                {projects.reduce((sum, p) => sum + (p.vulnerabilityCounts?.Critical || 0), 0)}
-              </p>
+              <p className="text-3xl font-bold text-foreground mt-2">{dashboardStats.criticalVulnerabilities}</p>
             </div>
             <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
-              <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L3.732 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
+              <AlertTriangleIcon className="text-red-600 dark:text-red-400" />
             </div>
           </div>
         </div>
 
+        {/* Total Vulnerabilities Card */}
         <div className="bg-card border border-border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">High Issues</p>
-              <p className="text-3xl font-bold text-foreground mt-2">
-                {projects.reduce((sum, p) => sum + (p.vulnerabilityCounts?.High || 0), 0)}
-              </p>
-            </div>
-            <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-              <svg className="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L3.732 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Issues</p>
-              <p className="text-3xl font-bold text-foreground mt-2">
-                {projects.reduce((sum, p) => {
-                  const counts = p.vulnerabilityCounts || {};
-                  return sum + (counts.Critical || 0) + (counts.High || 0) + (counts.Medium || 0) + (counts.Low || 0) + (counts.Info || 0);
-                }, 0)}
-              </p>
+              <p className="text-sm font-medium text-muted-foreground">Total Vulnerabilities</p>
+              <p className="text-3xl font-bold text-foreground mt-2">{dashboardStats.totalVulnerabilities}</p>
             </div>
             <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
-              <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <ChartBarIcon className="text-yellow-600 dark:text-yellow-400" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Projects Table */}
-      {projects.length === 0 ? (
-        <div className="bg-card border border-border rounded-lg p-12 text-center shadow-sm">
-          <FolderIcon className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">No Projects Found</h3>
-          <p className="text-muted-foreground mb-6">
-            This client doesn't have any projects yet. Create the first one to get started.
-          </p>
-          <Link
-            to="/projects/add"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
-          >
-            <PlusIcon />
-            Create First Project
-          </Link>
+      {/* Client Filter */}
+      <div className="w-full bg-card border border-border rounded-lg p-4 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <label className="text-sm font-medium text-foreground whitespace-nowrap">
+            Filter by Client:
+          </label>
+          <div className="flex-1 max-w-md">
+            <SearchableDropdown
+              options={clientOptions}
+              value={selectedClient}
+              onChange={setSelectedClient}
+              placeholder="All Clients"
+            />
+          </div>
+          {selectedClient && (
+            <button
+              onClick={() => setSelectedClient(null)}
+              className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-input rounded-lg hover:bg-accent transition-colors"
+            >
+              Clear Filter
+            </button>
+          )}
         </div>
-      ) : (
-        <DataTable
-          data={projects}
-          columns={columns}
-          title={`Projects for ${clientName}`}
-        />
-      )}
+      </div>
+
+      {/* Projects Table */}
+      <div className="w-full">
+        {filteredProjects.length === 0 ? (
+          <div className="bg-card border border-border rounded-lg p-12 text-center shadow-sm">
+            <FolderIcon className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">No Projects Found</h3>
+            <p className="text-muted-foreground mb-6">
+              {selectedClient 
+                ? 'The selected client doesn\'t have any projects yet.' 
+                : 'No projects have been created yet. Create your first project to get started.'
+              }
+            </p>
+            {user?.role === 'admin' && (
+              <Link
+                to="/projects/add"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+              >
+                <PlusIcon />
+                Create Your First Project
+              </Link>
+            )}
+          </div>
+        ) : (
+          <DataTable 
+            data={filteredProjects} 
+            columns={columns}
+            title="Active Projects"
+          />
+        )}
+      </div>
 
       {/* Modals */}
       {isConfigModalOpen && selectedProject && (
@@ -382,7 +445,7 @@ const ClientProjectsPage = () => {
         <AddEditProjectModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
-          onProjectAdded={fetchProjects}
+          onProjectAdded={fetchData}
           existingProject={selectedProject}
         />
       )}
@@ -391,7 +454,7 @@ const ClientProjectsPage = () => {
         <DeleteProjectModal
           isOpen={isDeleteModalOpen}
           onClose={() => setIsDeleteModalOpen(false)}
-          onProjectDeleted={fetchProjects}
+          onProjectDeleted={fetchData}
           project={selectedProject}
         />
       )}
@@ -399,4 +462,4 @@ const ClientProjectsPage = () => {
   );
 };
 
-export default ClientProjectsPage;
+export default ActiveProjectsPage;

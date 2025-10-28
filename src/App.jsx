@@ -18,8 +18,6 @@ import ProfilePage from './features/profile/ProfilePage';
 import ManageUsersPage from './features/admin/ManageUsersPage';
 import UserTrackerPage from './features/admin/UserTrackerPage';
 import ProjectRecordsPage from './features/projects/ProjectRecordsPage';
-import AddClientPage from './features/clients/AddClientPage';
-import TimeTrackerPage from './features/tracker/TimeTrackerPage';
 import Spinner from './components/Spinner';
 import ClientProjectsPage from './features/clients/ClientProjectsPage';
 import ProjectDetailsPage from './features/projects/ProjectDetailsPage';
@@ -27,6 +25,10 @@ import VulnerabilityInstancesPage from './features/vulnerabilities/Vulnerability
 import VulnerabilityInstanceDetailsPage from './features/vulnerabilities/VulnerabilityInstanceDetailsPage';
 import VulnerabilityDatabasePage from './features/vulnerabilities/VulnerabilityDatabasePage';
 import SubdomainFinderPage from './features/tools/SubdomainFinderPage';
+import ActiveProjectsPage from './features/projects/ActiveProjectsPage';
+import ClientsPage from './features/clients/ClientsPage';
+import ClientDetailsPage from './features/clients/ClientDetailsPage';
+
 
 function App() {
   const { user, loading } = useAuth();
@@ -71,13 +73,17 @@ function App() {
             <Route path="/admin/profile" element={<ProfilePage />} />
             <Route path="/manage-users" element={<ManageUsersPage />} />
             <Route path="/user-tracker" element={<UserTrackerPage />} />
+            <Route path="/active-projects" element={<ActiveProjectsPage />} />
             <Route path="/project-records" element={<ProjectRecordsPage />} />
-            <Route path="/add-client" element={<AddClientPage />} />
-            <Route path="/clients/:clientId/projects" element={<ClientProjectsPage />} />
             <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
             <Route path="/ProjectVulnerabilities/instances/:vulnName" element={<VulnerabilityInstancesPage />} />
             <Route path="/ProjectVulnerabilities/instances/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} />
             <Route path="/vulnerability-database" element={<VulnerabilityDatabasePage />} />
+            // Client Management Routes
+            <Route path="/clients" element={<ClientsPage />} />
+            <Route path="/clients/:clientId" element={<ClientDetailsPage />} />
+            <Route path="/clients/:clientId/projects" element={<ClientProjectsPage />} />
+
           </Route>
 
           {/* Shared between admin & tester */}

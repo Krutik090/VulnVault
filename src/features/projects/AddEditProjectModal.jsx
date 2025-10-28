@@ -89,15 +89,19 @@ const AddEditProjectModal = ({ isOpen, onClose, onSave, projectToEdit, clientId 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [clientsRes, testersRes] = await Promise.all([
+        const [clientsResponse, testersResponse] = await Promise.all([
           getAllClients(),
-          getTesters()
+          getTesters(),
         ]);
-        setClients(clientsRes.data || []);
-        setTesters(testersRes.data || []);
+
+        const clientData = clientsResponse.data || []; // ✅ Extract data
+        const testerData = testersResponse.data || testersResponse;
+
+        setClients(clientData);
+        setTesters(testerData);
       } catch (error) {
         console.error('Error fetching data:', error);
-        toast.error("Failed to load necessary data.");
+        toast.error('Failed to load form data');
       }
     };
 
@@ -106,22 +110,23 @@ const AddEditProjectModal = ({ isOpen, onClose, onSave, projectToEdit, clientId 
     }
   }, [isOpen]);
 
+
   useEffect(() => {
     if (isOpen) {
       if (isEditMode && projectToEdit) {
         setFormData({
           clientId: projectToEdit.clientId || '',
           project_name: projectToEdit.project_name || '',
-          projectType: Array.isArray(projectToEdit.projectType) 
-            ? projectToEdit.projectType 
-            : projectToEdit.projectType 
-              ? [projectToEdit.projectType] 
+          projectType: Array.isArray(projectToEdit.projectType)
+            ? projectToEdit.projectType
+            : projectToEdit.projectType
+              ? [projectToEdit.projectType]
               : [],
           // ✅ Properly handle Date objects
           projectStart: projectToEdit.projectStart ? new Date(projectToEdit.projectStart) : null,
           projectEnd: projectToEdit.projectEnd ? new Date(projectToEdit.projectEnd) : null,
-          assets: Array.isArray(projectToEdit.assets) 
-            ? projectToEdit.assets.map(a => a._id || a) 
+          assets: Array.isArray(projectToEdit.assets)
+            ? projectToEdit.assets.map(a => a._id || a)
             : []
         });
       } else {
@@ -150,15 +155,15 @@ const AddEditProjectModal = ({ isOpen, onClose, onSave, projectToEdit, clientId 
   // ✅ Enhanced date change handler
   const handleDateChange = (field, date) => {
     setFormData(prev => ({ ...prev, [field]: date }));
-    
+
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: null }));
     }
   };
 
   const handleMultiSelectChange = (field, values) => {
-    setFormData(prev => ({ 
-      ...prev, 
+    setFormData(prev => ({
+      ...prev,
       [field]: Array.isArray(values) ? values : []
     }));
     if (errors[field]) {
@@ -267,7 +272,7 @@ const AddEditProjectModal = ({ isOpen, onClose, onSave, projectToEdit, clientId 
               </p>
             </div>
           </div>
-          
+
           <button
             onClick={onClose}
             className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-lg hover:bg-white/50 dark:hover:bg-gray-800/50"
@@ -282,7 +287,7 @@ const AddEditProjectModal = ({ isOpen, onClose, onSave, projectToEdit, clientId 
         {/* Form Content */}
         <div className="flex-1 overflow-y-auto">
           <form onSubmit={handleSubmit} className="p-6 space-y-8">
-            
+
             {/* Basic Information Section */}
             <div className="space-y-6">
               <div className="flex items-center gap-3 pb-3 border-b border-gray-200 dark:border-gray-700">
@@ -356,7 +361,7 @@ const AddEditProjectModal = ({ isOpen, onClose, onSave, projectToEdit, clientId 
                   onChange={(date) => handleDateChange('projectStart', date)}
                   placeholder="Select start date"
                   showToday={true}
-                  // minDate={new Date()} // Disable past dates
+                // minDate={new Date()} // Disable past dates
                 />
 
                 {/* ✅ Modern End Date Picker */}
@@ -384,7 +389,7 @@ const AddEditProjectModal = ({ isOpen, onClose, onSave, projectToEdit, clientId 
                         <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                         <span className="text-green-700 dark:text-green-300">Start:</span>
                         <span className="font-medium text-green-800 dark:text-green-200">
-                          {formData.projectStart.toLocaleDateString('en-GB', { 
+                          {formData.projectStart.toLocaleDateString('en-GB', {
                             weekday: 'short',
                             year: 'numeric',
                             month: 'short',
@@ -398,7 +403,7 @@ const AddEditProjectModal = ({ isOpen, onClose, onSave, projectToEdit, clientId 
                         <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                         <span className="text-green-700 dark:text-green-300">End:</span>
                         <span className="font-medium text-green-800 dark:text-green-200">
-                          {formData.projectEnd.toLocaleDateString('en-GB', { 
+                          {formData.projectEnd.toLocaleDateString('en-GB', {
                             weekday: 'short',
                             year: 'numeric',
                             month: 'short',
@@ -448,7 +453,7 @@ const AddEditProjectModal = ({ isOpen, onClose, onSave, projectToEdit, clientId 
                   <SettingsIcon className="text-blue-600" />
                   Project Summary
                 </h4>
-                
+
                 {formData.projectType.length > 0 && (
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
