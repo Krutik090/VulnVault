@@ -5,14 +5,14 @@
 import { useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 
-const ImageViewerModal = ({ imageUrl, onClose }) => {
+const ImageViewerModal = ({ isOpen, imageUrl, onClose }) => {
   const { theme, color } = useTheme();
 
   useEffect(() => {
     const handleEsc = (event) => {
       if (event.keyCode === 27) onClose();
     };
-    
+
     const handleClickOutside = (event) => {
       if (event.target.classList.contains('modal-overlay')) {
         onClose();
@@ -20,25 +20,31 @@ const ImageViewerModal = ({ imageUrl, onClose }) => {
     };
 
     // Prevent body scroll when modal is open
-    document.body.style.overflow = 'hidden';
-    
-    window.addEventListener('keydown', handleEsc);
-    window.addEventListener('click', handleClickOutside);
-    
+    if (isOpen !== undefined ? isOpen : imageUrl) {
+      document.body.style.overflow = 'hidden';
+      window.addEventListener('keydown', handleEsc);
+      window.addEventListener('click', handleClickOutside);
+    }
+
     return () => {
       document.body.style.overflow = 'unset';
       window.removeEventListener('keydown', handleEsc);
       window.removeEventListener('click', handleClickOutside);
     };
-  }, [onClose]);
+  }, [isOpen, imageUrl, onClose]);
 
-  if (!imageUrl) return null;
+  // Support both patterns: isOpen prop or just imageUrl
+  if (isOpen !== undefined) {
+    if (!isOpen) return null;
+  } else {
+    if (!imageUrl) return null;
+  }
 
   return (
     <div className={`${theme} theme-${color} fixed inset-0 z-50 flex items-center justify-center modal-overlay`}>
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-      
+
       {/* Modal Container */}
       <div className="relative z-10 max-w-7xl max-h-[90vh] mx-4 bg-card rounded-lg shadow-2xl border border-border overflow-hidden">
         {/* Header */}
@@ -49,10 +55,10 @@ const ImageViewerModal = ({ imageUrl, onClose }) => {
             className="p-2 hover:bg-muted rounded-lg transition-colors group"
             aria-label="Close modal"
           >
-            <svg 
-              className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" 
-              fill="none" 
-              stroke="currentColor" 
+            <svg
+              className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors"
+              fill="none"
+              stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -78,7 +84,7 @@ const ImageViewerModal = ({ imageUrl, onClose }) => {
           <div className="text-sm text-muted-foreground">
             Press <kbd className="px-2 py-1 bg-muted text-muted-foreground rounded font-mono text-xs">ESC</kbd> or click outside to close
           </div>
-          
+
           <div className="flex items-center gap-2">
             {/* Download Button */}
             <a
@@ -91,7 +97,7 @@ const ImageViewerModal = ({ imageUrl, onClose }) => {
               </svg>
               Download
             </a>
-            
+
             {/* Open in New Tab */}
             <a
               href={imageUrl}

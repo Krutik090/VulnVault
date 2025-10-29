@@ -125,14 +125,6 @@ const ProjectDetailsPage = () => {
     {
       accessorKey: 'vulnerability_name',
       header: 'Vulnerability',
-      cell: ({ row }) => (
-        <Link 
-          to={`/vulnerability-instances/${row.original._id}`}
-          className="font-medium text-primary hover:text-primary/80 hover:underline"
-        >
-          {row.original.vulnerability_name}
-        </Link>
-      )
     },
     {
       accessorKey: 'severity',
