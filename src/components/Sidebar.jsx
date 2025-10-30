@@ -1,6 +1,6 @@
 // =======================================================================
-// FILE: src/components/Sidebar.jsx (UPDATED WITH STATISTICS)
-// PURPOSE: Fixed dropdown collapse with Statistics Dashboard
+// FILE: src/components/Sidebar.jsx (UPDATED WITH TESTER SUPPORT)
+// PURPOSE: Sidebar with role-based navigation for admin, tester & client
 // =======================================================================
 
 import { useState, useEffect } from 'react';
@@ -201,7 +201,7 @@ const Sidebar = () => {
         {/* Navigation Menu */}
         <nav className="flex-1 overflow-y-auto py-6 px-2">
           <div className="space-y-2">
-            {/* Dashboard */}
+            {/* Dashboard - All Roles */}
             <NavLink
               to={`/${user?.role}/dashboard`}
               className={linkClasses}
@@ -212,7 +212,7 @@ const Sidebar = () => {
             </NavLink>
 
             {/* Statistics Dashboard - Admin & Tester */}
-            {(user?.role === 'admin' || user?.role === 'tester') && (
+            {(user?.role === 'admin') && (
               <NavLink
                 to="/statistics"
                 className={linkClasses}
@@ -223,7 +223,36 @@ const Sidebar = () => {
               </NavLink>
             )}
 
-            {/* Admin-only sections */}
+            {/* ========================================
+                TESTER SPECIFIC NAVIGATION
+            ======================================== */}
+            {user?.role === 'tester' && (
+              <>
+                {/* My Projects */}
+                <NavLink
+                  to="/tester/projects"
+                  className={linkClasses}
+                  onClick={handleLinkClick}
+                >
+                  <FolderIcon />
+                  <span className="text-sm font-medium">My Projects</span>
+                </NavLink>
+
+                {/* Time Tracker */}
+                <NavLink
+                  to="/time-tracker"
+                  className={linkClasses}
+                  onClick={handleLinkClick}
+                >
+                  <TimeIcon />
+                  <span className="text-sm font-medium">Time Tracker</span>
+                </NavLink>
+              </>
+            )}
+
+            {/* ========================================
+                ADMIN SPECIFIC NAVIGATION
+            ======================================== */}
             {user?.role === 'admin' && (
               <>
                 {/* User Management */}
@@ -297,50 +326,47 @@ const Sidebar = () => {
                         <ProjectsIcon />
                         <span>Project Records</span>
                       </NavLink>
-                      {user?.role === 'admin' && (
-                        <NavLink
-                          to="/projects/add"
-                          className={subLinkClasses}
-                          onClick={handleLinkClick}
-                        >
-                          <PlusIcon />
-                          <span>Add Project</span>
-                        </NavLink>
-                      )}
+                      
+                      <NavLink
+                        to="/projects/add"
+                        className={subLinkClasses}
+                        onClick={handleLinkClick}
+                      >
+                        <PlusIcon />
+                        <span>Add Project</span>
+                      </NavLink>
                     </div>
                   )}
                 </div>
 
-                {/* Client Management - Admin Only */}
-                {user?.role === 'admin' && (
-                  <div>
-                    <button
-                      onClick={() => setIsClientDropdownOpen(!isClientDropdownOpen)}
-                      className={dropdownButtonClasses(isClientManagementActive)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <UsersIcon />
-                        <span className="text-sm font-medium">Client Management</span>
-                      </div>
-                      <div className={isClientDropdownOpen ? 'rotate-180' : ''}>
-                        <ChevronDownIcon />
-                      </div>
-                    </button>
+                {/* Client Management */}
+                <div>
+                  <button
+                    onClick={() => setIsClientDropdownOpen(!isClientDropdownOpen)}
+                    className={dropdownButtonClasses(isClientManagementActive)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <UsersIcon />
+                      <span className="text-sm font-medium">Client Management</span>
+                    </div>
+                    <div className={isClientDropdownOpen ? 'rotate-180' : ''}>
+                      <ChevronDownIcon />
+                    </div>
+                  </button>
 
-                    {isClientDropdownOpen && (
-                      <div className="mt-1 space-y-1 animate-slideIn">
-                        <NavLink
-                          to="/clients"
-                          className={subLinkClasses}
-                          onClick={handleLinkClick}
-                        >
-                          <UsersIcon />
-                          <span>All Clients</span>
-                        </NavLink>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  {isClientDropdownOpen && (
+                    <div className="mt-1 space-y-1 animate-slideIn">
+                      <NavLink
+                        to="/clients"
+                        className={subLinkClasses}
+                        onClick={handleLinkClick}
+                      >
+                        <UsersIcon />
+                        <span>All Clients</span>
+                      </NavLink>
+                    </div>
+                  )}
+                </div>
 
                 {/* Vulnerability Management */}
                 <div>
@@ -373,7 +399,7 @@ const Sidebar = () => {
               </>
             )}
 
-            {/* Tools Section */}
+            {/* Tools Section - All Roles */}
             <div>
               <button
                 onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)}
@@ -401,18 +427,6 @@ const Sidebar = () => {
                 </div>
               )}
             </div>
-
-            {/* Tester-only sections */}
-            {user?.role === 'tester' && (
-              <NavLink
-                to="/time-tracker"
-                className={linkClasses}
-                onClick={handleLinkClick}
-              >
-                <TimeIcon />
-                <span className="text-sm font-medium">Time Tracker</span>
-              </NavLink>
-            )}
           </div>
         </nav>
 
@@ -421,11 +435,13 @@ const Sidebar = () => {
           <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-card">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
               <span className="text-sm font-bold text-primary uppercase">
-                {user?.name?.charAt(0) || 'U'}
+                {user?.username?.charAt(0) || user?.name?.charAt(0) || 'U'}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-foreground truncate">{user?.name || 'User'}</p>
+              <p className="text-sm font-semibold text-foreground truncate">
+                {user?.username || user?.name || 'User'}
+              </p>
               <p className="text-xs text-muted-foreground capitalize">{user?.role || 'user'}</p>
             </div>
           </div>
