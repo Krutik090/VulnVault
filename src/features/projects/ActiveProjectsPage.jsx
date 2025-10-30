@@ -1,11 +1,11 @@
 // =======================================================================
-// FILE: src/features/projects/ActiveProjectsPage.jsx (UPDATED - ALIGNED)
-// PURPOSE: Display active projects with proper field names
+// FILE: src/features/projects/ActiveProjectsPage.jsx (COMPLETE - FIXED)
+// PURPOSE: Display active projects with proper modals and edit functionality
 // =======================================================================
 
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { getActiveProjects } from '../../api/projectApi';
+import { getActiveProjects, getAllProjects } from '../../api/projectApi';
 import { getAllClients } from '../../api/clientApi';
 import toast from 'react-hot-toast';
 import Spinner from '../../components/Spinner';
@@ -13,6 +13,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import SearchableDropdown from '../../components/SearchableDropdown';
 import DataTable from '../../components/DataTable';
+import DeleteProjectModal from './DeleteProjectModal';
+
 // Icons
 const PlusIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -30,6 +32,12 @@ const EyeIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+  </svg>
+);
+
+const EditIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-7.5-1.5l1.5-1.5m0 0l4-4m-4 4l4 4m-4-4l-4 4" />
   </svg>
 );
 
@@ -57,7 +65,6 @@ const ActiveProjectsPage = () => {
   const [selectedStatus, setSelectedStatus] = useState('');
 
   // Modal states
-  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
 
@@ -207,7 +214,7 @@ const ActiveProjectsPage = () => {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <Link
             to={`/projects/${row.original._id}`}
             className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
@@ -217,16 +224,20 @@ const ActiveProjectsPage = () => {
           </Link>
           {user?.role === 'admin' && (
             <>
-              <button
-                onClick={() => {
-                  setSelectedProject(row.original);
-                  setIsConfigModalOpen(true);
-                }}
+              <Link
+                to={`/projects/${row.original._id}/edit`}
+                className="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-colors"
+                title="Edit Project"
+              >
+                <EditIcon />
+              </Link>
+              <Link
+                to={`/projects/${row.original._id}/config`}
                 className="p-2 text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg transition-colors"
                 title="Configure"
               >
                 <SettingsIcon />
-              </button>
+              </Link>
               <button
                 onClick={() => {
                   setSelectedProject(row.original);
@@ -243,12 +254,6 @@ const ActiveProjectsPage = () => {
       )
     }
   ], [user]);
-
-  const handleProjectUpdated = () => {
-    fetchProjects();
-    setIsConfigModalOpen(false);
-    setSelectedProject(null);
-  };
 
   const handleProjectDeleted = () => {
     fetchProjects();
@@ -268,7 +273,7 @@ const ActiveProjectsPage = () => {
     { value: '', label: 'All Clients' },
     ...clients.map(client => ({
       value: client._id,
-      label: client.clientName || 'Unknown Client'
+      label: client.clientName || client.name || 'Unknown Client'
     }))
   ];
 
@@ -276,12 +281,13 @@ const ActiveProjectsPage = () => {
     { value: '', label: 'All Statuses' },
     { value: 'Not Started', label: 'Not Started' },
     { value: 'Active', label: 'Active' },
-    { value: 'Retest', label: 'Retest' }
+    { value: 'Retest', label: 'Retest' },
+    { value: 'Completed', label: 'Completed' },
+    { value: 'Archived', label: 'Archived' }
   ];
 
   return (
     <div className={`${theme} theme-${color} space-y-6`}>
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -353,24 +359,11 @@ const ActiveProjectsPage = () => {
         <DataTable
           data={filteredProjects}
           columns={columns}
-          title="Active Projects"
+          title={`Active Projects (${filteredProjects.length})`}
         />
       )}
 
-      {/* Modals */}
-      {isConfigModalOpen && selectedProject && (
-        <ProjectConfigModal
-          isOpen={isConfigModalOpen}
-          onClose={() => {
-            setIsConfigModalOpen(false);
-            setSelectedProject(null);
-          }}
-          projectId={selectedProject._id}
-          projectName={selectedProject.project_name}
-          onSave={handleProjectUpdated}
-        />
-      )}
-
+      {/* Delete Modal */}
       {isDeleteModalOpen && selectedProject && (
         <DeleteProjectModal
           isOpen={isDeleteModalOpen}

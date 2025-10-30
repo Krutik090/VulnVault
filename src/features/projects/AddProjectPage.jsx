@@ -1,18 +1,19 @@
 // =======================================================================
-// FILE: src/features/projects/AddProjectPage.jsx (NEW - FULL PAGE)
-// PURPOSE: Full page for creating new projects (not a modal)
+// FILE: src/features/projects/AddProjectPage.jsx (COMPLETE - CREATE & EDIT)
+// PURPOSE: Full page for creating AND editing projects
 // =======================================================================
 
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import MultiSelect from '../../components/MultiSelect';
 import SearchableDropdown from '../../components/SearchableDropdown';
 import DatePicker from '../../components/DatePicker';
-import { createProject } from '../../api/projectApi';
+import { createProject, getProjectById, updateProject } from '../../api/projectApi';
 import { getAllClients } from '../../api/clientApi';
 import { getTesters } from '../../api/adminApi';
 import { useTheme } from '../../contexts/ThemeContext';
 import toast from 'react-hot-toast';
+import Spinner from '../../components/Spinner';
 
 // Icons
 const ArrowLeftIcon = () => (
@@ -35,9 +36,12 @@ const ProjectIcon = () => (
 
 const AddProjectPage = () => {
   const navigate = useNavigate();
+  const { projectId } = useParams(); // For edit mode
   const [searchParams] = useSearchParams();
   const preSelectedClientId = searchParams.get('clientId');
-  
+
+  const isEditMode = !!projectId;
+
   const [formData, setFormData] = useState({
     clientId: preSelectedClientId || '',
     project_name: '',
@@ -48,10 +52,11 @@ const AddProjectPage = () => {
     status: 'Not Started',
     description: ''
   });
-  
+
   const [clients, setClients] = useState([]);
   const [testers, setTesters] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(isEditMode);
   const [errors, setErrors] = useState({});
   const { theme, color } = useTheme();
 
@@ -81,6 +86,12 @@ const AddProjectPage = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (isEditMode && clients.length > 0 && testers.length > 0) {
+      fetchProjectData();
+    }
+  }, [isEditMode, clients, testers]);
+
   const fetchData = async () => {
     try {
       const [clientsResponse, testersResponse] = await Promise.all([
@@ -98,6 +109,48 @@ const AddProjectPage = () => {
       toast.error('Failed to load form data');
     }
   };
+
+  const fetchProjectData = async () => {
+    setIsLoading(true);
+    try {
+      const response = await getProjectById(projectId);
+      const project = response.data || response;
+
+      // Safely extract IDs from assigned_testers (can be objects or strings)
+      const testerIds = Array.isArray(project.assigned_testers)
+        ? project.assigned_testers.map(tester => {
+          if (typeof tester === 'string') return tester;
+          if (tester && tester._id) return tester._id;
+          return null;
+        }).filter(Boolean)
+        : [];
+
+      // Safely extract clientId
+      const clientId = project.clientId
+        ? (typeof project.clientId === 'string' ? project.clientId : project.clientId._id)
+        : '';
+
+      setFormData({
+        clientId: clientId,
+        project_name: project.project_name || '',
+        project_type: Array.isArray(project.project_type) ? project.project_type : [],
+        start_date: project.start_date ? new Date(project.start_date) : null,
+        end_date: project.end_date ? new Date(project.end_date) : null,
+        assigned_testers: testerIds,
+        status: project.status || 'Not Started',
+        description: project.description || ''
+      });
+
+      console.log('Form data loaded:', { clientId, testerIds });
+    } catch (error) {
+      console.error('Error fetching project:', error);
+      toast.error('Failed to load project data');
+      navigate('/active-projects');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -173,12 +226,20 @@ const AddProjectPage = () => {
         end_date: formData.end_date ? formData.end_date.toISOString() : null,
       };
 
-      await createProject(submitData);
-      toast.success('Project created successfully!');
+      if (isEditMode) {
+        // Update existing project
+        await updateProject(projectId, submitData);
+        toast.success('Project updated successfully!');
+      } else {
+        // Create new project
+        await createProject(submitData);
+        toast.success('Project created successfully!');
+      }
+
       navigate('/active-projects');
     } catch (error) {
-      console.error('Error creating project:', error);
-      toast.error(error.message || 'Failed to create project');
+      console.error('Error saving project:', error);
+      toast.error(error.message || 'Failed to save project');
     } finally {
       setIsSaving(false);
     }
@@ -190,7 +251,7 @@ const AddProjectPage = () => {
 
   const clientOptions = clients.map(client => ({
     value: client._id,
-    label: client.clientName || 'Unknown Client'
+    label: client.clientName || client.name || 'Unknown Client'
   }));
 
   const testerOptions = testers.map(tester => ({
@@ -198,9 +259,17 @@ const AddProjectPage = () => {
     label: tester.name || 'Unknown Tester'
   }));
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Spinner size="large" />
+      </div>
+    );
+  }
+
   return (
     <div className={`${theme} theme-${color} space-y-6`}>
-      
+
       {/* Header */}
       <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-border rounded-lg p-6">
         <button
@@ -216,9 +285,14 @@ const AddProjectPage = () => {
             <ProjectIcon className="text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Create New Project</h1>
+            <h1 className="text-3xl font-bold text-foreground">
+              {isEditMode ? 'Edit Project' : 'Create New Project'}
+            </h1>
             <p className="text-muted-foreground mt-1">
-              Set up a new penetration testing project
+              {isEditMode
+                ? 'Update project details and information'
+                : 'Set up a new penetration testing project'
+              }
             </p>
           </div>
         </div>
@@ -226,11 +300,11 @@ const AddProjectPage = () => {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
-        
+
         {/* Basic Information Card */}
         <div className="bg-card border border-border rounded-lg p-6">
           <h2 className="text-xl font-semibold text-foreground mb-6">Basic Information</h2>
-          
+
           <div className="space-y-5">
             {/* Client Selection */}
             <div>
@@ -261,9 +335,8 @@ const AddProjectPage = () => {
                 value={formData.project_name}
                 onChange={handleChange}
                 placeholder="Enter project name"
-                className={`w-full px-4 py-3 border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
-                  errors.project_name ? 'border-red-500' : 'border-input'
-                }`}
+                className={`w-full px-4 py-3 border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${errors.project_name ? 'border-red-500' : 'border-input'
+                  }`}
               />
               {errors.project_name && (
                 <p className="mt-2 text-sm text-red-600">{errors.project_name}</p>
@@ -293,7 +366,7 @@ const AddProjectPage = () => {
             {/* Status */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
-                Initial Status <span className="text-red-500">*</span>
+                Status <span className="text-red-500">*</span>
               </label>
               <SearchableDropdown
                 options={statusOptions}
@@ -327,7 +400,7 @@ const AddProjectPage = () => {
         {/* Timeline Card */}
         <div className="bg-card border border-border rounded-lg p-6">
           <h2 className="text-xl font-semibold text-foreground mb-6">Project Timeline</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Start Date */}
             <div>
@@ -412,7 +485,7 @@ const AddProjectPage = () => {
         {/* Team Assignment Card */}
         <div className="bg-card border border-border rounded-lg p-6">
           <h2 className="text-xl font-semibold text-foreground mb-6">Team Assignment</h2>
-          
+
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
               Assigned Testers <span className="text-muted-foreground text-xs">(Optional)</span>
@@ -474,12 +547,12 @@ const AddProjectPage = () => {
             {isSaving ? (
               <>
                 <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                Creating Project...
+                {isEditMode ? 'Updating Project...' : 'Creating Project...'}
               </>
             ) : (
               <>
                 <SaveIcon />
-                Create Project
+                {isEditMode ? 'Update Project' : 'Create Project'}
               </>
             )}
           </button>

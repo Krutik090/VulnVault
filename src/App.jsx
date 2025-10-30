@@ -141,6 +141,7 @@ function App() {
             <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
             <Route path="/projects/:projectId/config" element={<ProjectConfigPage />} />
             <Route path="/projects/:projectId/add-vulnerability" element={<AddVulnerabilityPage />} />
+            <Route path="/projects/:projectId/edit" element={<AddProjectPage isEdit={true} />} />
 
             {/* Vulnerability Management */}
             <Route path="/vulnerability-database" element={<VulnerabilityDatabasePage />} />

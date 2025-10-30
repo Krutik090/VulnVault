@@ -1,5 +1,5 @@
 // =======================================================================
-// FILE: src/api/projectApi.js (UPDATED - COMPLETE CRUD)
+// FILE: src/api/projectApi.js (FIXED - CONSISTENT FETCH-ONLY)
 // PURPOSE: Centralizes all API calls for project management
 // =======================================================================
 
@@ -48,7 +48,7 @@ export const getProjectById = async (projectId) => {
 };
 
 /**
- * Update a project
+ * Update a project - FIXED VERSION
  * @param {string} projectId - Project ID
  * @param {object} projectData - Updated data
  * @returns {Promise<object>} Updated project
