@@ -20,19 +20,21 @@ import ManageUsersPage from './features/admin/ManageUsersPage';
 import UserTrackerPage from './features/admin/UserTrackerPage';
 import ProjectRecordsPage from './features/projects/ProjectRecordsPage';
 import Spinner from './components/Spinner';
-import ClientProjectsPage from './features/clients/ClientProjectsPage';
 import ProjectDetailsPage from './features/projects/ProjectDetailsPage';
 import VulnerabilityInstancesPage from './features/vulnerabilities/VulnerabilityInstancesPage';
 import VulnerabilityInstanceDetailsPage from './features/vulnerabilities/VulnerabilityInstanceDetailsPage';
 import VulnerabilityDatabasePage from './features/vulnerabilities/VulnerabilityDatabasePage';
 import SubdomainFinderPage from './features/tools/SubdomainFinderPage';
 import ActiveProjectsPage from './features/projects/ActiveProjectsPage';
-import ClientsPage from './features/clients/ClientsPage';
-import ClientDetailsPage from './features/clients/ClientDetailsPage';
 import AddProjectPage from './features/projects/AddProjectPage';
 import ProjectConfigPage from './features/projects/ProjectConfigPage';
 import AddVulnerabilityPage from './features/projects/AddVulnerabilityPage';
 import StatisticsDashboardPage from './features/dashboard/StatisticsDashboardPage';
+
+import ClientsPage from './features/clients/ClientsPage';
+import ClientDetailsPage from './features/clients/ClientDetailsPage';
+import ClientProjectsPage from './features/clients/ClientProjectsPage';
+import ClientDashboardPage from './features/clients/ClientDashboardPage';
 
 function App() {
   const { user, loading } = useAuth();
@@ -67,8 +69,8 @@ function App() {
 
           {/* ==================== SHARED ROUTES (Admin + Tester) ==================== */}
           <Route element={
-            (user?.role === 'admin' || user?.role === 'tester') 
-              ? <SharedLayout /> 
+            (user?.role === 'admin' || user?.role === 'tester')
+              ? <SharedLayout />
               : <Navigate to="/login" replace />
           }>
             <Route path="/subdomain-finder" element={<SubdomainFinderPage />} />
@@ -108,6 +110,9 @@ function App() {
             <Route path="/clients" element={<ClientsPage />} />
             <Route path="/clients/:clientId" element={<ClientDetailsPage />} />
             <Route path="/clients/:clientId/projects" element={<ClientProjectsPage />} />
+            <Route path="/client-dashboard" element={<ClientDashboardPage />} /> {/* For client role */}
+            <Route path="/clients/:clientId/dashboard" element={<ClientDashboardPage />} />
+
           </Route>
 
           {/* ==================== 404 NOT FOUND ==================== */}

@@ -1,11 +1,11 @@
 // =======================================================================
-// FILE: src/features/clients/ClientDetailsPage.jsx (NEW)
+// FILE: src/features/clients/ClientDetailsPage.jsx (FIXED)
 // PURPOSE: Detailed view of a single client with edit capability
 // =======================================================================
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-// import { getClientById, getClientProjects } from '../../api/clientApi';
+import { getClientById, getClientProjects } from '../../api/clientApi'; // ✅ UNCOMMENTED
 import toast from 'react-hot-toast';
 import Spinner from '../../components/Spinner';
 import AddEditClientModal from './AddEditClientModal';
@@ -17,6 +17,12 @@ import { useAuth } from '../../contexts/AuthContext';
 const ArrowLeftIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+  </svg>
+);
+
+const DashboardIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
   </svg>
 );
 
@@ -39,7 +45,7 @@ const TrashIcon = () => (
 );
 
 const FolderIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
   </svg>
 );
@@ -53,7 +59,6 @@ const ClientDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [client, setClient] = useState(null);
   const [projects, setProjects] = useState([]);
-
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
@@ -64,23 +69,25 @@ const ClientDetailsPage = () => {
   const fetchClientDetails = async () => {
     setLoading(true);
     try {
-      const [clientResponse, projectsResponse] = await Promise.all([
-        getClientById(clientId),
-        getClientProjects(clientId)
-      ]);
+      // Fetch client details
+      const clientResponse = await getClientById(clientId);
+      console.log('Client Response:', clientResponse);
 
-      // ✅ Extract data from responses
-      setClient(clientResponse.data || clientResponse);
-      setProjects(projectsResponse.data || projectsResponse);
+      // Fetch client projects
+      const projectsResponse = await getClientProjects(clientId);
+      console.log('Projects Response:', projectsResponse);
+
+      // ✅ FIX: Extract data correctly from API response
+      setClient(clientResponse.data);
+      setProjects(projectsResponse.data?.projects || []);
     } catch (error) {
       console.error('Error fetching client details:', error);
-      toast.error('Failed to load client details');
+      toast.error(error.message || 'Failed to load client details');
       navigate('/clients');
     } finally {
       setLoading(false);
     }
   };
-
 
   const handleClientUpdated = () => {
     fetchClientDetails();
@@ -94,7 +101,7 @@ const ClientDetailsPage = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center h-96">
         <Spinner size="large" />
       </div>
     );
@@ -102,204 +109,204 @@ const ClientDetailsPage = () => {
 
   if (!client) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">Client not found</p>
+      <div className="text-center py-16">
+        <h3 className="text-lg font-semibold text-foreground">Client not found</h3>
+        <button
+          onClick={() => navigate('/clients')}
+          className="mt-4 text-primary hover:underline"
+        >
+          Go back to clients
+        </button>
       </div>
     );
   }
 
   return (
-    <div className={`${theme} theme-${color} space-y-6`}>
-
+    <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary/5 via-primary/3 to-transparent border border-border rounded-lg p-6">
-        <button
-          onClick={() => navigate('/clients')}
-          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4 text-sm"
-        >
-          <ArrowLeftIcon />
-          Back to Clients
-        </button>
-
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="p-4 bg-primary/10 rounded-2xl">
-              <BuildingIcon className="text-primary" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">
-                {client.clientName}
-              </h1>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                {client.email && (
-                  <a href={`mailto:${client.email}`} className="hover:text-primary flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    {client.email}
-                  </a>
-                )}
-                {client.location && (
-                  <span className="flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    </svg>
-                    {client.location}
-                  </span>
-                )}
-                {client.createdAt && (
-                  <span className="flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    Added {new Date(client.createdAt).toLocaleDateString()}
-                  </span>
-                )}
-              </div>
-            </div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('/clients')}
+            className="p-2 rounded-lg hover:bg-muted transition-colors"
+          >
+            <ArrowLeftIcon />
+          </button>
+          <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg">
+            <BuildingIcon />
           </div>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">{client.clientName}</h1>
+            <p className="text-muted-foreground mt-1">{client.contactEmail}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {/* NEW: Dashboard Button */}
+          <button
+            onClick={() => navigate(`/clients/${clientId}/dashboard`)}
+            className="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-200 flex items-center gap-2 shadow-lg"
+          >
+            <DashboardIcon />
+            View Dashboard
+          </button>
 
           {user?.role === 'admin' && (
-            <div className="flex gap-3">
+            <>
               <button
                 onClick={() => setIsEditModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 border border-input text-foreground bg-background hover:bg-accent rounded-lg font-medium transition-colors"
+                className={`px-4 py-2 bg-gradient-to-r from-${color}-500 to-${color}-600 text-white rounded-lg hover:from-${color}-600 hover:to-${color}-700 transition-all duration-200 flex items-center gap-2 shadow-lg`}
               >
                 <EditIcon />
                 Edit Client
               </button>
               <button
                 onClick={() => setIsDeleteModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors"
+                className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 flex items-center gap-2 shadow-lg"
               >
                 <TrashIcon />
                 Delete
               </button>
-            </div>
+            </>
           )}
         </div>
       </div>
 
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Projects</p>
-              <p className="text-3xl font-bold text-foreground mt-2">{projects.length}</p>
-            </div>
-            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <FolderIcon className="text-blue-600 dark:text-blue-400" />
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+          <div className="text-sm text-muted-foreground mb-1">Total Projects</div>
+          <div className="text-3xl font-bold text-foreground">{projects.length}</div>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+          <div className="text-sm text-muted-foreground mb-1">Active Projects</div>
+          <div className="text-3xl font-bold text-foreground">
+            {projects.filter(p => p.status === 'Active').length}
           </div>
         </div>
-
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Active Projects</p>
-              <p className="text-3xl font-bold text-foreground mt-2">
-                {projects.filter(p => p.status === 'Active').length}
-              </p>
-            </div>
-            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-              <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
+        <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+          <div className="text-sm text-muted-foreground mb-1">Completed</div>
+          <div className="text-3xl font-bold text-foreground">
+            {projects.filter(p => p.status === 'Completed').length}
           </div>
         </div>
+      </div>
 
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Completed</p>
-              <p className="text-3xl font-bold text-foreground mt-2">
-                {projects.filter(p => p.status === 'Completed').length}
-              </p>
+      {/* Client Information */}
+      <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+        <h2 className="text-xl font-bold text-foreground mb-4">Client Information</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <div className="text-sm text-muted-foreground mb-1">Contact Person</div>
+            <div className="text-base text-foreground font-medium">
+              {client.contactPerson || '-'}
             </div>
-            <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-              <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+          </div>
+          <div>
+            <div className="text-sm text-muted-foreground mb-1">Email</div>
+            <div className="text-base text-foreground font-medium">
+              {client.contactEmail || '-'}
+            </div>
+          </div>
+          <div>
+            <div className="text-sm text-muted-foreground mb-1">Phone</div>
+            <div className="text-base text-foreground font-medium">
+              {client.contactPhone || '-'}
+            </div>
+          </div>
+          <div>
+            <div className="text-sm text-muted-foreground mb-1">Website</div>
+            <div className="text-base text-foreground font-medium">
+              {client.website ? (
+                <a
+                  href={client.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  {client.website}
+                </a>
+              ) : '-'}
+            </div>
+          </div>
+          <div className="md:col-span-2">
+            <div className="text-sm text-muted-foreground mb-1">Address</div>
+            <div className="text-base text-foreground font-medium">
+              {client.address || '-'}
             </div>
           </div>
         </div>
       </div>
 
       {/* Projects List */}
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-border bg-muted/30">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-foreground">Projects</h2>
-            <Link
-              to={`/clients/${clientId}/projects`}
-              className="text-sm text-primary hover:underline"
-            >
-              View All →
-            </Link>
-          </div>
+      <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-foreground">Projects</h2>
+          <Link
+            to={`/clients/${clientId}/projects`}
+            className="text-primary hover:underline flex items-center gap-2"
+          >
+            <FolderIcon />
+            View All Projects
+          </Link>
         </div>
 
-        <div className="divide-y divide-border">
-          {projects.length === 0 ? (
-            <div className="p-12 text-center">
-              <FolderIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-              <p className="text-muted-foreground">No projects for this client yet</p>
-              {user?.role === 'admin' && (
-                <Link
-                  to="/projects/add"
-                  className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
-                >
-                  Add First Project
-                </Link>
-              )}
-            </div>
-          ) : (
-            projects.slice(0, 5).map((project) => (
+        {projects.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">No projects for this client yet</p>
+            {user?.role === 'admin' && (
+              <Link
+                to="/projects"
+                className={`mt-4 inline-block px-4 py-2 bg-gradient-to-r from-${color}-500 to-${color}-600 text-white rounded-lg hover:from-${color}-600 hover:to-${color}-700 transition-all duration-200`}
+              >
+                Add First Project
+              </Link>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {projects.slice(0, 5).map((project) => (
               <Link
                 key={project._id}
                 to={`/projects/${project._id}`}
-                className="flex items-center justify-between p-4 hover:bg-accent transition-colors group"
+                className="block p-4 rounded-lg border border-border hover:bg-muted transition-colors"
               >
-                <div className="flex-1">
-                  <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">
-                    {project.project_name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {project.project_type} • {project.start_date ? new Date(project.start_date).toLocaleDateString() : 'No date'}
-                  </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-foreground">{project.project_name}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {project.project_type} • {project.start_date ? new Date(project.start_date).toLocaleDateString() : 'No date'}
+                    </p>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${project.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                      project.status === 'Completed' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                    }`}>
+                    {project.status}
+                  </span>
                 </div>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${project.status === 'Active' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
-                    project.status === 'Completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                      'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
-                  }`}>
-                  {project.status}
-                </span>
               </Link>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Modals */}
-      {isEditModalOpen && (
-        <AddEditClientModal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          onSave={handleClientUpdated}
-          client={client}
-        />
-      )}
+      <AddEditClientModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        client={client}
+        isEditMode={true}
+        onSuccess={handleClientUpdated}
+      />
 
-      {isDeleteModalOpen && (
-        <DeleteClientModal
-          isOpen={isDeleteModalOpen}
-          onClose={() => setIsDeleteModalOpen(false)}
-          onDeleted={handleClientDeleted}
-          client={{ ...client, projectCount: projects.length }}
-        />
-      )}
+      <DeleteClientModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        client={client}
+        onSuccess={handleClientDeleted}
+      />
     </div>
   );
 };

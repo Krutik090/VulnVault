@@ -1,6 +1,6 @@
 // =======================================================================
-// FILE: src/features/projects/ProjectConfigPage.jsx (NEW - FULL PAGE)
-// PURPOSE: Full page for project configuration (replaces modal)
+// FILE: src/features/projects/ProjectConfigPage.jsx (FIXED)
+// PURPOSE: Full page for project configuration - CHECKBOX BUG FIXED
 // =======================================================================
 
 import { useState, useEffect } from 'react';
@@ -64,22 +64,48 @@ const CheckboxIcon = ({ checked }) => (
   </div>
 );
 
-const FormCheckbox = ({ label, checked, onChange, description, name }) => (
-  <div className="flex items-start gap-3 p-4 bg-muted/30 border border-border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
-       onClick={() => onChange({ target: { name, checked: !checked } })}>
-    <div className="flex-shrink-0 mt-0.5">
-      <CheckboxIcon checked={checked} />
+// ✅ FIXED: FormCheckbox component
+const FormCheckbox = ({ label, checked, onChange, description, name }) => {
+  const handleClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log(`🔘 Checkbox "${name}" clicked:`, { 
+      currentValue: checked, 
+      newValue: !checked 
+    });
+    
+    // Create proper event object
+    const syntheticEvent = {
+      target: {
+        name: name,
+        type: 'checkbox',
+        checked: !checked
+      }
+    };
+    
+    onChange(syntheticEvent);
+  };
+
+  return (
+    <div 
+      className="flex items-start gap-3 p-4 bg-muted/30 border border-border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+      onClick={handleClick}
+    >
+      <div className="flex-shrink-0 mt-0.5">
+        <CheckboxIcon checked={checked} />
+      </div>
+      <div className="flex-1">
+        <label className="font-medium text-foreground cursor-pointer block">
+          {label}
+        </label>
+        {description && (
+          <p className="text-sm text-muted-foreground mt-1">{description}</p>
+        )}
+      </div>
     </div>
-    <div className="flex-1">
-      <label className="font-medium text-foreground cursor-pointer block">
-        {label}
-      </label>
-      {description && (
-        <p className="text-sm text-muted-foreground mt-1">{description}</p>
-      )}
-    </div>
-  </div>
-);
+  );
+};
 
 const ProjectConfigPage = () => {
   const { projectId } = useParams();
@@ -133,10 +159,35 @@ const ProjectConfigPage = () => {
       setProject(projectData);
 
       if (configResponse.data && Object.keys(configResponse.data).length > 0) {
-        setConfigData(prev => ({ ...prev, ...configResponse.data }));
+        console.log('📥 Loading existing config:', configResponse.data);
+        
+        setConfigData(prev => ({
+          ...prev,
+          projectName: configResponse.data.projectName || '',
+          clientName: configResponse.data.clientName || '',
+          reportType: configResponse.data.reportType || '',
+          engagementDates: configResponse.data.engagementDates || '',
+          scope: configResponse.data.scope || '',
+          reportingCriteria: configResponse.data.reportingCriteria || '',
+          methodology: configResponse.data.methodology || '',
+          findings: configResponse.data.findings || '',
+          executiveSummary: configResponse.data.executiveSummary || '',
+          testingNotes: configResponse.data.testingNotes || '',
+          tableOfContents: configResponse.data.tableOfContents ?? true,
+          listOfFigures: configResponse.data.listOfFigures ?? true,
+          listOfTables: configResponse.data.listOfTables ?? true,
+          documentControl: configResponse.data.documentControl ?? true,
+          disclaimer: configResponse.data.disclaimer ?? true,
+          executiveSummarySection: configResponse.data.executiveSummarySection ?? true,
+          scopeSection: configResponse.data.scopeSection ?? true,
+          reportingCriteriaSection: configResponse.data.reportingCriteriaSection ?? true,
+          methodologySection: configResponse.data.methodologySection ?? true,
+          findingsSection: configResponse.data.findingsSection ?? true,
+          conclusionSection: configResponse.data.conclusionSection ?? true,
+          appendixSection: configResponse.data.appendixSection ?? true
+        }));
         setIsEditMode(true);
       } else {
-        // Pre-fill with project data
         setConfigData(prev => ({
           ...prev,
           projectName: projectData.project_name || '',
@@ -145,31 +196,53 @@ const ProjectConfigPage = () => {
         setIsEditMode(false);
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('❌ Error fetching data:', error);
       toast.error('Failed to load project configuration');
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ FIXED: handleChange with debugging
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setConfigData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    
+    console.log('📝 handleChange called:', { 
+      name, 
+      type, 
+      value: type === 'checkbox' ? checked : value 
+    });
+
+    setConfigData(prev => {
+      const newData = {
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      };
+      
+      console.log('✅ State updated:', { 
+        field: name, 
+        oldValue: prev[name], 
+        newValue: newData[name] 
+      });
+      
+      return newData;
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
 
+    console.log('💾 Submitting config data:', configData);
+
     try {
-      await saveProjectConfig(projectId, configData);
+      const response = await saveProjectConfig(projectId, configData);
+      console.log('✅ Save response:', response);
+      
       toast.success(`Project configuration ${isEditMode ? 'updated' : 'created'} successfully!`);
       navigate(`/projects/${projectId}`);
     } catch (error) {
-      console.error('Error saving configuration:', error);
+      console.error('❌ Error saving configuration:', error);
       toast.error(error.message || 'Failed to save configuration');
     } finally {
       setSaving(false);
@@ -253,7 +326,7 @@ const ProjectConfigPage = () => {
               name="engagementDates"
               value={configData.engagementDates}
               onChange={handleChange}
-              placeholder="e.g., Jan 1 - Jan 15, 2024"
+              placeholder="e.g., Jan 1 - Jan 15, 2025"
             />
           </div>
         </div>
@@ -305,6 +378,20 @@ const ProjectConfigPage = () => {
                 rows={4}
                 className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors resize-none"
                 placeholder="Describe testing methodology..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Findings
+              </label>
+              <textarea
+                name="findings"
+                value={configData.findings}
+                onChange={handleChange}
+                rows={4}
+                className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors resize-none"
+                placeholder="Summary of findings..."
               />
             </div>
 

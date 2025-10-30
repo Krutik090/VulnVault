@@ -1,10 +1,10 @@
 // =======================================================================
-// FILE: src/features/clients/ClientsPage.jsx (NEW)
+// FILE: src/features/clients/ClientsPage.jsx (UPDATED)
 // PURPOSE: Display all clients with search, filter, and management
 // =======================================================================
 
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getAllClients } from '../../api/clientApi';
 import toast from 'react-hot-toast';
 import Spinner from '../../components/Spinner';
@@ -18,6 +18,12 @@ import { useAuth } from '../../contexts/AuthContext';
 const UsersIcon = () => (
   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+  </svg>
+);
+
+const DashboardIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
   </svg>
 );
 
@@ -61,6 +67,7 @@ const SearchIcon = () => (
 const ClientsPage = () => {
   const { user } = useAuth();
   const { theme, color } = useTheme();
+  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [clients, setClients] = useState([]);
@@ -80,8 +87,7 @@ const ClientsPage = () => {
     setLoading(true);
     try {
       const response = await getAllClients();
-      const clientData = response.data || []; // ✅ Extract data from response
-      setClients(clientData);
+      setClients(response.data || []);
     } catch (error) {
       console.error('Error fetching clients:', error);
       toast.error('Failed to load clients');
@@ -90,7 +96,6 @@ const ClientsPage = () => {
     }
   };
 
-
   // Filter clients based on search
   const filteredClients = useMemo(() => {
     if (!searchTerm.trim()) return clients;
@@ -98,8 +103,9 @@ const ClientsPage = () => {
     const search = searchTerm.toLowerCase();
     return clients.filter(client =>
       client.clientName?.toLowerCase().includes(search) ||
-      client.email?.toLowerCase().includes(search) ||
-      client.location?.toLowerCase().includes(search)
+      client.contactEmail?.toLowerCase().includes(search) ||
+      client.contactPerson?.toLowerCase().includes(search) ||
+      client.address?.toLowerCase().includes(search)
     );
   }, [clients, searchTerm]);
 
@@ -109,54 +115,59 @@ const ClientsPage = () => {
       accessorKey: 'clientName',
       header: 'Client Name',
       cell: ({ row }) => (
-        <Link
-          to={`/clients/${row.original._id}`}
-          className="font-medium text-primary hover:text-primary/80 hover:underline"
-        >
+        <div className="font-medium text-foreground">
           {row.original.clientName}
-        </Link>
+        </div>
       )
     },
     {
-      accessorKey: 'email',
+      accessorKey: 'contactPerson',
+      header: 'Contact Person',
+      cell: ({ row }) => (
+        <div className="text-sm text-muted-foreground">
+          {row.original.contactPerson}
+        </div>
+      )
+    },
+    {
+      accessorKey: 'contactEmail',
       header: 'Email',
       cell: ({ row }) => (
-        <a
-          href={`mailto:${row.original.email}`}
-          className="text-muted-foreground hover:text-primary"
-        >
-          {row.original.email}
-        </a>
+        <div className="text-sm text-muted-foreground">
+          {row.original.contactEmail}
+        </div>
       )
     },
     {
-      accessorKey: 'location',
-      header: 'Location',
+      accessorKey: 'contactPhone',
+      header: 'Phone',
       cell: ({ row }) => (
-        <span className="text-muted-foreground">
-          {row.original.location || '-'}
-        </span>
+        <div className="text-sm text-muted-foreground">
+          {row.original.contactPhone || '-'}
+        </div>
       )
     },
     {
       accessorKey: 'projectCount',
       header: 'Projects',
       cell: ({ row }) => (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-          {row.original.projectCount || 0}
-        </span>
+        <div className="text-center">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+            {row.original.projectCount || 0}
+          </span>
+        </div>
       )
     },
     {
       accessorKey: 'createdAt',
       header: 'Added On',
       cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
+        <div className="text-sm text-muted-foreground">
           {row.original.createdAt
             ? new Date(row.original.createdAt).toLocaleDateString()
             : '-'
           }
-        </span>
+        </div>
       )
     },
     {
@@ -164,33 +175,53 @@ const ClientsPage = () => {
       header: 'Actions',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <Link
-            to={`/clients/${row.original._id}`}
-            className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+          {/* Dashboard Button - NEW */}
+          <button
+            onClick={() => navigate(`/clients/${row.original._id}/dashboard`)}
+            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-purple-600 dark:text-purple-400"
+            title="View Dashboard"
+          >
+            <DashboardIcon />
+          </button>
+
+          {/* View Details Button */}
+          <button
+            onClick={() => navigate(`/clients/${row.original._id}`)}
+            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-blue-600 dark:text-blue-400"
             title="View Details"
           >
             <EyeIcon />
-          </Link>
-          <Link
-            to={`/clients/${row.original._id}/projects`}
-            className="p-2 text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg transition-colors"
+          </button>
+
+          {/* View Projects Button */}
+          <button
+            onClick={() => navigate(`/clients/${row.original._id}/projects`)}
+            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-green-600 dark:text-green-400"
             title="View Projects"
           >
             <FolderIcon />
-          </Link>
+          </button>
+
+          {/* Edit & Delete Buttons (Admin only) */}
           {user?.role === 'admin' && (
             <>
               <button
-                onClick={() => handleEditClient(row.original)}
-                className="p-2 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg transition-colors"
-                title="Edit"
+                onClick={() => {
+                  setSelectedClient(row.original);
+                  setIsEditModalOpen(true);
+                }}
+                className="p-1.5 rounded-lg hover:bg-muted transition-colors text-amber-600 dark:text-amber-400"
+                title="Edit Client"
               >
                 <EditIcon />
               </button>
               <button
-                onClick={() => handleDeleteClient(row.original)}
-                className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                title="Delete"
+                onClick={() => {
+                  setSelectedClient(row.original);
+                  setIsDeleteModalOpen(true);
+                }}
+                className="p-1.5 rounded-lg hover:bg-muted transition-colors text-red-600 dark:text-red-400"
+                title="Delete Client"
               >
                 <TrashIcon />
               </button>
@@ -199,196 +230,147 @@ const ClientsPage = () => {
         </div>
       )
     }
-  ], [user]);
 
-  const handleEditClient = (client) => {
-    setSelectedClient(client);
-    setIsEditModalOpen(true);
-  };
-
-  const handleDeleteClient = (client) => {
-    setSelectedClient(client);
-    setIsDeleteModalOpen(true);
-  };
-
-  const handleClientSaved = () => {
-    fetchClients();
-    setIsAddModalOpen(false);
-    setIsEditModalOpen(false);
-    setSelectedClient(null);
-  };
-
-  const handleClientDeleted = () => {
-    fetchClients();
-    setIsDeleteModalOpen(false);
-    setSelectedClient(null);
-  };
+  ], [user, navigate]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center h-96">
         <Spinner size="large" />
       </div>
     );
   }
 
   return (
-    <div className={`${theme} theme-${color} space-y-6`}>
-
+    <div className="space-y-6">
       {/* Header */}
-      <div>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-primary/10 rounded-xl">
-              <UsersIcon className="text-primary" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Client Management</h1>
-              <p className="text-muted-foreground mt-1">
-                Manage your client organizations and relationships
-              </p>
-            </div>
-          </div>
-          {user?.role === 'admin' && (
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
-            >
-              <PlusIcon />
-              Add New Client
-            </button>
-          )}
+      <div className="flex items-center gap-4">
+        <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg">
+          <UsersIcon />
         </div>
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold text-foreground">Clients</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage your client organizations and relationships
+          </p>
+        </div>
+        {user?.role === 'admin' && (
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className={`px-4 py-2 bg-gradient-to-r from-${color}-500 to-${color}-600 text-white rounded-lg hover:from-${color}-600 hover:to-${color}-700 transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl`}
+          >
+            <PlusIcon />
+            Add Client
+          </button>
+        )}
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Clients</p>
-              <p className="text-3xl font-bold text-foreground mt-2">{clients.length}</p>
-            </div>
-            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <UsersIcon className="text-blue-600 dark:text-blue-400" />
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+          <div className="text-sm text-muted-foreground mb-1">Total Clients</div>
+          <div className="text-3xl font-bold text-foreground">
+            {clients.length}
           </div>
         </div>
-
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Projects</p>
-              <p className="text-3xl font-bold text-foreground mt-2">
-                {clients.reduce((sum, client) => sum + (client.projectCount || 0), 0)}
-              </p>
-            </div>
-            <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-              <FolderIcon className="text-purple-600 dark:text-purple-400 w-6 h-6" />
-            </div>
+        <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+          <div className="text-sm text-muted-foreground mb-1">Total Projects</div>
+          <div className="text-3xl font-bold text-foreground">
+            {clients.reduce((sum, client) => sum + (client.projectCount || 0), 0)}
           </div>
         </div>
-
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Active This Month</p>
-              <p className="text-3xl font-bold text-foreground mt-2">
-                {clients.filter(c => {
-                  const created = new Date(c.createdAt);
-                  const now = new Date();
-                  return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
-                }).length}
-              </p>
-            </div>
-            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-              <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-            </div>
+        <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+          <div className="text-sm text-muted-foreground mb-1">Active This Month</div>
+          <div className="text-3xl font-bold text-foreground">
+            {clients.filter(c => {
+              const created = new Date(c.createdAt);
+              const now = new Date();
+              return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
+            }).length}
           </div>
         </div>
       </div>
 
       {/* Search Bar */}
-      <div className="bg-card border border-border rounded-lg p-4">
+      <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <SearchIcon className="text-muted-foreground" />
+            <SearchIcon />
           </div>
           <input
             type="text"
+            placeholder="Search clients by name, email, person, or location..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search clients by name, email, or location..."
             className="w-full pl-10 pr-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
         </div>
       </div>
 
-      {/* Clients Table */}
-      {filteredClients.length === 0 ? (
-        <div className="bg-card border border-border rounded-lg p-12 text-center">
-          <UsersIcon className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">
-            {searchTerm ? 'No clients found' : 'No clients yet'}
-          </h3>
-          <p className="text-muted-foreground mb-6">
-            {searchTerm
-              ? 'Try adjusting your search terms'
-              : 'Add your first client to get started with project management'
-            }
-          </p>
-          {user?.role === 'admin' && !searchTerm && (
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
-            >
-              <PlusIcon />
-              Add First Client
-            </button>
-          )}
-        </div>
-      ) : (
-        <DataTable
-          data={filteredClients}
-          columns={columns}
-          title="All Clients"
-        />
-      )}
+      {/* Data Table */}
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+        {filteredClients.length === 0 ? (
+          <div className="text-center py-16">
+            <UsersIcon />
+            <h3 className="mt-4 text-lg font-semibold text-foreground">
+              No clients found
+            </h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {searchTerm
+                ? 'Try adjusting your search terms'
+                : 'Add your first client to get started with project management'
+              }
+            </p>
+            {user?.role === 'admin' && !searchTerm && (
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className={`mt-4 px-4 py-2 bg-gradient-to-r from-${color}-500 to-${color}-600 text-white rounded-lg hover:from-${color}-600 hover:to-${color}-700 transition-all duration-200 flex items-center gap-2 mx-auto shadow-lg`}
+              >
+                <PlusIcon />
+                Add First Client
+              </button>
+            )}
+          </div>
+        ) : (
+          <DataTable
+            data={filteredClients}
+            columns={columns}
+            title="Client Management"
+            searchable={false}
+            exportable={true}
+            fileName="clients"
+          />
+        )}
+      </div>
 
       {/* Modals */}
-      {isAddModalOpen && (
-        <AddEditClientModal
-          isOpen={isAddModalOpen}
-          onClose={() => setIsAddModalOpen(false)}
-          onSave={handleClientSaved}
-        />
-      )}
+      <AddEditClientModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        isEditMode={false}
+        onSuccess={fetchClients}
+      />
 
-      {isEditModalOpen && selectedClient && (
-        <AddEditClientModal
-          isOpen={isEditModalOpen}
-          onClose={() => {
-            setIsEditModalOpen(false);
-            setSelectedClient(null);
-          }}
-          onSave={handleClientSaved}
-          client={selectedClient}
-        />
-      )}
+      <AddEditClientModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedClient(null);
+        }}
+        client={selectedClient}
+        isEditMode={true}
+        onSuccess={fetchClients}
+      />
 
-      {isDeleteModalOpen && selectedClient && (
-        <DeleteClientModal
-          isOpen={isDeleteModalOpen}
-          onClose={() => {
-            setIsDeleteModalOpen(false);
-            setSelectedClient(null);
-          }}
-          onDeleted={handleClientDeleted}
-          client={selectedClient}
-        />
-      )}
+      <DeleteClientModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setSelectedClient(null);
+        }}
+        client={selectedClient}
+        onSuccess={fetchClients}
+      />
     </div>
   );
 };
