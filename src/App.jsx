@@ -1,6 +1,7 @@
 // =======================================================================
-// FILE: src/App.jsx (UPDATED WITH CLIENT SUPPORT)
+// FILE: src/App.jsx (FIXED - PROPER ROUTE ORGANIZATION)
 // PURPOSE: Clean routing structure with role-based access control
+//          Fixed: Client route navigation now works properly
 // =======================================================================
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -12,9 +13,8 @@ import { useTheme } from './contexts/ThemeContext';
 // ========================================
 import AdminLayout from './layouts/AdminLayout';
 import TesterLayout from './layouts/TesterLayout';
-import ClientLayout from './layouts/ClientLayout'; // ✅ ADDED
+import ClientLayout from './layouts/ClientLayout';
 import AuthLayout from './layouts/AuthLayout';
-import SharedLayout from './layouts/SharedLayout';
 
 // ========================================
 // AUTH PAGES
@@ -22,14 +22,19 @@ import SharedLayout from './layouts/SharedLayout';
 import LoginPage from './features/auth/LoginPage';
 
 // ========================================
-// SHARED PAGES (Admin + Tester)
+// DASHBOARD & PROFILE (Shared)
 // ========================================
 import DashboardPage from './features/dashboard/DashboardPage';
 import ProfilePage from './features/profile/ProfilePage';
 import StatisticsDashboardPage from './features/dashboard/StatisticsDashboardPage';
 import SubdomainFinderPage from './features/tools/SubdomainFinderPage';
+
+// ========================================
+// PROJECT & VULNERABILITY (Shared across layouts)
+// ========================================
 import ProjectDetailsPage from './features/projects/ProjectDetailsPage';
 import VulnerabilityInstanceDetailsPage from './features/vulnerabilities/VulnerabilityInstanceDetailsPage';
+import VulnerabilityInstancesPage from './features/vulnerabilities/VulnerabilityInstancesPage';
 
 // ========================================
 // ADMIN ONLY PAGES
@@ -41,7 +46,6 @@ import ProjectRecordsPage from './features/projects/ProjectRecordsPage';
 import AddProjectPage from './features/projects/AddProjectPage';
 import ProjectConfigPage from './features/projects/ProjectConfigPage';
 import AddVulnerabilityPage from './features/projects/AddVulnerabilityPage';
-import VulnerabilityInstancesPage from './features/vulnerabilities/VulnerabilityInstancesPage';
 import VulnerabilityDatabasePage from './features/vulnerabilities/VulnerabilityDatabasePage';
 import ClientsPage from './features/clients/ClientsPage';
 import ClientDetailsPage from './features/clients/ClientDetailsPage';
@@ -54,7 +58,7 @@ import TesterDashboardPage from './features/tester/TesterDashboardPage';
 import TesterProjectsPage from './features/tester/TesterProjectsPage';
 
 // ========================================
-// CLIENT ONLY PAGES - ✅ ADDED
+// CLIENT ONLY PAGES
 // ========================================
 import ClientDashboardPage from './features/clients/ClientDashboardPage';
 
@@ -84,7 +88,7 @@ const RoleRedirect = ({ user }) => {
     case 'tester':
       return <Navigate to="/tester/dashboard" replace />;
     case 'client':
-      return <Navigate to="/client/dashboard" replace />; // ✅ FIXED: Changed from /client-dashboard
+      return <Navigate to="/client/dashboard" replace />;
     default:
       return <Navigate to="/login" replace />;
   }
@@ -122,7 +126,7 @@ function App() {
             <Route path="/tester/projects" element={<TesterProjectsPage />} />
             <Route path="/tester/profile" element={<ProfilePage />} />
 
-            {/* Shared Routes - Accessible by Tester */}
+            {/* Tester Specific - Projects & Vulnerabilities */}
             <Route path="/statistics" element={<StatisticsDashboardPage />} />
             <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
             <Route path="/projects/:projectId/add-vulnerability" element={<AddVulnerabilityPage />} />
@@ -147,15 +151,16 @@ function App() {
             <Route path="/active-projects" element={<ActiveProjectsPage />} />
             <Route path="/project-records" element={<ProjectRecordsPage />} />
             <Route path="/projects/add" element={<AddProjectPage />} />
-            <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
-            <Route path="/projects/:projectId/config" element={<ProjectConfigPage />} />
-            <Route path="/projects/:projectId/add-vulnerability" element={<AddVulnerabilityPage />} />
-            <Route path="/projects/:projectId/edit" element={<AddProjectPage isEdit={true} />} />
+            {/* ✅ FIXED: Use /admin/projects/:projectId to avoid conflicts */}
+            <Route path="/admin/projects/:projectId" element={<ProjectDetailsPage />} />
+            <Route path="/admin/projects/:projectId/config" element={<ProjectConfigPage />} />
+            <Route path="/admin/projects/:projectId/add-vulnerability" element={<AddVulnerabilityPage />} />
+            <Route path="/admin/projects/:projectId/edit" element={<AddProjectPage isEdit={true} />} />
 
             {/* Vulnerability Management */}
             <Route path="/vulnerability-database" element={<VulnerabilityDatabasePage />} />
-            <Route path="/ProjectVulnerabilities/instances/:vulnName" element={<VulnerabilityInstancesPage />} />
-            <Route path="/ProjectVulnerabilities/instances/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} />
+            <Route path="/admin/ProjectVulnerabilities/instances/:vulnName" element={<VulnerabilityInstancesPage />} />
+            <Route path="/admin/ProjectVulnerabilities/instances/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} />
 
             {/* Client Management */}
             <Route path="/clients" element={<ClientsPage />} />
@@ -167,14 +172,25 @@ function App() {
             <Route path="/subdomain-finder" element={<SubdomainFinderPage />} />
           </Route>
 
-          {/* ==================== CLIENT ROUTES - ✅ ENABLED ==================== */}
-          <Route 
+          {/* ==================== CLIENT ROUTES ==================== */}
+          <Route
             element={user?.role === 'client' ? <ClientLayout /> : <Navigate to="/login" replace />}
           >
+            {/* Client Dashboard & Profile */}
             <Route path="/client/dashboard" element={<ClientDashboardPage />} />
             <Route path="/client/profile" element={<ProfilePage />} />
             <Route path="/client/projects" element={<ClientProjectsPage />} />
-            {/* Add more client-specific routes here as needed */}
+
+            {/* ✅ FIXED: Client can view project details */}
+            {/* Using /client/projects/:projectId instead of /projects/:projectId */}
+            <Route path="/client/projects/:projectId" element={<ProjectDetailsPage />} />
+            <Route path="/client/projects/:projectId/vulnerabilities/:vulnName" element={<VulnerabilityInstancesPage />} />
+            <Route path="/client/projects/:projectId/vulnerabilities/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} />
+
+            {/* Alternative: Also support /projects/:projectId for backward compatibility */}
+            <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
+            <Route path="/ProjectVulnerabilities/instances/:vulnName" element={<VulnerabilityInstancesPage />} />
+            <Route path="/ProjectVulnerabilities/instances/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} />
           </Route>
 
           {/* ==================== 404 NOT FOUND ==================== */}

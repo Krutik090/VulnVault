@@ -137,7 +137,7 @@ const ClientProjectsPage = () => {
   };
 
   const handleViewProject = (projectId) => {
-    navigate(`/projects/${projectId}`);
+    navigate(`/client/projects/${projectId}`);
   };
 
   // ✅ UPDATED: Check if user is admin
@@ -168,15 +168,14 @@ const ClientProjectsPage = () => {
         header: 'Status',
         cell: ({ row }) => (
           <span
-            className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              row.original.status === 'Active'
+            className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${row.original.status === 'Active'
                 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                 : row.original.status === 'Completed'
-                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                : row.original.status === 'Retest'
-                ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
-                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-            }`}
+                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                  : row.original.status === 'Retest'
+                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+              }`}
           >
             {row.original.status}
           </span>
@@ -212,25 +211,39 @@ const ClientProjectsPage = () => {
         ),
       },
       // ✅ UPDATED: Only show actions column if user is admin
-      ...(isAdminUser
-        ? [
-            {
-              id: 'actions',
-              header: 'Actions',
-              cell: ({ row }) => (
-                <button
-                  onClick={() => handleViewProject(row.original._id)}
-                  className="p-1.5 rounded-lg hover:bg-muted transition-colors text-blue-600 dark:text-blue-400"
-                  title="View Project"
-                >
-                  <EyeIcon />
-                </button>
-              ),
-            },
-          ]
-        : []),
-    ],
-    [isAdminUser]
+      //   ...(isAdminUser
+      //     ? [
+      //         {
+      //           id: 'actions',
+      //           header: 'Actions',
+      //           cell: ({ row }) => (
+      //             <button
+      //               onClick={() => handleViewProject(row.original._id)}
+      //               className="p-1.5 rounded-lg hover:bg-muted transition-colors text-blue-600 dark:text-blue-400"
+      //               title="View Project"
+      //             >
+      //               <EyeIcon />
+      //             </button>
+      //           ),
+      //         },
+      //       ]
+      //     : []),
+      // ],
+      // [isAdminUser]
+      {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => (
+          <button
+            onClick={() => handleViewProject(row.original._id)}
+            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-blue-600 dark:text-blue-400"
+            title="View Project"
+          >
+            <EyeIcon />
+          </button>
+        ),
+      },
+    ]
   );
 
   if (loading) {
