@@ -72,7 +72,7 @@ const NotFoundPage = () => (
 
 const RoleRedirect = ({ user }) => {
   if (!user) return <Navigate to="/login" replace />;
-  
+
   switch (user.role) {
     case 'admin':
       return <Navigate to="/admin/dashboard" replace />;
@@ -106,13 +106,18 @@ function App() {
           <Route path="/" element={<RoleRedirect user={user} />} />
 
           {/* ==================== TESTER ROUTES ==================== */}
-          <Route 
-            element={user?.role === 'tester' || user.role === 'admin' ? <TesterLayout /> : <Navigate to="/login" replace />}
+          <Route
+            element={
+              user?.role === 'tester' || user?.role === 'admin'
+                ? <TesterLayout />
+                : <Navigate to="/login" replace />
+            }
           >
+
             <Route path="/tester/dashboard" element={<TesterDashboardPage />} />
             <Route path="/tester/projects" element={<TesterProjectsPage />} />
             <Route path="/tester/profile" element={<ProfilePage />} />
-            
+
             {/* Shared Routes - Accessible by Tester */}
             <Route path="/statistics" element={<StatisticsDashboardPage />} />
             <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
@@ -122,7 +127,7 @@ function App() {
           </Route>
 
           {/* ==================== ADMIN ROUTES ==================== */}
-          <Route 
+          <Route
             element={user?.role === 'admin' ? <AdminLayout /> : <Navigate to="/login" replace />}
           >
             {/* Dashboard & Profile */}
