@@ -1,5 +1,5 @@
 // =======================================================================
-// FILE: src/App.jsx (CLEAN & ORGANIZED VERSION)
+// FILE: src/App.jsx (UPDATED WITH CLIENT SUPPORT)
 // PURPOSE: Clean routing structure with role-based access control
 // =======================================================================
 
@@ -12,6 +12,7 @@ import { useTheme } from './contexts/ThemeContext';
 // ========================================
 import AdminLayout from './layouts/AdminLayout';
 import TesterLayout from './layouts/TesterLayout';
+import ClientLayout from './layouts/ClientLayout'; // ✅ ADDED
 import AuthLayout from './layouts/AuthLayout';
 import SharedLayout from './layouts/SharedLayout';
 
@@ -45,13 +46,17 @@ import VulnerabilityDatabasePage from './features/vulnerabilities/VulnerabilityD
 import ClientsPage from './features/clients/ClientsPage';
 import ClientDetailsPage from './features/clients/ClientDetailsPage';
 import ClientProjectsPage from './features/clients/ClientProjectsPage';
-import ClientDashboardPage from './features/clients/ClientDashboardPage';
 
 // ========================================
 // TESTER ONLY PAGES
 // ========================================
 import TesterDashboardPage from './features/tester/TesterDashboardPage';
 import TesterProjectsPage from './features/tester/TesterProjectsPage';
+
+// ========================================
+// CLIENT ONLY PAGES - ✅ ADDED
+// ========================================
+import ClientDashboardPage from './features/clients/ClientDashboardPage';
 
 // ========================================
 // COMPONENTS
@@ -79,7 +84,7 @@ const RoleRedirect = ({ user }) => {
     case 'tester':
       return <Navigate to="/tester/dashboard" replace />;
     case 'client':
-      return <Navigate to="/client-dashboard" replace />;
+      return <Navigate to="/client/dashboard" replace />; // ✅ FIXED: Changed from /client-dashboard
     default:
       return <Navigate to="/login" replace />;
   }
@@ -113,7 +118,6 @@ function App() {
                 : <Navigate to="/login" replace />
             }
           >
-
             <Route path="/tester/dashboard" element={<TesterDashboardPage />} />
             <Route path="/tester/projects" element={<TesterProjectsPage />} />
             <Route path="/tester/profile" element={<ProfilePage />} />
@@ -163,14 +167,15 @@ function App() {
             <Route path="/subdomain-finder" element={<SubdomainFinderPage />} />
           </Route>
 
-          {/* ==================== CLIENT ROUTES (Future) ==================== */}
-          {/* Uncomment when implementing client role
+          {/* ==================== CLIENT ROUTES - ✅ ENABLED ==================== */}
           <Route 
             element={user?.role === 'client' ? <ClientLayout /> : <Navigate to="/login" replace />}
           >
-            <Route path="/client-dashboard" element={<ClientDashboardPage />} />
+            <Route path="/client/dashboard" element={<ClientDashboardPage />} />
+            <Route path="/client/profile" element={<ProfilePage />} />
+            <Route path="/client/projects" element={<ClientProjectsPage />} />
+            {/* Add more client-specific routes here as needed */}
           </Route>
-          */}
 
           {/* ==================== 404 NOT FOUND ==================== */}
           <Route path="*" element={<NotFoundPage />} />

@@ -1,6 +1,7 @@
 // =======================================================================
-// FILE: src/features/clients/ClientDashboardPage.jsx (FIXED)
-// PURPOSE: Dashboard for viewing client data (works for both admin & client roles)
+// FILE: src/features/clients/ClientDashboardPage.jsx (UPDATED)
+// PURPOSE: Dashboard for viewing client data (admin & client roles)
+//          Reads clientId from cookies in same format as AuthController
 // =======================================================================
 
 import { useState, useEffect } from 'react';
@@ -36,24 +37,84 @@ const ArrowLeftIcon = () => (
   </svg>
 );
 
+// ✅ Helper function to read cookies (same as AuthContext)
+const getCookie = (name) => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+};
+
+// ✅ Helper function to parse userData cookie (matches AuthController format)
+const getUserDataFromCookie = () => {
+  try {
+    const userDataCookie = getCookie('userData');
+    if (userDataCookie) {
+      // Decode and parse the JSON string
+      const parsedUser = JSON.parse(decodeURIComponent(userDataCookie));
+      console.log('🍪 Parsed userData from cookie:', parsedUser);
+      return parsedUser;
+    }
+  } catch (error) {
+    console.error('❌ Error parsing userData from cookie:', error);
+  }
+  return null;
+};
+
 const ClientDashboardPage = () => {
   const { user } = useAuth();
   const { color } = useTheme();
   const navigate = useNavigate();
-  const { clientId } = useParams(); // ✅ Get from URL for admins
-  
+  const { clientId: paramClientId } = useParams(); // ✅ Get from URL params for admin view
+
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState(null);
 
-  // ✅ FIX: Determine which clientId to use
-  const effectiveClientId = clientId || user?.clientId;
+  // ✅ UPDATED: Get userData from cookie (matching AuthController format)
+  const userDataFromCookie = getUserDataFromCookie();
+
+  // ✅ UPDATED: Determine which clientId to use (priority order)
+  // 1. URL params (admin viewing a client dashboard)
+  // 2. From userData cookie (client logged in) - matches AuthController format
+  // 3. From auth context (fallback)
+  const getEffectiveClientId = () => {
+    // Priority 1: URL params (admin viewing specific client)
+    if (paramClientId) {
+      console.log('📋 [PRIORITY 1] Using clientId from URL params:', paramClientId);
+      console.log('👥 Context: Admin viewing client dashboard');
+      return paramClientId;
+    }
+
+    // Priority 2: From userData cookie (matches AuthController format)
+    if (userDataFromCookie?.id) {
+      console.log('🍪 [PRIORITY 2] Using clientId from userData cookie:', userDataFromCookie.id);
+      console.log('👥 Context: Client logged in, reading from cookie');
+      console.log('📊 Cookie userData:', userDataFromCookie);
+      return userDataFromCookie.id;
+    }
+
+    // Priority 3: From auth context
+    if (user?.id) {
+      console.log('👤 [PRIORITY 3] Using clientId from auth context:', user.id);
+      console.log('👥 Context: Fallback to auth context');
+      return user.id;
+    }
+
+    console.log('❌ No clientId found in any source');
+    console.log('📊 Available sources:');
+    console.log('   - paramClientId:', paramClientId);
+    console.log('   - userDataFromCookie:', userDataFromCookie);
+    console.log('   - user?.id:', user?.id);
+    return null;
+  };
+
+  const effectiveClientId = getEffectiveClientId();
 
   useEffect(() => {
     if (effectiveClientId) {
       fetchDashboard();
     } else {
       setLoading(false);
-      toast.error('No client ID found');
+      toast.error('No client ID found. Please log in as a client or access via admin dashboard.');
     }
   }, [effectiveClientId]);
 
@@ -61,12 +122,17 @@ const ClientDashboardPage = () => {
     try {
       setLoading(true);
       console.log('🔍 Fetching dashboard for clientId:', effectiveClientId);
+      console.log('👥 User role:', user?.role);
+      console.log('🔗 Admin viewing client?', !!paramClientId);
+
       const response = await getClientDashboard(effectiveClientId);
       console.log('📊 Dashboard Response:', response);
-      
-      // ✅ FIX: Handle response correctly
+
+      // ✅ Handle response correctly
       if (response.data) {
         setDashboardData(response.data);
+      } else if (response.success === false) {
+        toast.error(response.message || 'Failed to load dashboard');
       } else {
         toast.error('No dashboard data available');
       }
@@ -106,12 +172,14 @@ const ClientDashboardPage = () => {
   }
 
   const { client, statistics, recentProjects } = dashboardData;
+  const isAdminViewing = !!paramClientId && user?.role === 'admin'; // ✅ Better check
+  const contactName = isAdminViewing ? client?.contactPerson : userDataFromCookie?.name || user?.name;
 
   return (
     <div className="space-y-6">
       {/* Header with Back Button for Admins */}
       <div className="flex items-center gap-4">
-        {user?.role === 'admin' && clientId && (
+        {isAdminViewing && (
           <button
             onClick={() => navigate('/clients')}
             className="p-2 rounded-lg hover:bg-muted transition-colors"
@@ -125,9 +193,9 @@ const ClientDashboardPage = () => {
             {client?.clientName || 'Client'} Dashboard
           </h1>
           <p className="text-muted-foreground mt-1">
-            {user?.role === 'admin' 
-              ? `Viewing as Admin • Contact: ${client?.contactPerson || 'N/A'}`
-              : `Welcome, ${client?.contactPerson || 'User'}`
+            {isAdminViewing
+              ? `🔍 Viewing as Admin • Contact: ${client?.contactPerson || 'N/A'}`
+              : `👋 Welcome, ${contactName || 'Client'}`
             }
           </p>
         </div>
@@ -187,13 +255,19 @@ const ClientDashboardPage = () => {
               {Object.entries(statistics.vulnerabilitiesBySeverity).map(([severity, count]) => (
                 <div key={severity} className="flex items-center justify-between">
                   <span className="text-foreground capitalize">{severity}</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    severity.toLowerCase() === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                    severity.toLowerCase() === 'high' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
-                    severity.toLowerCase() === 'medium' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' :
-                    severity.toLowerCase() === 'low' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                    'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                  }`}>
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      severity.toLowerCase() === 'critical'
+                        ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                        : severity.toLowerCase() === 'high'
+                        ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                        : severity.toLowerCase() === 'medium'
+                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+                        : severity.toLowerCase() === 'low'
+                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                        : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                    }`}
+                  >
                     {count}
                   </span>
                 </div>
@@ -238,17 +312,20 @@ const ClientDashboardPage = () => {
                   <div>
                     <h3 className="font-semibold text-foreground">{project.project_name}</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {Array.isArray(project.project_type) 
-                        ? project.project_type.join(', ') 
-                        : project.project_type || 'N/A'
-                      }
+                      {Array.isArray(project.project_type)
+                        ? project.project_type.join(', ')
+                        : project.project_type || 'N/A'}
                     </p>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    project.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                    project.status === 'Completed' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                    'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-                  }`}>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      project.status === 'Active'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                        : project.status === 'Completed'
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                    }`}
+                  >
                     {project.status}
                   </span>
                 </div>

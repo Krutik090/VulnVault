@@ -1,5 +1,5 @@
 // =======================================================================
-// FILE: src/components/Sidebar.jsx (UPDATED WITH TESTER SUPPORT)
+// FILE: src/components/Sidebar.jsx (UPDATED WITH CLIENT SUPPORT)
 // PURPOSE: Sidebar with role-based navigation for admin, tester & client
 // =======================================================================
 
@@ -82,6 +82,12 @@ const EyeIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+  </svg>
+);
+
+const DocumentIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
   </svg>
 );
 
@@ -211,8 +217,8 @@ const Sidebar = () => {
               <span className="text-sm font-medium">Dashboard</span>
             </NavLink>
 
-            {/* Statistics Dashboard - Admin & Tester */}
-            {(user?.role === 'admin') && (
+            {/* Statistics Dashboard - Admin Only */}
+            {user?.role === 'admin' && (
               <NavLink
                 to="/statistics"
                 className={linkClasses}
@@ -246,6 +252,33 @@ const Sidebar = () => {
                 >
                   <TimeIcon />
                   <span className="text-sm font-medium">Time Tracker</span>
+                </NavLink>
+              </>
+            )}
+
+            {/* ========================================
+                CLIENT SPECIFIC NAVIGATION - ✅ ADDED
+            ======================================== */}
+            {user?.role === 'client' && (
+              <>
+                {/* My Projects */}
+                <NavLink
+                  to="/client/projects"
+                  className={linkClasses}
+                  onClick={handleLinkClick}
+                >
+                  <FolderIcon />
+                  <span className="text-sm font-medium">My Projects</span>
+                </NavLink>
+
+                {/* Vulnerabilities/Reports */}
+                <NavLink
+                  to="/client/reports"
+                  className={linkClasses}
+                  onClick={handleLinkClick}
+                >
+                  <DocumentIcon />
+                  <span className="text-sm font-medium">Reports</span>
                 </NavLink>
               </>
             )}
@@ -326,7 +359,7 @@ const Sidebar = () => {
                         <ProjectsIcon />
                         <span>Project Records</span>
                       </NavLink>
-                      
+
                       <NavLink
                         to="/projects/add"
                         className={subLinkClasses}
@@ -400,33 +433,35 @@ const Sidebar = () => {
             )}
 
             {/* Tools Section - All Roles */}
-            <div>
-              <button
-                onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)}
-                className={dropdownButtonClasses(isToolsActive)}
-              >
-                <div className="flex items-center gap-3">
-                  <ToolsIcon />
-                  <span className="text-sm font-medium">Security Tools</span>
-                </div>
-                <div className={isToolsDropdownOpen ? 'rotate-180' : ''}>
-                  <ChevronDownIcon />
-                </div>
-              </button>
-
-              {isToolsDropdownOpen && (
-                <div className="mt-1 space-y-1 animate-slideIn">
-                  <NavLink
-                    to="/subdomain-finder"
-                    className={subLinkClasses}
-                    onClick={handleLinkClick}
-                  >
+            {(user?.role === 'admin' || user?.role === 'tester') && (
+              <div>
+                <button
+                  onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)}
+                  className={dropdownButtonClasses(isToolsActive)}
+                >
+                  <div className="flex items-center gap-3">
                     <ToolsIcon />
-                    <span>Subdomain Finder</span>
-                  </NavLink>
-                </div>
-              )}
-            </div>
+                    <span className="text-sm font-medium">Security Tools</span>
+                  </div>
+                  <div className={isToolsDropdownOpen ? 'rotate-180' : ''}>
+                    <ChevronDownIcon />
+                  </div>
+                </button>
+
+                {isToolsDropdownOpen && (
+                  <div className="mt-1 space-y-1 animate-slideIn">
+                    <NavLink
+                      to="/subdomain-finder"
+                      className={subLinkClasses}
+                      onClick={handleLinkClick}
+                    >
+                      <ToolsIcon />
+                      <span>Subdomain Finder</span>
+                    </NavLink>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </nav>
 
