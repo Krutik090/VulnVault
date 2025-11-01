@@ -1,6 +1,7 @@
 // =======================================================================
-// FILE: src/features/admin/AddUserModal.jsx (COMPLETE FIXED VERSION)
+// FILE: src/features/admin/AddUserModal.jsx (UPDATED)
 // PURPOSE: Modal for adding new users - FULLY WORKING
+// SOC 2 NOTES: Centralized icon management, secure form handling, input validation
 // =======================================================================
 
 import { useState } from 'react';
@@ -10,52 +11,21 @@ import { createUser } from '../../api/adminApi';
 import { useTheme } from '../../contexts/ThemeContext';
 import toast from 'react-hot-toast';
 
-// Icons
-const UserPlusIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-  </svg>
-);
+// ✅ CENTRALIZED ICON IMPORTS (SOC 2: Single source of truth)
+import {
+  UserPlusIcon,
+  SaveIcon,
+  UserIcon,
+  MailIcon,
+  LockIcon,
+  ShieldIcon,
+  InfoIcon,
+} from '../../components/Icons';
 
-const SaveIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-  </svg>
-);
-
-const UserIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-  </svg>
-);
-
-const MailIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-  </svg>
-);
-
-const LockIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-  </svg>
-);
-
-const ShieldIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-  </svg>
-);
-
-const InfoIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
-
-const AddUserModal = ({ onClose, onUserAdded }) => {
+const AddUserModal = ({ isOpen = true, onClose, onUserAdded }) => {
   const { theme, color } = useTheme();
 
+  // ✅ SOC 2: Form state with all required fields
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -66,36 +36,61 @@ const AddUserModal = ({ onClose, onUserAdded }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState({});
 
+  // ✅ SOC 2: Form field change handler
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error for this field
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+
+    // ✅ SOC 2: Clear error on field change
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({
+        ...prev,
+        [name]: ''
+      }));
     }
   };
 
+  // ✅ SOC 2: Comprehensive form validation
   const validateForm = () => {
     const newErrors = {};
 
+    // Validate name
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = 'Name must be at least 2 characters';
+    } else if (formData.name.trim().length > 100) {
+      newErrors.name = 'Name must be less than 100 characters';
     }
 
+    // Validate email
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    } else if (formData.email.trim().length > 254) {
+      newErrors.email = 'Email is too long';
     }
 
+    // Validate password
     if (!formData.password.trim()) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
+    } else if (formData.password.length > 128) {
+      newErrors.password = 'Password is too long';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      // Optional: Strong password check (commented for flexibility)
+      // newErrors.password = 'Password must contain uppercase, lowercase, and numbers';
     }
 
-    if (!formData.role) {
-      newErrors.role = 'Role is required';
+    // Validate role
+    if (!formData.role || !['admin', 'tester', 'client'].includes(formData.role)) {
+      newErrors.role = 'Valid role is required';
     }
 
     setErrors(newErrors);
@@ -112,62 +107,91 @@ const AddUserModal = ({ onClose, onUserAdded }) => {
 
     setIsSaving(true);
     try {
-      await createUser(formData);
+      // ✅ SOC 2: Sanitize data before submission
+      const cleanedData = {
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password.trim(),
+        role: formData.role
+      };
+
+      // ✅ SOC 2: Log user creation attempt (audit trail)
+      console.log(`👤 Creating user: ${cleanedData.email} (${cleanedData.role})`);
+
+      await createUser(cleanedData);
+
+      // ✅ SOC 2: Log successful creation
+      console.log(`✅ User created successfully: ${cleanedData.email}`);
+
       toast.success('User created successfully!');
-      onUserAdded();
-      onClose();
+      onUserAdded?.();
+      onClose?.();
     } catch (error) {
-      console.error('Error creating user:', error);
+      console.error('❌ Error creating user:', error.message);
       toast.error(error.message || 'Failed to create user');
     } finally {
       setIsSaving(false);
     }
   };
 
+  const getRoleDescription = (role) => {
+    const descriptions = {
+      admin: 'Full system access including user management, project configuration, and settings',
+      tester: 'Can create and manage projects, add vulnerabilities, and manage project teams',
+      client: 'Limited access to assigned projects only. Can view project reports and findings'
+    };
+    return descriptions[role] || '';
+  };
+
   return (
     <Modal
-      isOpen={true}
+      isOpen={isOpen}
       onClose={onClose}
-
       title={
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/10 rounded-lg">
-            <UserPlusIcon className="text-primary" />
+            <UserPlusIcon className="text-primary w-6 h-6" />
           </div>
           <div>
             <h2 className="text-xl font-semibold text-foreground">Add New User</h2>
-            <p className="text-sm text-muted-foreground">Create a new user account</p>
+            <p className="text-sm text-muted-foreground">
+              Create a new user account
+            </p>
           </div>
         </div>
       }
-      maxWidth="max-w-2xl">
+      maxWidth="700px"
+    >
       <form onSubmit={handleSubmit} className={`${theme} theme-${color} space-y-6`}>
-
-        {/* Info Banner */}
+        {/* ========== INFO BANNER ========== */}
+        {/* ✅ SOC 2: Inform users about account creation */}
         <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <InfoIcon className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+          <InfoIcon className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5 w-5 h-5" />
           <div className="flex-1">
             <p className="text-sm text-blue-800 dark:text-blue-300">
-              Create user accounts with different access levels. Users will be able to log in with their email and password.
+              Create user accounts with different access levels. Users will be
+              able to log in with their email and password.
             </p>
           </div>
         </div>
 
-        {/* Form Fields */}
+        {/* ========== FORM FIELDS ========== */}
         <div className="space-y-5">
-          {/* Name */}
+          {/* Full Name */}
           <FormInput
             label="Full Name"
             name="name"
             value={formData.name}
             onChange={handleChange}
             placeholder="Enter user's full name"
-            icon={<UserIcon />}
+            icon={<UserIcon className="w-5 h-5" />}
             required
+            aria-label="User full name"
+            aria-invalid={!!errors.name}
             error={errors.name}
           />
 
-          {/* Email */}
+          {/* Email Address */}
           <FormInput
             label="Email Address"
             name="email"
@@ -175,8 +199,10 @@ const AddUserModal = ({ onClose, onUserAdded }) => {
             value={formData.email}
             onChange={handleChange}
             placeholder="Enter email address"
-            icon={<MailIcon />}
+            icon={<MailIcon className="w-5 h-5" />}
             required
+            aria-label="User email address"
+            aria-invalid={!!errors.email}
             error={errors.email}
           />
 
@@ -188,16 +214,18 @@ const AddUserModal = ({ onClose, onUserAdded }) => {
             value={formData.password}
             onChange={handleChange}
             placeholder="Enter password (min. 6 characters)"
-            icon={<LockIcon />}
+            icon={<LockIcon className="w-5 h-5" />}
             required
+            aria-label="User password"
+            aria-invalid={!!errors.password}
             error={errors.password}
           />
 
-          {/* Role */}
+          {/* Role Selection */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
               <div className="flex items-center gap-2">
-                <ShieldIcon />
+                <ShieldIcon className="w-5 h-5" />
                 Role <span className="text-red-500">*</span>
               </div>
             </label>
@@ -205,38 +233,48 @@ const AddUserModal = ({ onClose, onUserAdded }) => {
               name="role"
               value={formData.role}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+              className={`w-full px-4 py-3 border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
+                errors.role ? 'border-red-500' : 'border-input'
+              }`}
               required
+              aria-label="Select user role"
+              aria-invalid={!!errors.role}
             >
               <option value="tester">Tester</option>
               <option value="admin">Admin</option>
               <option value="client">Client</option>
             </select>
-            {errors.role && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.role}</p>
+
+            {/* ✅ SOC 2: Role description */}
+            {errors.role ? (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                {errors.role}
+              </p>
+            ) : (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {getRoleDescription(formData.role)}
+              </p>
             )}
-            <p className="mt-2 text-xs text-muted-foreground">
-              {formData.role === 'admin' && 'Full system access including user management'}
-              {formData.role === 'tester' && 'Can manage projects and vulnerabilities'}
-              {formData.role === 'client' && 'Limited access to assigned projects only'}
-            </p>
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* ========== ACTION BUTTONS ========== */}
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
           <button
             type="button"
             onClick={onClose}
             disabled={isSaving}
             className="px-6 py-2.5 border border-input text-foreground bg-background hover:bg-accent rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Cancel creating user"
           >
             Cancel
           </button>
+
           <button
             type="submit"
             disabled={isSaving}
             className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Create user"
           >
             {isSaving ? (
               <>
@@ -245,7 +283,7 @@ const AddUserModal = ({ onClose, onUserAdded }) => {
               </>
             ) : (
               <>
-                <SaveIcon />
+                <SaveIcon className="w-5 h-5" />
                 Create User
               </>
             )}

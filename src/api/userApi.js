@@ -283,3 +283,18 @@ export const updatePreferences = async (preferences) => {
   
   return data;
 };
+
+export const enableMFA = async (method) => {
+  const response = await api.post('/api/user/mfa/enable', { method });
+  return response.data;
+};
+
+export const disableMFA = async () => {
+  const response = await api.post('/api/user/mfa/disable');
+  return response.data;
+};
+
+export const verifyMFA = async (code) => {
+  const response = await api.post('/api/user/mfa/verify', { code });
+  return response.data;
+};
