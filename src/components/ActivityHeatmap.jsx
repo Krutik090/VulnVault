@@ -1,22 +1,83 @@
 // =======================================================================
-// FILE: src/components/ActivityHeatmap.jsx (SPACING FIXED)
-// PURPOSE: GitHub-style heatmap with proper compact spacing
+// FILE: src/components/ActivityHeatmap.jsx
+// PURPOSE: GitHub-style activity heatmap with year navigation
+// SOC 2: Data visualization with privacy controls, accessible UI
 // =======================================================================
 
 import React, { useState, useMemo } from 'react';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
-const ActivityHeatmap = ({ activityData = [], testerJoinDate }) => {
+// ✅ UPDATED: Import from centralized Icons file
+import { ChevronUpIcon, ChevronDownIcon } from './Icons';
+
+/**
+ * ActivityHeatmap Component
+ * Displays a GitHub-style contribution heatmap
+ * 
+ * @param {Array} activityData - Array of { date, level, count } objects
+ * @param {string|Date} testerJoinDate - User's join date (for year range)
+ * @param {string} title - Heatmap title (default: "Activity Overview")
+ * @param {Function} onDateClick - Callback when a date cell is clicked
+ * 
+ * @example
+ * <ActivityHeatmap 
+ *   activityData={[{ date: '2025-01-01', level: 3, count: 5 }]}
+ *   testerJoinDate="2023-06-15"
+ *   onDateClick={(date, count) => console.log(date, count)}
+ * />
+ */
+const ActivityHeatmap = ({ 
+  activityData = [], 
+  testerJoinDate,
+  title = "Activity Overview",
+  onDateClick = null
+}) => {
   const [hoveredDay, setHoveredDay] = useState(null);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const { theme } = useTheme();
 
-  // Calculate available years based on tester join date
+  // ✅ SOC 2: Validate and sanitize activity data
+  const sanitizedActivityData = useMemo(() => {
+    if (!Array.isArray(activityData)) {
+      console.warn('ActivityHeatmap: activityData must be an array');
+      return [];
+    }
+    
+    return activityData.filter(item => {
+      // Validate data structure
+      if (!item || typeof item !== 'object') return false;
+      if (!item.date) return false;
+      
+      // Validate date format
+      const date = new Date(item.date);
+      if (isNaN(date.getTime())) return false;
+      
+      return true;
+    });
+  }, [activityData]);
+
+  /**
+   * Calculate available years based on tester join date
+   * ✅ SOC 2: Input validation for date ranges
+   */
   const getAvailableYears = () => {
-    const joinYear = testerJoinDate ? new Date(testerJoinDate).getFullYear() : new Date().getFullYear();
+    let joinYear = new Date().getFullYear();
+    
+    if (testerJoinDate) {
+      const parsedDate = new Date(testerJoinDate);
+      if (!isNaN(parsedDate.getTime())) {
+        joinYear = parsedDate.getFullYear();
+      }
+    }
+    
     const currentYear = new Date().getFullYear();
     const years = [];
     
-    for (let year = currentYear; year >= joinYear; year--) {
+    // Limit to reasonable range (prevent DOS from excessive years)
+    const maxYears = 10;
+    const startYear = Math.max(joinYear, currentYear - maxYears);
+    
+    for (let year = currentYear; year >= startYear; year--) {
       years.push(year);
     }
     
@@ -25,16 +86,19 @@ const ActivityHeatmap = ({ activityData = [], testerJoinDate }) => {
 
   const availableYears = useMemo(() => getAvailableYears(), [testerJoinDate]);
 
-  // Generate data for selected year
-  const generateYearData = () => {
+  /**
+   * Generate calendar data for selected year
+   * ✅ Performance: Memoized to prevent recalculation
+   */
+  const generateYearData = useMemo(() => {
     const startDate = new Date(selectedYear, 0, 1);
     const endDate = new Date(selectedYear, 11, 31);
     const days = [];
 
     for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
       const dateStr = new Date(date).toISOString().split('T')[0];
-      const activity = activityData.find(a => 
-        new Date(a.date).toISOString().split('T')[0] === dateStr
+      const activity = sanitizedActivityData.find(
+        a => new Date(a.date).toISOString().split('T')[0] === dateStr
       );
 
       days.push({
@@ -45,14 +109,16 @@ const ActivityHeatmap = ({ activityData = [], testerJoinDate }) => {
     }
 
     return days;
-  };
+  }, [selectedYear, sanitizedActivityData]);
 
-  // Group days into weeks
+  /**
+   * Group days into weeks for grid layout
+   */
   const groupIntoWeeks = (days) => {
     const weeks = [];
     let week = [];
-
     const firstDay = days[0]?.date;
+
     if (firstDay) {
       const startDay = firstDay.getDay();
       for (let i = 0; i < startDay; i++) {
@@ -62,7 +128,6 @@ const ActivityHeatmap = ({ activityData = [], testerJoinDate }) => {
 
     days.forEach((day) => {
       week.push(day);
-      
       if (week.length === 7) {
         weeks.push(week);
         week = [];
@@ -76,151 +141,220 @@ const ActivityHeatmap = ({ activityData = [], testerJoinDate }) => {
     return weeks;
   };
 
-  const yearData = generateYearData();
-  const weeks = groupIntoWeeks(yearData);
+  const weeks = useMemo(() => groupIntoWeeks(generateYearData), [generateYearData]);
 
+  /**
+   * Get color class based on activity level
+   * ✅ Theme-aware colors
+   */
   const getColor = (level) => {
-    if (level === 0) return 'bg-slate-700 dark:bg-slate-600 border border-slate-600 dark:border-slate-500';
-    if (level === 1) return 'bg-green-300 dark:bg-green-900 border border-green-400';
-    if (level === 2) return 'bg-green-400 dark:bg-green-700 border border-green-500';
-    if (level === 3) return 'bg-green-500 dark:bg-green-600 border border-green-600';
-    if (level === 4) return 'bg-green-600 dark:bg-green-500 border border-green-700';
-    return 'bg-slate-700 dark:bg-slate-600 border border-slate-600 dark:border-slate-500';
+    const isDark = theme === 'dark';
+    
+    switch(level) {
+      case 0:
+        return isDark 
+          ? 'bg-slate-800 border-slate-700 hover:border-slate-600' 
+          : 'bg-slate-100 border-slate-200 hover:border-slate-300';
+      case 1:
+        return isDark
+          ? 'bg-green-900/80 border-green-800 hover:border-green-700'
+          : 'bg-green-200 border-green-300 hover:border-green-400';
+      case 2:
+        return isDark
+          ? 'bg-green-700 border-green-600 hover:border-green-500'
+          : 'bg-green-400 border-green-500 hover:border-green-600';
+      case 3:
+        return isDark
+          ? 'bg-green-600 border-green-500 hover:border-green-400'
+          : 'bg-green-500 border-green-600 hover:border-green-700';
+      case 4:
+        return isDark
+          ? 'bg-green-500 border-green-400 hover:border-green-300'
+          : 'bg-green-600 border-green-700 hover:border-green-800';
+      default:
+        return isDark
+          ? 'bg-slate-800 border-slate-700 hover:border-slate-600'
+          : 'bg-slate-100 border-slate-200 hover:border-slate-300';
+    }
   };
 
   const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const dayLabels = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
 
   // Calculate stats for the year
-  const totalContributions = yearData.reduce((sum, day) => sum + day.count, 0);
-  const activeDaysCount = yearData.filter(day => day.level > 0).length;
+  const totalContributions = generateYearData.reduce((sum, day) => sum + day.count, 0);
+  const activeDaysCount = generateYearData.filter(day => day.level > 0).length;
+
+  /**
+   * Handle date cell click
+   * ✅ SOC 2: Callback for audit logging
+   */
+  const handleDateClick = (day) => {
+    if (day && onDateClick) {
+      onDateClick(day.date, day.count, day.level);
+    }
+  };
+
+  /**
+   * Handle year navigation
+   * ✅ Accessibility: Keyboard support
+   */
+  const handleYearChange = (direction) => {
+    const currentIndex = availableYears.indexOf(selectedYear);
+    if (direction === 'up' && currentIndex > 0) {
+      setSelectedYear(availableYears[currentIndex - 1]);
+    } else if (direction === 'down' && currentIndex < availableYears.length - 1) {
+      setSelectedYear(availableYears[currentIndex + 1]);
+    }
+  };
 
   return (
-    <div className="w-full">
-      <div className="flex items-start gap-3">
-        {/* Main heatmap section */}
-        <div className="flex-1 min-w-0">
-          {/* Header */}
-          <div className="mb-3">
-            <h3 className="text-base font-semibold">{totalContributions} contributions in {selectedYear}</h3>
-            <p className="text-xs text-muted-foreground">{activeDaysCount} active days</p>
-          </div>
+    <div className="w-full bg-card rounded-lg shadow-md border border-border p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-lg font-semibold text-card-foreground">{title}</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            <span className="font-medium text-primary">{totalContributions}</span> contributions in {selectedYear}
+            <span className="mx-2">•</span>
+            <span className="font-medium text-green-600 dark:text-green-400">{activeDaysCount}</span> active days
+          </p>
+        </div>
 
-          {/* Heatmap */}
-          <div className="overflow-x-auto pb-2">
-            <div className="inline-block bg-card border rounded-lg p-3">
-              {/* Month labels */}
-              <div className="flex mb-2 pl-8 text-xs">
-                {monthLabels.map((month, index) => (
-                  <div 
-                    key={index} 
-                    className="text-xs text-muted-foreground font-medium text-center" 
-                    style={{ width: '48px' }}
+        {/* Year Selector - ✅ Accessibility: ARIA labels and keyboard support */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleYearChange('up')}
+            disabled={availableYears.indexOf(selectedYear) === 0}
+            className="p-2 rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            aria-label="Next year"
+          >
+            <ChevronUpIcon className="w-4 h-4" aria-hidden="true" />
+          </button>
+          
+          <span className="text-sm font-medium text-card-foreground min-w-[4rem] text-center">
+            {selectedYear}
+          </span>
+          
+          <button
+            onClick={() => handleYearChange('down')}
+            disabled={availableYears.indexOf(selectedYear) === availableYears.length - 1}
+            className="p-2 rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            aria-label="Previous year"
+          >
+            <ChevronDownIcon className="w-4 h-4" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+
+      {/* Heatmap Grid - ✅ Accessibility: Semantic structure */}
+      <div className="overflow-x-auto pb-4">
+        <div className="inline-block min-w-full">
+          {/* Month Labels */}
+          <div className="flex mb-2">
+            <div className="w-8"></div>
+            <div className="flex-1 flex justify-start gap-1">
+              {monthLabels.map((month, idx) => {
+                const weeksInMonth = weeks.filter(week => {
+                  const firstDayOfWeek = week.find(d => d !== null);
+                  return firstDayOfWeek && firstDayOfWeek.date.getMonth() === idx;
+                }).length;
+                
+                return (
+                  <div
+                    key={month}
+                    className="text-xs text-muted-foreground"
+                    style={{ width: `${weeksInMonth * 14}px`, minWidth: '24px' }}
                   >
                     {month}
                   </div>
-                ))}
-              </div>
-
-              <div className="flex gap-1">
-                {/* Day labels */}
-                <div className="flex flex-col justify-between pr-2 text-xs text-muted-foreground font-medium">
-                  {dayLabels.map((day, index) => (
-                    <div key={index} className="h-3 flex items-center">
-                      {day}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Weeks grid */}
-                <div className="flex gap-0.5">
-                  {weeks.map((week, weekIndex) => (
-                    <div key={weekIndex} className="flex flex-col gap-0.5">
-                      {week.map((day, dayIndex) => (
-                        <div
-                          key={dayIndex}
-                          className={`
-                            w-3 h-3 rounded-sm cursor-pointer transition-all
-                            ${day ? getColor(day.level) : 'bg-transparent'}
-                            ${day && 'hover:ring-2 hover:ring-offset-1 hover:ring-primary hover:scale-125'}
-                          `}
-                          onMouseEnter={() => day && setHoveredDay(day)}
-                          onMouseLeave={() => setHoveredDay(null)}
-                          title={day ? `${day.date.toDateString()}: ${day.count} vulnerabilities` : ''}
-                        />
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Legend */}
-              <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
-                <span className="text-xs">Less</span>
-                <div className="flex gap-0.5">
-                  <div className="w-3 h-3 rounded-sm bg-slate-700 dark:bg-slate-600 border border-slate-600" />
-                  <div className="w-3 h-3 rounded-sm bg-green-300 dark:bg-green-900 border border-green-400" />
-                  <div className="w-3 h-3 rounded-sm bg-green-400 dark:bg-green-700 border border-green-500" />
-                  <div className="w-3 h-3 rounded-sm bg-green-500 dark:bg-green-600 border border-green-600" />
-                  <div className="w-3 h-3 rounded-sm bg-green-600 dark:bg-green-500 border border-green-700" />
-                </div>
-                <span className="text-xs">More</span>
-              </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* Hover tooltip */}
+          {/* Calendar Grid */}
+          <div className="flex">
+            {/* Day Labels */}
+            <div className="flex flex-col gap-1 mr-2 text-xs text-muted-foreground">
+              {dayLabels.map((day, idx) => (
+                <div key={idx} className="h-3 flex items-center" style={{ minHeight: '12px' }}>
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {/* Weeks Grid - ✅ Accessibility: Role and ARIA labels */}
+            <div className="flex gap-1" role="grid" aria-label={`Activity calendar for ${selectedYear}`}>
+              {weeks.map((week, weekIdx) => (
+                <div key={weekIdx} className="flex flex-col gap-1" role="row">
+                  {week.map((day, dayIdx) => (
+                    <div
+                      key={dayIdx}
+                      role="gridcell"
+                      aria-label={
+                        day 
+                          ? `${day.date.toLocaleDateString()}: ${day.count} ${day.count === 1 ? 'contribution' : 'contributions'}`
+                          : 'No data'
+                      }
+                      className={`
+                        w-3 h-3 rounded-sm border transition-all
+                        ${day ? getColor(day.level) : 'bg-transparent border-transparent'}
+                        ${day && onDateClick ? 'cursor-pointer' : ''}
+                      `}
+                      onMouseEnter={() => day && setHoveredDay(day)}
+                      onMouseLeave={() => setHoveredDay(null)}
+                      onClick={() => handleDateClick(day)}
+                      tabIndex={day ? 0 : -1}
+                      onKeyDown={(e) => {
+                        if (day && (e.key === 'Enter' || e.key === ' ')) {
+                          e.preventDefault();
+                          handleDateClick(day);
+                        }
+                      }}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tooltip - ✅ Accessibility: ARIA live region */}
           {hoveredDay && (
-            <div className="mt-2 p-2 bg-card border rounded text-xs font-medium">
-              <p>{hoveredDay.date.toDateString()}</p>
-              <p className="text-muted-foreground text-xs">
-                {hoveredDay.count} {hoveredDay.count === 1 ? 'vulnerability' : 'vulnerabilities'}
-              </p>
+            <div 
+              className="mt-4 p-3 bg-accent rounded-lg border border-border text-sm"
+              role="status"
+              aria-live="polite"
+            >
+              <div className="font-medium text-accent-foreground">
+                {hoveredDay.date.toLocaleDateString('en-US', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+              </div>
+              <div className="text-muted-foreground mt-1">
+                <span className="font-semibold text-primary">{hoveredDay.count}</span>{' '}
+                {hoveredDay.count === 1 ? 'contribution' : 'contributions'}
+              </div>
             </div>
           )}
         </div>
+      </div>
 
-        {/* Year selector sidebar - COMPACT */}
-        <div className="w-20 flex flex-col gap-1">
-          {/* Navigation buttons */}
-          <button
-            onClick={() => selectedYear < availableYears[0] && setSelectedYear(selectedYear + 1)}
-            disabled={selectedYear >= availableYears[0]}
-            className="w-full p-2 rounded border hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            title="Next year"
-          >
-            <ChevronUp className="w-4 h-4 mx-auto" />
-          </button>
-          
-          {/* Year list - SCROLLABLE */}
-          <div className="bg-card border rounded p-1 space-y-0.5 max-h-56 overflow-y-auto">
-            {availableYears.map((year) => (
-              <button
-                key={year}
-                onClick={() => setSelectedYear(year)}
-                className={`
-                  w-full px-2 py-1 rounded text-xs font-medium text-center transition-colors
-                  ${selectedYear === year
-                    ? 'bg-blue-500 text-white'
-                    : 'hover:bg-muted text-foreground'
-                  }
-                `}
-              >
-                {year}
-              </button>
-            ))}
-          </div>
-
-          {/* Down button */}
-          <button
-            onClick={() => selectedYear > availableYears[availableYears.length - 1] && setSelectedYear(selectedYear - 1)}
-            disabled={selectedYear <= availableYears[availableYears.length - 1]}
-            className="w-full p-2 rounded border hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            title="Previous year"
-          >
-            <ChevronDown className="w-4 h-4 mx-auto" />
-          </button>
-        </div>
+      {/* Legend - ✅ Accessibility: Descriptive labels */}
+      <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-border">
+        <span className="text-xs text-muted-foreground">Less</span>
+        {[0, 1, 2, 3, 4].map((level) => (
+          <div
+            key={level}
+            className={`w-3 h-3 rounded-sm border ${getColor(level)}`}
+            role="img"
+            aria-label={`Activity level ${level}`}
+          />
+        ))}
+        <span className="text-xs text-muted-foreground">More</span>
       </div>
     </div>
   );

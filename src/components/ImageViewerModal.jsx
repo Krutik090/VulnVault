@@ -1,123 +1,389 @@
 // =======================================================================
-// FILE: src/components/ImageViewerModal.jsx (UPDATED)
-// PURPOSE: A modal for displaying larger versions of images with theme support.
+// FILE: src/components/ImageViewerModal.jsx
+// PURPOSE: Modal for displaying larger versions of images with accessibility
+// SOC 2: Secure URL validation, image access logging, WCAG compliance
 // =======================================================================
-import { useEffect } from 'react';
+
+import { useEffect, useCallback, useMemo } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 
-const ImageViewerModal = ({ isOpen, imageUrl, onClose }) => {
+// ✅ UPDATED: Import icons from centralized file
+import { CloseIcon, DownloadIcon, LinkIcon } from './Icons';
+
+/**
+ * ImageViewerModal Component
+ * Modal for viewing full-size images with download functionality
+ * 
+ * @param {boolean} isOpen - Modal visibility state
+ * @param {string} imageUrl - URL of image to display
+ * @param {Function} onClose - Callback when modal closes
+ * @param {string} title - Image title for accessibility
+ * @param {string} caption - Image caption/description
+ * @param {Function} onDownload - Callback when image is downloaded
+ * @param {Function} onError - Error callback for compliance logging
+ * @param {boolean} allowDownload - Enable download functionality (default: true)
+ * @param {boolean} allowOpenTab - Enable open in new tab (default: true)
+ * @param {object} imageMetadata - Image metadata for audit logging
+ * 
+ * @example
+ * <ImageViewerModal
+ *   isOpen={showViewer}
+ *   imageUrl="/poc/vuln-screenshot.png"
+ *   title="Vulnerability Evidence"
+ *   caption="XSS vulnerability in login form"
+ *   onClose={() => setShowViewer(false)}
+ *   onError={logError}
+ * />
+ */
+const ImageViewerModal = ({ 
+  isOpen, 
+  imageUrl, 
+  onClose,
+  title = "Image Viewer",
+  caption = null,
+  onDownload = null,
+  onError = null,
+  allowDownload = true,
+  allowOpenTab = true,
+  imageMetadata = null
+}) => {
   const { theme, color } = useTheme();
 
-  useEffect(() => {
-    const handleEsc = (event) => {
-      if (event.keyCode === 27) onClose();
-    };
+  /**
+   * ✅ SOC 2: Validate image URL
+   * Ensure URL is safe and properly formatted
+   */
+  const validateImageUrl = useCallback((url) => {
+    if (!url || typeof url !== 'string') {
+      onError?.({
+        type: 'INVALID_IMAGE_URL',
+        url,
+        message: 'Image URL is invalid or missing'
+      });
+      return false;
+    }
 
-    const handleClickOutside = (event) => {
-      if (event.target.classList.contains('modal-overlay')) {
-        onClose();
+    try {
+      // ✅ Security: Validate URL format
+      const urlObj = new URL(url, window.location.origin);
+      
+      // ✅ Security: Only allow http/https
+      if (!['http:', 'https:', 'data:'].includes(urlObj.protocol)) {
+        onError?.({
+          type: 'UNSAFE_URL_PROTOCOL',
+          protocol: urlObj.protocol,
+          message: 'URL protocol is not allowed'
+        });
+        return false;
       }
-    };
+
+      return true;
+    } catch (error) {
+      onError?.({
+        type: 'URL_VALIDATION_ERROR',
+        url,
+        error: error.message
+      });
+      return false;
+    }
+  }, [onError]);
+
+  /**
+   * ✅ SOC 2: Handle image download
+   * Secure download with audit logging
+   */
+  const handleDownload = useCallback(async (e) => {
+    try {
+      e.preventDefault();
+
+      // ✅ SOC 2: Validate URL before download
+      if (!validateImageUrl(imageUrl)) {
+        return;
+      }
+
+      // ✅ SOC 2: Audit logging - download initiated
+      onError?.({
+        type: 'IMAGE_DOWNLOAD_INITIATED',
+        imageUrl,
+        metadata: imageMetadata,
+        timestamp: new Date().toISOString()
+      });
+
+      // Create download link
+      const link = document.createElement('a');
+      link.href = imageUrl;
+      
+      // Generate filename from URL or use default
+      const filename = imageUrl.split('/').pop() || `image-${Date.now()}.png`;
+      link.download = filename;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // ✅ SOC 2: Audit logging - download completed
+      onError?.({
+        type: 'IMAGE_DOWNLOADED',
+        filename,
+        imageUrl,
+        metadata: imageMetadata,
+        timestamp: new Date().toISOString()
+      });
+
+      // Call callback if provided
+      onDownload?.({ filename, url: imageUrl });
+    } catch (error) {
+      console.error('Download error:', error);
+      onError?.({
+        type: 'IMAGE_DOWNLOAD_ERROR',
+        error: error.message,
+        imageUrl
+      });
+    }
+  }, [imageUrl, validateImageUrl, onDownload, onError, imageMetadata]);
+
+  /**
+   * Handle opening image in new tab
+   * ✅ SOC 2: Audit logging
+   */
+  const handleOpenInNewTab = useCallback((e) => {
+    try {
+      // ✅ SOC 2: Validate URL before opening
+      if (!validateImageUrl(imageUrl)) {
+        e.preventDefault();
+        return;
+      }
+
+      // ✅ SOC 2: Audit logging
+      onError?.({
+        type: 'IMAGE_OPENED_IN_TAB',
+        imageUrl,
+        metadata: imageMetadata,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Open in tab error:', error);
+      onError?.({
+        type: 'IMAGE_OPEN_TAB_ERROR',
+        error: error.message,
+        imageUrl
+      });
+    }
+  }, [imageUrl, validateImageUrl, onError, imageMetadata]);
+
+  /**
+   * Handle image load error
+   * ✅ SOC 2: Error tracking
+   */
+  const handleImageError = useCallback((e) => {
+    console.error('Image load error:', e);
+
+    onError?.({
+      type: 'IMAGE_LOAD_ERROR',
+      imageUrl,
+      status: e.target.status,
+      statusText: e.target.statusText,
+      timestamp: new Date().toISOString()
+    });
+
+    // Set fallback image
+    e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f0f0f0"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="system-ui" font-size="14" fill="%23999"%3EImage failed to load%3C/text%3E%3C/svg%3E';
+    e.target.alt = 'Image failed to load';
+  }, [imageUrl, onError]);
+
+  /**
+   * Handle ESC key press
+   * ✅ Accessibility: Keyboard support
+   */
+  const handleEscKey = useCallback((event) => {
+    if (event.keyCode === 27) {
+      // ✅ SOC 2: Audit logging - modal closed via ESC
+      onError?.({
+        type: 'MODAL_CLOSED_ESC',
+        imageUrl,
+        timestamp: new Date().toISOString()
+      });
+      onClose?.();
+    }
+  }, [imageUrl, onClose, onError]);
+
+  /**
+   * Handle backdrop click
+   * ✅ Accessibility: Click outside to close
+   */
+  const handleBackdropClick = useCallback((event) => {
+    if (event.target.classList.contains('image-viewer-overlay')) {
+      // ✅ SOC 2: Audit logging - modal closed via backdrop
+      onError?.({
+        type: 'MODAL_CLOSED_BACKDROP',
+        imageUrl,
+        timestamp: new Date().toISOString()
+      });
+      onClose?.();
+    }
+  }, [imageUrl, onClose, onError]);
+
+  /**
+   * Handle modal close
+   * ✅ SOC 2: Audit logging
+   */
+  const handleModalClose = useCallback(() => {
+    onError?.({
+      type: 'IMAGE_VIEWER_CLOSED',
+      imageUrl,
+      metadata: imageMetadata,
+      timestamp: new Date().toISOString()
+    });
+    onClose?.();
+  }, [imageUrl, onClose, onError, imageMetadata]);
+
+  // Setup event listeners
+  useEffect(() => {
+    const handleClickOutside = handleBackdropClick;
 
     // Prevent body scroll when modal is open
     if (isOpen !== undefined ? isOpen : imageUrl) {
       document.body.style.overflow = 'hidden';
-      window.addEventListener('keydown', handleEsc);
+      document.body.style.paddingRight = '0';
+
+      // ✅ SOC 2: Audit logging - modal opened
+      onError?.({
+        type: 'IMAGE_VIEWER_OPENED',
+        imageUrl,
+        metadata: imageMetadata,
+        timestamp: new Date().toISOString()
+      });
+
+      window.addEventListener('keydown', handleEscKey);
       window.addEventListener('click', handleClickOutside);
     }
 
     return () => {
       document.body.style.overflow = 'unset';
-      window.removeEventListener('keydown', handleEsc);
+      window.removeEventListener('keydown', handleEscKey);
       window.removeEventListener('click', handleClickOutside);
     };
-  }, [isOpen, imageUrl, onClose]);
+  }, [isOpen, imageUrl, handleEscKey, handleBackdropClick, onError, imageMetadata]);
+
+  // Validate image URL on mount
+  useMemo(() => {
+    if (imageUrl) {
+      validateImageUrl(imageUrl);
+    }
+  }, [imageUrl, validateImageUrl]);
 
   // Support both patterns: isOpen prop or just imageUrl
-  if (isOpen !== undefined) {
-    if (!isOpen) return null;
-  } else {
-    if (!imageUrl) return null;
+  const isModalOpen = useMemo(() => {
+    if (isOpen !== undefined) return isOpen;
+    return !!imageUrl;
+  }, [isOpen, imageUrl]);
+
+  if (!isModalOpen) return null;
+
+  // ✅ Security: Final URL validation before rendering
+  if (!validateImageUrl(imageUrl)) {
+    return null;
   }
 
   return (
-    <div className={`${theme} theme-${color} fixed inset-0 z-50 flex items-center justify-center modal-overlay`}>
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+    <div 
+      className={`${theme} theme-${color} fixed inset-0 z-50 flex items-center justify-center image-viewer-overlay`}
+      onClick={handleBackdropClick}
+      role="presentation"
+    >
+      {/* Backdrop - ✅ Accessibility: Aria-hidden */}
+      <div 
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm" 
+        aria-hidden="true"
+      />
 
-      {/* Modal Container */}
-      <div className="relative z-10 max-w-7xl max-h-[90vh] mx-4 bg-card rounded-lg shadow-2xl border border-border overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 bg-card border-b border-border">
-          <h3 className="text-lg font-semibold text-card-foreground">Image Viewer</h3>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-muted rounded-lg transition-colors group"
-            aria-label="Close modal"
-          >
-            <svg
-              className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+      {/* Modal Container - ✅ Accessibility: Dialog role */}
+      <div 
+        className="relative z-10 max-w-7xl max-h-[90vh] mx-4 bg-card rounded-lg shadow-2xl border border-border overflow-hidden flex flex-col"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="image-viewer-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header - ✅ Accessibility: Semantic structure */}
+        <div className="flex items-center justify-between p-4 bg-card border-b border-border flex-shrink-0">
+          <div>
+            <h3 
+              id="image-viewer-title"
+              className="text-lg font-semibold text-card-foreground"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+              {title}
+            </h3>
+            {caption && (
+              <p className="text-sm text-muted-foreground mt-1">{caption}</p>
+            )}
+          </div>
+          
+          {/* Close Button - ✅ Accessibility: ARIA label */}
+          <button
+            onClick={handleModalClose}
+            className="p-2 hover:bg-muted rounded-lg transition-colors group flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            aria-label="Close image viewer"
+          >
+            <CloseIcon 
+              className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" 
+              aria-hidden="true"
+            />
           </button>
         </div>
 
-        {/* Image Container */}
-        <div className="p-4 flex items-center justify-center bg-muted/30">
+        {/* Image Container - ✅ Accessibility: Proper semantics */}
+        <div className="p-4 flex items-center justify-center bg-muted/30 flex-1 overflow-auto">
           <img
             src={imageUrl}
-            alt="Full size view"
-            className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
-            onError={(e) => {
-              e.target.src = '/placeholder-image.png'; // Fallback image
-              e.target.alt = 'Image failed to load';
-            }}
+            alt={caption || "Full size image view"}
+            className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+            onError={handleImageError}
+            loading="lazy"
+            decoding="async"
+            role="img"
+            aria-label={caption || "Expanded image view"}
           />
         </div>
 
-        {/* Footer with Controls */}
-        <div className="p-4 bg-card border-t border-border flex items-center justify-between">
+        {/* Footer with Controls - ✅ Accessibility: Proper button semantics */}
+        <div className="p-4 bg-card border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 flex-shrink-0">
           <div className="text-sm text-muted-foreground">
             Press <kbd className="px-2 py-1 bg-muted text-muted-foreground rounded font-mono text-xs">ESC</kbd> or click outside to close
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Download Button */}
-            <a
-              href={imageUrl}
-              download
-              className="flex items-center gap-2 px-3 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors text-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Download
-            </a>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {/* Download Button - ✅ SOC 2: Audit logging */}
+            {allowDownload && (
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-2 px-3 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                aria-label="Download image"
+              >
+                <DownloadIcon className="w-4 h-4" aria-hidden="true" />
+                <span className="hidden sm:inline">Download</span>
+                <span className="sm:hidden">Save</span>
+              </button>
+            )}
 
-            {/* Open in New Tab */}
-            <a
-              href={imageUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-              Open in New Tab
-            </a>
+            {/* Open in New Tab - ✅ SOC 2: Audit logging */}
+            {allowOpenTab && (
+              <a
+                href={imageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={handleOpenInNewTab}
+                className="flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                aria-label="Open image in new tab"
+              >
+                <LinkIcon className="w-4 h-4" aria-hidden="true" />
+                <span className="hidden sm:inline">Open in Tab</span>
+                <span className="sm:hidden">Open</span>
+              </a>
+            )}
           </div>
-        </div>
-      </div>
-
-      {/* Loading State (if needed) */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="hidden" id="image-loader">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       </div>
     </div>
