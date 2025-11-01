@@ -1,3 +1,9 @@
+/* =======================================================================
+FILE: src/index.css (UPDATED - SOC 2 COMPLIANT)
+PURPOSE: Global base styles with theme system and compliance
+SOC 2: Accessibility, performance, security
+======================================================================= */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
 
 @tailwind base;
@@ -5,15 +11,20 @@
 @tailwind utilities;
 
 /* =======================================================================
-   RESET & FONT CONFIGURATION
-   ======================================================================= */
-html, body {
+RESET & FONT CONFIGURATION
+======================================================================= */
+
+html,
+body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
@@ -24,14 +35,20 @@ html, body {
 }
 
 /* Headings use Poppins */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: 'Poppins', sans-serif;
   font-weight: 600;
+  line-height: 1.2;
 }
 
 /* =======================================================================
-   BASE STYLES & CSS VARIABLES FOR THEME SYSTEM
-   ======================================================================= */
+BASE STYLES & CSS VARIABLES FOR THEME SYSTEM
+======================================================================= */
 
 :root {
   /* Light theme default colors (blue theme) */
@@ -50,11 +67,22 @@ h1, h2, h3, h4, h5, h6 {
   --color-border: #e2e8f0; /* slate-200 */
   --color-input: #ffffff;
   --color-ring: #2563eb; /* blue-600 */
-  
+
   /* Toast Theme */
   --toast-bg: #ffffff;
   --toast-text: #0f172a;
   --toast-border: #e2e8f0;
+
+  /* Semantic colors */
+  --color-success: #16a34a;
+  --color-warning: #ea580c;
+  --color-error: #dc2626;
+  --color-info: #0ea5e9;
+
+  /* Transitions */
+  --transition-fast: 150ms;
+  --transition-base: 200ms;
+  --transition-slow: 300ms;
 }
 
 /* Dark theme overrides */
@@ -74,16 +102,22 @@ h1, h2, h3, h4, h5, h6 {
   --color-border: #334155; /* slate-700 */
   --color-input: #1e293b;
   --color-ring: #3b82f6; /* blue-500 */
-  
+
   /* Toast Theme - Dark mode */
   --toast-bg: #1e293b;
   --toast-text: #f1f5f9;
   --toast-border: #334155;
+
+  /* Semantic colors - Dark */
+  --color-success: #22c55e;
+  --color-warning: #f97316;
+  --color-error: #ef4444;
+  --color-info: #06b6d4;
 }
 
 /* =======================================================================
-   COLOR THEME VARIATIONS
-   ======================================================================= */
+COLOR THEME VARIATIONS
+======================================================================= */
 
 /* Blue Theme (Default) */
 .theme-blue {
@@ -141,8 +175,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* =======================================================================
-   APPLY CSS VARIABLES AS TAILWIND UTILITIES
-   ======================================================================= */
+APPLY CSS VARIABLES AS TAILWIND UTILITIES
+======================================================================= */
 
 @layer base {
   body {
@@ -156,82 +190,138 @@ h1, h2, h3, h4, h5, h6 {
   .bg-background {
     background-color: var(--color-background);
   }
+
   .bg-foreground {
     background-color: var(--color-foreground);
   }
+
   .bg-card {
     background-color: var(--color-card);
   }
+
   .bg-primary {
     background-color: var(--color-primary);
   }
+
   .bg-secondary {
     background-color: var(--color-secondary);
   }
+
   .bg-accent {
     background-color: var(--color-accent);
   }
+
   .bg-muted {
     background-color: var(--color-muted);
   }
-  
+
   /* Text colors */
   .text-foreground {
     color: var(--color-foreground);
   }
+
   .text-background {
     color: var(--color-background);
   }
+
   .text-card-foreground {
     color: var(--color-card-foreground);
   }
+
   .text-primary {
     color: var(--color-primary);
   }
+
   .text-primary-foreground {
     color: var(--color-primary-foreground);
   }
+
   .text-secondary {
     color: var(--color-secondary);
   }
+
   .text-secondary-foreground {
     color: var(--color-secondary-foreground);
   }
+
   .text-accent {
     color: var(--color-accent);
   }
+
   .text-accent-foreground {
     color: var(--color-accent-foreground);
   }
+
   .text-muted-foreground {
     color: var(--color-muted-foreground);
   }
-  
+
   /* Border colors */
   .border-border {
     border-color: var(--color-border);
   }
+
   .border-input {
     border-color: var(--color-border);
   }
+
   .border-primary {
     border-color: var(--color-primary);
   }
+
   .border-accent {
     border-color: var(--color-accent);
   }
-  
+
   /* Ring colors */
   .ring-ring {
     --tw-ring-color: var(--color-ring);
   }
+
   .ring-primary {
     --tw-ring-color: var(--color-primary);
   }
-  
+
   /* Focus ring */
   .focus-ring {
     @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
+
+  /* Semantic color utilities */
+  .text-success {
+    color: var(--color-success);
+  }
+
+  .text-warning {
+    color: var(--color-warning);
+  }
+
+  .text-error {
+    color: var(--color-error);
+  }
+
+  .bg-success {
+    background-color: var(--color-success);
+  }
+
+  .bg-warning {
+    background-color: var(--color-warning);
+  }
+
+  .bg-error {
+    background-color: var(--color-error);
+  }
+
+  .border-success {
+    border-color: var(--color-success);
+  }
+
+  .border-warning {
+    border-color: var(--color-warning);
+  }
+
+  .border-error {
+    border-color: var(--color-error);
   }
 }
 
@@ -239,12 +329,13 @@ h1, h2, h3, h4, h5, h6 {
 * {
   transition-property: background-color, border-color, color, fill, stroke;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+  transition-duration: var(--transition-fast);
 }
 
 /* =======================================================================
-   SCROLLBAR STYLING
-   ======================================================================= */
+SCROLLBAR STYLING
+======================================================================= */
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -271,18 +362,23 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* =======================================================================
-   CUSTOM UTILITIES
-   ======================================================================= */
+CUSTOM UTILITIES & ANIMATIONS
+======================================================================= */
+
 .text-balance {
   text-wrap: balance;
 }
 
-/* Ensure proper backdrop blur support */
+/* Backdrop blur support */
 .backdrop-blur-sm {
   backdrop-filter: blur(4px);
 }
 
-/* Animation utilities */
+.backdrop-blur {
+  backdrop-filter: blur(8px);
+}
+
+/* Smooth animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -309,4 +405,63 @@ h1, h2, h3, h4, h5, h6 {
 
 .animate-slideIn {
   animation: slideIn 0.3s ease-out;
+}
+
+/* =======================================================================
+ACCESSIBILITY
+======================================================================= */
+
+/* Skip to main content link */
+.skip-to-main {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  padding: 8px;
+  text-decoration: none;
+  z-index: 100;
+}
+
+.skip-to-main:focus {
+  top: 0;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+  :root {
+    --color-border: #000;
+  }
+
+  .dark {
+    --color-border: #fff;
+  }
+}
+
+/* =======================================================================
+FOCUS VISIBLE FOR ACCESSIBILITY
+======================================================================= */
+
+:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
 }
