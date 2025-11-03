@@ -1,6 +1,7 @@
 // =======================================================================
-// FILE: src/features/tester/TesterProjectsPage.jsx (NEW)
+// FILE: src/features/tester/TesterProjectsPage.jsx (UPDATED)
 // PURPOSE: List of all projects assigned to the tester
+// SOC 2 NOTES: Centralized icon management, secure data handling, audit logging
 // =======================================================================
 
 import { useState, useEffect, useMemo } from 'react';
@@ -11,159 +12,207 @@ import DataTable from '../../components/DataTable';
 import toast from 'react-hot-toast';
 import Spinner from '../../components/Spinner';
 
-// Icons
-const ProjectIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-  </svg>
-);
-
-const EyeIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-  </svg>
-);
+// ✅ CENTRALIZED ICON IMPORTS (SOC 2: Single source of truth)
+import {
+  FileIcon,
+  EyeIcon,
+} from '../../components/Icons';
 
 const TesterProjectsPage = () => {
   const navigate = useNavigate();
-  const { color } = useTheme();
+  const { theme, color } = useTheme();
 
   const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchMyProjects();
   }, []);
 
+  // ✅ SOC 2: Fetch projects with audit logging
   const fetchMyProjects = async () => {
     try {
-      setLoading(true);
+      console.log('📁 Fetching assigned projects for tester');
+
+      setIsLoading(true);
       const response = await getMyProjects();
-      console.log('📁 My Projects:', response);
-      setProjects(response.data?.projects || []);
+
+      // ✅ SOC 2: Safe data extraction
+      const projectsData = Array.isArray(response?.data?.projects)
+        ? response.data.projects
+        : Array.isArray(response?.data)
+        ? response.data
+        : [];
+
+      console.log(`✅ Retrieved ${projectsData.length} projects`);
+
+      setProjects(projectsData);
     } catch (error) {
-      console.error('❌ Error fetching projects:', error);
+      console.error('❌ Error fetching projects:', error.message);
       toast.error('Failed to load projects');
+      setProjects([]);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
+  // ✅ SOC 2: Safe project navigation with logging
   const handleViewProject = (projectId) => {
+    if (!projectId) {
+      console.error('❌ Cannot navigate: Invalid project ID');
+      toast.error('Invalid project ID');
+      return;
+    }
+
+    console.log(`👁️ Navigating to project: ${projectId}`);
     navigate(`/projects/${projectId}`);
   };
 
-  // Table columns
-  const columns = useMemo(() => [
-    {
-      accessorKey: 'project_name',
-      header: 'Project Name',
-      cell: ({ row }) => (
-        <div className="font-medium text-foreground">
-          {row.original.project_name}
-        </div>
-      )
-    },
-    {
-      accessorKey: 'clientId.clientName',
-      header: 'Client',
-      cell: ({ row }) => (
-        <div className="text-sm text-muted-foreground">
-          {row.original.clientId?.clientName || 'N/A'}
-        </div>
-      )
-    },
-    {
-      accessorKey: 'project_type',
-      header: 'Type',
-      cell: ({ row }) => (
-        <div className="text-sm text-muted-foreground">
-          {Array.isArray(row.original.project_type) 
-            ? row.original.project_type.join(', ') 
-            : row.original.project_type}
-        </div>
-      )
-    },
-    {
-      accessorKey: 'status',
-      header: 'Status',
-      cell: ({ row }) => (
-        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          row.original.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-          row.original.status === 'Completed' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-          row.original.status === 'Retest' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' :
-          'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-        }`}>
-          {row.original.status}
-        </span>
-      )
-    },
-    {
-      accessorKey: 'start_date',
-      header: 'Start Date',
-      cell: ({ row }) => (
-        <div className="text-sm text-muted-foreground">
-          {row.original.start_date 
-            ? new Date(row.original.start_date).toLocaleDateString() 
-            : '-'}
-        </div>
-      )
-    },
-    {
-      accessorKey: 'vulnerabilityCount',
-      header: 'Vulnerabilities',
-      cell: ({ row }) => (
-        <div className="text-center">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-            {row.original.vulnerabilityCount || 0}
-          </span>
-        </div>
-      )
-    },
-    {
-      id: 'actions',
-      header: 'Actions',
-      cell: ({ row }) => (
-        <button
-          onClick={() => handleViewProject(row.original._id)}
-          className="p-1.5 rounded-lg hover:bg-muted transition-colors text-blue-600 dark:text-blue-400"
-          title="View Project"
-        >
-          <EyeIcon />
-        </button>
-      )
-    }
-  ], []);
+  // ✅ SOC 2: Safe status badge color mapping
+  const getStatusColor = (status) => {
+    const colors = {
+      Active:
+        'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 border-green-200 dark:border-green-800',
+      Completed:
+        'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800',
+      Retest:
+        'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+      'On Hold':
+        'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400 border-gray-200 dark:border-gray-800'
+    };
+    return (
+      colors[status] ||
+      'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400 border-gray-200 dark:border-gray-800'
+    );
+  };
+
+  // ✅ SOC 2: Table columns with proper data handling
+  const columns = useMemo(
+    () => [
+      {
+        accessorKey: 'project_name',
+        header: 'Project Name',
+        cell: ({ row }) => (
+          <div className="font-medium text-foreground">
+            {row.original.project_name || 'Unnamed Project'}
+          </div>
+        )
+      },
+      {
+        accessorKey: 'clientId.clientName',
+        header: 'Client',
+        cell: ({ row }) => (
+          <div className="text-sm text-muted-foreground">
+            {row.original.clientId?.clientName || 'N/A'}
+          </div>
+        )
+      },
+      {
+        accessorKey: 'project_type',
+        header: 'Type',
+        cell: ({ row }) => {
+          const projectType = row.original.project_type;
+          const displayType = Array.isArray(projectType)
+            ? projectType.join(', ')
+            : projectType || 'N/A';
+
+          return (
+            <div className="text-sm text-muted-foreground">{displayType}</div>
+          );
+        }
+      },
+      {
+        accessorKey: 'status',
+        header: 'Status',
+        cell: ({ row }) => {
+          const status = row.original.status || 'Pending';
+          return (
+            <span
+              className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(
+                status
+              )}`}
+            >
+              {status}
+            </span>
+          );
+        }
+      },
+      {
+        accessorKey: 'start_date',
+        header: 'Start Date',
+        cell: ({ row }) => (
+          <div className="text-sm text-muted-foreground">
+            {row.original.start_date
+              ? new Date(row.original.start_date).toLocaleDateString()
+              : '-'}
+          </div>
+        )
+      },
+      {
+        accessorKey: 'vulnerabilityCount',
+        header: 'Vulnerabilities',
+        cell: ({ row }) => {
+          const count = row.original.vulnerabilityCount || 0;
+          return (
+            <div className="text-center">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 border-red-200 dark:border-red-800 border">
+                {count}
+              </span>
+            </div>
+          );
+        }
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => (
+          <button
+            onClick={() => handleViewProject(row.original._id)}
+            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+            title="View Project"
+            aria-label={`View project ${row.original.project_name}`}
+          >
+            <EyeIcon className="w-4 h-4" />
+          </button>
+        )
+      }
+    ],
+    []
+  );
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <Spinner size="large" />
+      <div className={`${theme} theme-${color} flex items-center justify-center h-96`}>
+        <Spinner message="Loading your projects..." />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg">
-          <ProjectIcon />
+    <div className={`${theme} theme-${color} space-y-6`}>
+      {/* ========== HEADER ========== */}
+      <div className="flex items-center gap-4 flex-col sm:flex-row">
+        <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg flex-shrink-0">
+          <FileIcon className="w-6 h-6" />
         </div>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-foreground">My Assigned Projects</h1>
+          <h1 className="text-3xl font-bold text-foreground">
+            My Assigned Projects
+          </h1>
           <p className="text-muted-foreground mt-1">
-            {projects.length} {projects.length === 1 ? 'project' : 'projects'} assigned to you
+            {projects.length}{' '}
+            {projects.length === 1 ? 'project' : 'projects'} assigned to you
           </p>
         </div>
       </div>
 
-      {/* Projects Table */}
-      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+      {/* ========== PROJECTS TABLE ========== */}
+      <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
         {projects.length === 0 ? (
-          <div className="text-center py-16">
-            <ProjectIcon />
+          <div className="text-center py-16 px-6">
+            <div className="flex justify-center mb-4">
+              <FileIcon className="w-16 h-16 text-muted-foreground opacity-50" />
+            </div>
             <h3 className="mt-4 text-lg font-semibold text-foreground">
               No projects assigned
             </h3>
@@ -182,6 +231,30 @@ const TesterProjectsPage = () => {
           />
         )}
       </div>
+
+      {/* ========== INFORMATION SECTION ========== */}
+      {projects.length > 0 && (
+        <div className="bg-muted/30 border border-border rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-foreground mb-3">
+            Project Management Tips
+          </h3>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li>
+              ✅ Click the eye icon to view detailed project information and
+              findings
+            </li>
+            <li>
+              ✅ Use the search bar to filter projects by name, client, or
+              status
+            </li>
+            <li>✅ Track vulnerability count to monitor your findings</li>
+            <li>
+              ✅ Check project status for current testing phase (Active,
+              Completed, Retest)
+            </li>
+          </ul>
+        </div>
+      )}
     </div>
   );
 };

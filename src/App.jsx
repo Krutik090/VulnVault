@@ -55,7 +55,7 @@ import ClientProjectsPage from './features/clients/ClientProjectsPage';
 // ========================================
 import TesterDashboardPage from './features/tester/TesterDashboardPage';
 import TesterProjectsPage from './features/tester/TesterProjectsPage';
-
+import TimeTrackerPage from './features/tracker/TimeTrackerPage';
 // ========================================
 // CLIENT ONLY PAGES
 // ========================================
@@ -162,7 +162,7 @@ function App() {
             <Route path="/tester/dashboard" element={<TesterDashboardPage />} />
             <Route path="/tester/projects" element={<TesterProjectsPage />} />
             <Route path="/tester/profile" element={<ProfilePage />} />
-
+            <Route path="/tester/tracker" element={<TimeTrackerPage />} />
             {/* ✅ SHARED ROUTES - Testers have access to these */}
             {/* ✅ FIXED: SPECIFIC ROUTES FIRST */}
             <Route path="/projects/:projectId/add-vulnerability" element={<AddVulnerabilityPage />} />

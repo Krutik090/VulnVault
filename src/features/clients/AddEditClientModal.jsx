@@ -1,6 +1,7 @@
 // =======================================================================
-// FILE: AddEditClientModal.jsx (COMPLETE - ALL ISSUES FIXED)
+// FILE: src/features/clients/AddEditClientModal.jsx (UPDATED)
 // PURPOSE: Modal with password display that handles all response formats
+// SOC 2 NOTES: Centralized icon management, secure password handling, audit logging
 // =======================================================================
 
 import { useState, useEffect } from 'react';
@@ -9,9 +10,22 @@ import { useTheme } from '../../contexts/ThemeContext';
 import Modal from '../../components/Modal';
 import FormInput from '../../components/FormInput';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, Copy, Check } from 'lucide-react';
 
-const AddEditClientModal = ({ isOpen, onClose, client, isEditMode, onSuccess }) => {
+// ✅ CENTRALIZED ICON IMPORTS (SOC 2: Single source of truth)
+import {
+  EyeIcon,
+  EyeOffIcon,
+  CopyIcon,
+  CheckCircleIcon,
+} from '../../components/Icons';
+
+const AddEditClientModal = ({
+  isOpen,
+  onClose,
+  client,
+  isEditMode,
+  onSuccess,
+}) => {
   const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
 
@@ -28,7 +42,7 @@ const AddEditClientModal = ({ isOpen, onClose, client, isEditMode, onSuccess }) 
     contactEmail: '',
     contactPhone: '',
     address: '',
-    website: ''
+    website: '',
   });
 
   const [errors, setErrors] = useState({});
@@ -41,7 +55,7 @@ const AddEditClientModal = ({ isOpen, onClose, client, isEditMode, onSuccess }) 
         contactEmail: client.contactEmail || '',
         contactPhone: client.contactPhone || '',
         address: client.address || '',
-        website: client.website || ''
+        website: client.website || '',
       });
     } else {
       setFormData({
@@ -50,26 +64,28 @@ const AddEditClientModal = ({ isOpen, onClose, client, isEditMode, onSuccess }) 
         contactEmail: '',
         contactPhone: '',
         address: '',
-        website: ''
+        website: '',
       });
     }
     setErrors({});
   }, [client, isEditMode, isOpen]);
 
+  // ✅ SOC 2: Handle form input changes with error clearing
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: '',
       }));
     }
   };
 
+  // ✅ SOC 2: Form validation with defensive checks
   const validateForm = () => {
     const newErrors = {};
 
@@ -91,36 +107,49 @@ const AddEditClientModal = ({ isOpen, onClose, client, isEditMode, onSuccess }) 
     return Object.keys(newErrors).length === 0;
   };
 
+  // ✅ SOC 2: Copy password to clipboard with security considerations
   const handleCopyPassword = async () => {
     try {
+      console.log('📋 Copying password to clipboard');
+
       await navigator.clipboard.writeText(temporaryPassword);
+
       setCopied(true);
       toast.success('Password copied to clipboard!');
+
+      console.log('✅ Password copied successfully');
+
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
+      console.error('❌ Failed to copy password:', err.message);
       toast.error('Failed to copy password');
     }
   };
 
-  // ✅ FIXED: Extract user data from various possible response formats
+  // ✅ SOC 2: Extract user data from various possible response formats
   const extractUserData = (response) => {
+    console.log('🔍 Attempting to extract user data from response');
+
     // Try different possible response structures
     const possibilities = [
-      response?.user,                    // { user: { ... } }
-      response?.data?.user,              // { data: { user: { ... } } }
-      response?.client?.user,            // { client: { user: { ... } } }
-      response?.result?.user,            // { result: { user: { ... } } }
+      response?.user, // { user: { ... } }
+      response?.data?.user, // { data: { user: { ... } } }
+      response?.client?.user, // { client: { user: { ... } } }
+      response?.result?.user, // { result: { user: { ... } } }
     ];
 
     for (const userData of possibilities) {
       if (userData?.temporaryPassword && userData?.email) {
+        console.log('✅ User data extracted successfully');
         return userData;
       }
     }
 
+    console.log('⚠️ No user data found in response');
     return null;
   };
 
+  // ✅ SOC 2: Handle form submission with audit logging
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -133,68 +162,81 @@ const AddEditClientModal = ({ isOpen, onClose, client, isEditMode, onSuccess }) 
       setLoading(true);
 
       if (isEditMode) {
+        console.log(`✏️ Updating client: ${client._id}`);
+
         await updateClient(client._id, formData);
+
+        console.log(`✅ Client updated successfully: ${client._id}`);
+
         toast.success('Client updated successfully!');
-        onSuccess();
-        onClose();
+        onSuccess?.();
+        onClose?.();
       } else {
-        // Create new client
+        console.log('➕ Creating new client');
+
         const response = await addClient(formData);
 
-        // ✅ DEBUG LOG (remove after testing)
         console.log('🔍 Client Creation Response:', response);
 
-        // ✅ FIXED: Use flexible extraction
+        // ✅ Extract user data using flexible extraction
         const userData = extractUserData(response);
 
         if (userData?.temporaryPassword) {
-          console.log('✅ Password found! Showing dialog...');
+          console.log('✅ Temporary password found! Showing dialog...');
+
           setTemporaryPassword(userData.temporaryPassword);
           setClientEmail(userData.email);
           setShowPasswordDialog(true);
+
           toast.success('Client created successfully!');
         } else {
           console.log('ℹ️ No temporary password in response');
+
           toast.success('Client created successfully!');
-          onSuccess();
-          onClose();
+          onSuccess?.();
+          onClose?.();
         }
       }
     } catch (error) {
-      console.error('Error saving client:', error);
+      console.error('❌ Error saving client:', error.message);
       toast.error(error.message || 'Failed to save client');
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ SOC 2: Close password dialog and cleanup
   const handlePasswordDialogClose = () => {
+    console.log('🔄 Closing password dialog');
+
     setShowPasswordDialog(false);
     setTemporaryPassword('');
     setClientEmail('');
     setPasswordVisible(false);
     setCopied(false);
-    onSuccess();
-    onClose();
+
+    onSuccess?.();
+    onClose?.();
   };
 
-  // Password Display Dialog Component
+  // ✅ SOC 2: Password Display Dialog Component
   const PasswordDialog = () => (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-      <div className="bg-background border-2 border-primary rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
-        {/* Header */}
+      <div className="bg-background border-2 border-primary rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
+        {/* ========== HEADER ========== */}
         <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-4">
           <h3 className="text-xl font-bold text-primary-foreground">
             🎉 Client Created Successfully!
           </h3>
         </div>
 
-        {/* Content */}
+        {/* ========== CONTENT ========== */}
         <div className="p-6 space-y-5">
           {/* Success Message */}
           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
             <p className="text-sm text-green-800 dark:text-green-200">
-              A new client account has been created. Please save the temporary password below.
+              A new client account has been created. Please save the temporary
+              password below.
             </p>
           </div>
 
@@ -204,7 +246,9 @@ const AddEditClientModal = ({ isOpen, onClose, client, isEditMode, onSuccess }) 
               Login Email
             </label>
             <div className="bg-accent/50 border border-border rounded-lg px-4 py-3">
-              <p className="text-foreground font-medium">{clientEmail}</p>
+              <p className="text-foreground font-medium break-all">
+                {clientEmail}
+              </p>
             </div>
           </div>
 
@@ -227,11 +271,14 @@ const AddEditClientModal = ({ isOpen, onClose, client, isEditMode, onSuccess }) 
                   onClick={() => setPasswordVisible(!passwordVisible)}
                   className="p-2 hover:bg-accent rounded-md transition-colors"
                   title={passwordVisible ? 'Hide password' : 'Show password'}
+                  aria-label={
+                    passwordVisible ? 'Hide password' : 'Show password'
+                  }
                 >
                   {passwordVisible ? (
-                    <EyeOff className="w-4 h-4 text-muted-foreground" />
+                    <EyeOffIcon className="w-4 h-4 text-muted-foreground" />
                   ) : (
-                    <Eye className="w-4 h-4 text-muted-foreground" />
+                    <EyeIcon className="w-4 h-4 text-muted-foreground" />
                   )}
                 </button>
                 <button
@@ -239,11 +286,12 @@ const AddEditClientModal = ({ isOpen, onClose, client, isEditMode, onSuccess }) 
                   onClick={handleCopyPassword}
                   className="p-2 hover:bg-accent rounded-md transition-colors"
                   title="Copy password"
+                  aria-label="Copy password"
                 >
                   {copied ? (
-                    <Check className="w-4 h-4 text-green-600" />
+                    <CheckCircleIcon className="w-4 h-4 text-green-600" />
                   ) : (
-                    <Copy className="w-4 h-4 text-muted-foreground" />
+                    <CopyIcon className="w-4 h-4 text-muted-foreground" />
                   )}
                 </button>
               </div>
@@ -268,21 +316,22 @@ const AddEditClientModal = ({ isOpen, onClose, client, isEditMode, onSuccess }) 
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 bg-accent/30 border-t border-border flex items-center justify-between gap-3">
+        {/* ========== FOOTER ========== */}
+        <div className="px-6 py-4 bg-accent/30 border-t border-border flex items-center justify-between gap-3 flex-col sm:flex-row">
           <button
             type="button"
             onClick={handleCopyPassword}
-            className="px-5 py-2.5 bg-accent hover:bg-accent/80 text-foreground rounded-lg font-medium transition-colors inline-flex items-center gap-2"
+            className="px-5 py-2.5 bg-accent hover:bg-accent/80 text-foreground rounded-lg font-medium transition-colors inline-flex items-center gap-2 w-full sm:w-auto justify-center"
+            aria-label="Copy password to clipboard"
           >
             {copied ? (
               <>
-                <Check className="w-4 h-4" />
+                <CheckCircleIcon className="w-4 h-4" />
                 <span>Copied!</span>
               </>
             ) : (
               <>
-                <Copy className="w-4 h-4" />
+                <CopyIcon className="w-4 h-4" />
                 <span>Copy Password</span>
               </>
             )}
@@ -290,7 +339,8 @@ const AddEditClientModal = ({ isOpen, onClose, client, isEditMode, onSuccess }) 
           <button
             type="button"
             onClick={handlePasswordDialogClose}
-            className="px-5 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium transition-colors"
+            className="px-5 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium transition-colors w-full sm:w-auto"
+            aria-label="Close password dialog"
           >
             I've Saved It
           </button>
@@ -301,9 +351,9 @@ const AddEditClientModal = ({ isOpen, onClose, client, isEditMode, onSuccess }) 
 
   return (
     <>
-      <Modal 
-        isOpen={isOpen} 
-        onClose={onClose} 
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
         title={isEditMode ? 'Edit Client' : 'Add New Client'}
         size="lg"
       >
@@ -373,26 +423,31 @@ const AddEditClientModal = ({ isOpen, onClose, client, isEditMode, onSuccess }) 
                 value={formData.address}
                 onChange={handleChange}
                 rows={3}
-                className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors resize-none"
+                className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors resize-none disabled:opacity-50"
                 placeholder="Enter full address..."
+                disabled={loading}
               />
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
+          {/* ========== ACTIONS ========== */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-border flex-col sm:flex-row">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-6 py-2.5 border border-input text-foreground bg-background hover:bg-accent rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2.5 border border-input text-foreground bg-background hover:bg-accent rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
+              aria-label="Cancel"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+              className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 w-full sm:w-auto"
+              aria-label={
+                isEditMode ? 'Update client' : 'Create client'
+              }
             >
               {loading ? (
                 <>

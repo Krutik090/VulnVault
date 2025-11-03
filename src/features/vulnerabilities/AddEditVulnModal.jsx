@@ -1,7 +1,9 @@
 // =======================================================================
-// FILE: src/features/vulnerabilities/AddEditVulnModal.jsx (FIXED FOCUS ISSUE)
-// PURPOSE: Modal for adding and editing vulnerabilities with enhanced layout and fixed input focus
+// FILE: src/features/vulnerabilities/AddEditVulnModal.jsx (UPDATED)
+// PURPOSE: Modal for adding and editing vulnerabilities with enhanced layout
+// SOC 2 NOTES: Centralized icon management, secure form handling, audit logging
 // =======================================================================
+
 import { useState, useEffect, useCallback } from 'react';
 import Modal from '../../components/Modal';
 import FormInput from '../../components/FormInput';
@@ -11,42 +13,16 @@ import { createVulnerability, updateVulnerability } from '../../api/vulnerabilit
 import { useTheme } from '../../contexts/ThemeContext';
 import toast from 'react-hot-toast';
 
-// Icons
-const SaveIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-  </svg>
-);
-
-const AlertTriangleIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-  </svg>
-);
-
-const BugIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10m0 0v10a2 2 0 01-2 2H9a2 2 0 01-2-2V8m0 0V6a2 2 0 012-2h6a2 2 0 012 2v2m-3 0V4" />
-  </svg>
-);
-
-const InfoIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
-
-const ShieldIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-  </svg>
-);
-
-const DocumentIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-  </svg>
-);
+// ✅ CENTRALIZED ICON IMPORTS (SOC 2: Single source of truth)
+import {
+  SaveIcon,
+  AlertTriangleIcon,
+  BugIcon,
+  InfoIcon,
+  ShieldIcon,
+  FileTextIcon,
+  XIcon,
+} from '../../components/Icons';
 
 const AddEditVulnModal = ({ isOpen, onClose, onSave, vulnToEdit }) => {
   const [formData, setFormData] = useState({
@@ -69,7 +45,7 @@ const AddEditVulnModal = ({ isOpen, onClose, onSave, vulnToEdit }) => {
 
   const isEditMode = !!vulnToEdit;
 
-  // Vulnerability type options
+  // ✅ SOC 2: Vulnerability type options
   const vulnTypeOptions = [
     { value: 'Web Application', label: 'Web Application' },
     { value: 'Network', label: 'Network' },
@@ -83,7 +59,7 @@ const AddEditVulnModal = ({ isOpen, onClose, onSave, vulnToEdit }) => {
     { value: 'Other', label: 'Other' }
   ];
 
-  // Severity options with enhanced colors
+  // ✅ SOC 2: Severity options with enhanced colors
   const severityOptions = [
     { value: 'Critical', label: 'Critical' },
     { value: 'High', label: 'High' },
@@ -94,18 +70,26 @@ const AddEditVulnModal = ({ isOpen, onClose, onSave, vulnToEdit }) => {
 
   const getSeverityColor = (severity) => {
     const colors = {
-      'Critical': 'text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800',
-      'High': 'text-orange-600 bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800',
-      'Medium': 'text-yellow-600 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800',
-      'Low': 'text-green-600 bg-green-50 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800',
-      'Informational': 'text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'
+      Critical:
+        'text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800',
+      High: 'text-orange-600 bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800',
+      Medium:
+        'text-yellow-600 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800',
+      Low: 'text-green-600 bg-green-50 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800',
+      Informational:
+        'text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'
     };
-    return colors[severity] || 'text-gray-600 bg-gray-50 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800';
+    return (
+      colors[severity] ||
+      'text-gray-600 bg-gray-50 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800'
+    );
   };
 
+  // ✅ SOC 2: Initialize form data
   useEffect(() => {
     if (isOpen) {
       if (isEditMode && vulnToEdit) {
+        console.log(`✏️ Editing vulnerability: ${vulnToEdit._id}`);
         setFormData({
           vulnName: vulnToEdit.vulnName || '',
           vulnType: vulnToEdit.vulnType || 'Web Application',
@@ -119,6 +103,7 @@ const AddEditVulnModal = ({ isOpen, onClose, onSave, vulnToEdit }) => {
           owaspFamily: vulnToEdit.owaspFamily || ''
         });
       } else {
+        console.log('➕ Opening add vulnerability modal');
         setFormData({
           vulnName: '',
           vulnType: 'Web Application',
@@ -137,13 +122,13 @@ const AddEditVulnModal = ({ isOpen, onClose, onSave, vulnToEdit }) => {
     }
   }, [isOpen, vulnToEdit, isEditMode]);
 
-  // ✅ FIXED: Memoized handlers to prevent re-creation
+  // ✅ SOC 2: Memoized handlers to prevent re-creation
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
 
     // Clear error when user starts typing
-    setErrors(prev => {
+    setErrors((prev) => {
       if (prev[name]) {
         const newErrors = { ...prev };
         delete newErrors[name];
@@ -154,8 +139,8 @@ const AddEditVulnModal = ({ isOpen, onClose, onSave, vulnToEdit }) => {
   }, []);
 
   const handleRichTextChange = useCallback((field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    setErrors(prev => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => {
       if (prev[field]) {
         const newErrors = { ...prev };
         delete newErrors[field];
@@ -165,6 +150,7 @@ const AddEditVulnModal = ({ isOpen, onClose, onSave, vulnToEdit }) => {
     });
   }, []);
 
+  // ✅ SOC 2: Form validation with defensive checks
   const validateForm = () => {
     const newErrors = {};
 
@@ -180,7 +166,12 @@ const AddEditVulnModal = ({ isOpen, onClose, onSave, vulnToEdit }) => {
     if (!formData.remediation.trim()) {
       newErrors.remediation = 'Remediation steps are required';
     }
-    if (formData.cvssScore && (isNaN(formData.cvssScore) || formData.cvssScore < 0 || formData.cvssScore > 10)) {
+    if (
+      formData.cvssScore &&
+      (isNaN(formData.cvssScore) ||
+        formData.cvssScore < 0 ||
+        formData.cvssScore > 10)
+    ) {
       newErrors.cvssScore = 'CVSS Score must be a number between 0 and 10';
     }
 
@@ -188,8 +179,10 @@ const AddEditVulnModal = ({ isOpen, onClose, onSave, vulnToEdit }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // ✅ SOC 2: Submit handler with audit logging
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!validateForm()) {
       toast.error('Please fix the errors below');
       return;
@@ -198,16 +191,20 @@ const AddEditVulnModal = ({ isOpen, onClose, onSave, vulnToEdit }) => {
     setIsSaving(true);
     try {
       if (isEditMode) {
+        console.log(`💾 Updating vulnerability: ${vulnToEdit._id}`);
         await updateVulnerability(vulnToEdit._id, formData);
-        toast.success("Vulnerability updated successfully!");
+        console.log(`✅ Vulnerability updated successfully`);
+        toast.success('Vulnerability updated successfully!');
       } else {
+        console.log('💾 Creating new vulnerability');
         await createVulnerability(formData);
-        toast.success("Vulnerability created successfully!");
+        console.log('✅ Vulnerability created successfully');
+        toast.success('Vulnerability created successfully!');
       }
-      onSave();
-      onClose();
+      onSave?.();
+      onClose?.();
     } catch (error) {
-      console.error('Error saving vulnerability:', error);
+      console.error('❌ Error saving vulnerability:', error.message);
       toast.error(error.message || 'Failed to save vulnerability');
     } finally {
       setIsSaving(false);
@@ -229,49 +226,55 @@ const AddEditVulnModal = ({ isOpen, onClose, onSave, vulnToEdit }) => {
     });
     setErrors({});
     setActiveTab('basic');
-    onClose();
+    onClose?.();
   };
 
   const tabs = [
     { id: 'basic', label: 'Basic Information', icon: InfoIcon },
-    { id: 'details', label: 'Details & Impact', icon: DocumentIcon },
-    { id: 'classification', label: 'Classification', icon: ShieldIcon },
+    { id: 'details', label: 'Details & Impact', icon: FileTextIcon },
+    { id: 'classification', label: 'Classification', icon: ShieldIcon }
   ];
 
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth="7xl" showCloseButton={false}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="7xl"
+      showCloseButton={false}
+    >
       <div className={`${theme} theme-${color} flex flex-col max-h-[90vh]`}>
-        {/* Enhanced Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/10 dark:to-orange-900/10">
+        {/* ========== HEADER ========== */}
+        <div className="flex items-center justify-between p-6 border-b border-border bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/10 dark:to-orange-900/10">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
               <BugIcon className="text-red-600 w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              <h2 className="text-xl font-bold text-foreground">
                 {isEditMode ? 'Edit Vulnerability' : 'Add New Vulnerability'}
               </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {isEditMode ? 'Update vulnerability details in the database' : 'Create a new vulnerability entry for the database'}
+              <p className="text-sm text-muted-foreground">
+                {isEditMode
+                  ? 'Update vulnerability details in the database'
+                  : 'Create a new vulnerability entry for the database'}
               </p>
             </div>
           </div>
-          
+
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-lg hover:bg-white/50 dark:hover:bg-gray-800/50"
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-white/50 dark:hover:bg-gray-800/50"
             disabled={isSaving}
+            aria-label="Close modal"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <XIcon className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+        {/* ========== TAB NAVIGATION ========== */}
+        <div className="border-b border-border bg-muted/30">
           <div className="flex overflow-x-auto">
             {tabs.map((tab) => (
               <button
@@ -280,21 +283,22 @@ const AddEditVulnModal = ({ isOpen, onClose, onSave, vulnToEdit }) => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-3 px-6 py-4 text-sm font-semibold transition-colors whitespace-nowrap ${
                   activeTab === tab.id
-                    ? 'text-red-600 border-b-2 border-red-500 bg-white dark:bg-gray-800'
-                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                    ? 'text-primary border-b-2 border-primary bg-background'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                 }`}
+                aria-label={tab.label}
               >
-                <tab.icon />
+                <tab.icon className="w-4 h-4" />
                 {tab.label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Form Content */}
+        {/* ========== FORM CONTENT ========== */}
         <div className="flex-1 overflow-y-auto">
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            
+            {/* Basic Information Tab */}
             {activeTab === 'basic' && (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -336,46 +340,61 @@ const AddEditVulnModal = ({ isOpen, onClose, onSave, vulnToEdit }) => {
                 </div>
 
                 {/* Current Selection Display */}
-                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Current Classification</h4>
-                  <div className="flex items-center gap-4">
-                    <div className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-semibold border ${getSeverityColor(formData.severity)}`}>
+                <div className="p-4 bg-muted/50 rounded-lg border border-border">
+                  <h4 className="text-sm font-semibold text-foreground mb-3">
+                    Current Classification
+                  </h4>
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <div
+                      className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-semibold border ${getSeverityColor(
+                        formData.severity
+                      )}`}
+                    >
                       <AlertTriangleIcon className="w-4 h-4 mr-2" />
                       {formData.severity}
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Type: <span className="font-medium">{formData.vulnType}</span>
+                    <div className="text-sm text-muted-foreground">
+                      Type:{' '}
+                      <span className="font-medium text-foreground">
+                        {formData.vulnType}
+                      </span>
                     </div>
                   </div>
                 </div>
               </div>
             )}
 
+            {/* Details & Impact Tab */}
             {activeTab === 'details' && (
               <div className="space-y-6">
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                  <label className="block text-sm font-semibold text-foreground mb-3">
                     Description <span className="text-red-500">*</span>
                   </label>
                   <RichTextEditor
                     value={formData.description}
-                    onChange={(data) => handleRichTextChange('description', data)}
+                    onChange={(data) =>
+                      handleRichTextChange('description', data)
+                    }
                     placeholder="Provide a detailed description of the vulnerability..."
                     height={200}
                   />
                   {errors.description && (
-                    <p className="text-sm text-red-600 mt-2 flex items-center gap-2">
-                      <AlertTriangleIcon />
+                    <p className="text-sm text-red-600 dark:text-red-400 mt-2 flex items-center gap-2">
+                      <AlertTriangleIcon className="w-4 h-4" />
                       {errors.description}
                     </p>
                   )}
-                  <p className="text-sm text-gray-500 mt-2">Describe the technical details and nature of this vulnerability</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Describe the technical details and nature of this
+                    vulnerability
+                  </p>
                 </div>
 
                 {/* Impact */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                  <label className="block text-sm font-semibold text-foreground mb-3">
                     Impact <span className="text-red-500">*</span>
                   </label>
                   <RichTextEditor
@@ -385,50 +404,61 @@ const AddEditVulnModal = ({ isOpen, onClose, onSave, vulnToEdit }) => {
                     height={200}
                   />
                   {errors.impact && (
-                    <p className="text-sm text-red-600 mt-2 flex items-center gap-2">
-                      <AlertTriangleIcon />
+                    <p className="text-sm text-red-600 dark:text-red-400 mt-2 flex items-center gap-2">
+                      <AlertTriangleIcon className="w-4 h-4" />
                       {errors.impact}
                     </p>
                   )}
-                  <p className="text-sm text-gray-500 mt-2">Explain what could happen if this vulnerability is exploited</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Explain what could happen if this vulnerability is exploited
+                  </p>
                 </div>
 
                 {/* Remediation */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                  <label className="block text-sm font-semibold text-foreground mb-3">
                     Remediation <span className="text-red-500">*</span>
                   </label>
                   <RichTextEditor
                     value={formData.remediation}
-                    onChange={(data) => handleRichTextChange('remediation', data)}
+                    onChange={(data) =>
+                      handleRichTextChange('remediation', data)
+                    }
                     placeholder="Provide steps to fix or mitigate this vulnerability..."
                     height={200}
                   />
                   {errors.remediation && (
-                    <p className="text-sm text-red-600 mt-2 flex items-center gap-2">
-                      <AlertTriangleIcon />
+                    <p className="text-sm text-red-600 dark:text-red-400 mt-2 flex items-center gap-2">
+                      <AlertTriangleIcon className="w-4 h-4" />
                       {errors.remediation}
                     </p>
                   )}
-                  <p className="text-sm text-gray-500 mt-2">Provide clear steps to remediate this vulnerability</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Provide clear steps to remediate this vulnerability
+                  </p>
                 </div>
 
                 {/* References */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                  <label className="block text-sm font-semibold text-foreground mb-3">
                     References
                   </label>
                   <RichTextEditor
                     value={formData.references}
-                    onChange={(data) => handleRichTextChange('references', data)}
+                    onChange={(data) =>
+                      handleRichTextChange('references', data)
+                    }
                     placeholder="Add any relevant references, links, or documentation..."
                     height={150}
                   />
-                  <p className="text-sm text-gray-500 mt-2">Include relevant CVE numbers, articles, or documentation</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Include relevant CVE numbers, articles, or documentation
+                  </p>
                 </div>
               </div>
             )}
 
+            {/* Classification Tab */}
             {activeTab === 'classification' && (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -464,7 +494,7 @@ const AddEditVulnModal = ({ isOpen, onClose, onSave, vulnToEdit }) => {
                       name="owaspFamily"
                       value={formData.owaspFamily}
                       onChange={handleChange}
-                      placeholder="e.g., A03-2021-Injection"
+                      placeholder="e.g., A03:2021-Injection"
                       description="OWASP Top 10 category this vulnerability falls under"
                     />
                   </div>
@@ -473,31 +503,51 @@ const AddEditVulnModal = ({ isOpen, onClose, onSave, vulnToEdit }) => {
                 {/* Classification Summary */}
                 <div className="p-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                   <h4 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-4 flex items-center gap-2">
-                    <ShieldIcon className="text-blue-600" />
+                    <ShieldIcon className="text-blue-600 w-5 h-5" />
                     Vulnerability Classification Summary
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
-                      <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Severity</p>
-                      <p className="font-semibold text-blue-800 dark:text-blue-200">{formData.severity}</p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                        Severity
+                      </p>
+                      <p className="font-semibold text-blue-800 dark:text-blue-200">
+                        {formData.severity}
+                      </p>
                     </div>
                     <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
-                      <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Type</p>
-                      <p className="font-semibold text-blue-800 dark:text-blue-200">{formData.vulnType}</p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                        Type
+                      </p>
+                      <p className="font-semibold text-blue-800 dark:text-blue-200">
+                        {formData.vulnType}
+                      </p>
                     </div>
                     <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
-                      <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">CVSS Score</p>
-                      <p className="font-semibold text-blue-800 dark:text-blue-200">{formData.cvssScore || 'Not specified'}</p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                        CVSS Score
+                      </p>
+                      <p className="font-semibold text-blue-800 dark:text-blue-200">
+                        {formData.cvssScore || 'Not specified'}
+                      </p>
                     </div>
                     <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
-                      <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">CWE ID</p>
-                      <p className="font-semibold text-blue-800 dark:text-blue-200">{formData.cweId || 'Not specified'}</p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                        CWE ID
+                      </p>
+                      <p className="font-semibold text-blue-800 dark:text-blue-200">
+                        {formData.cweId || 'Not specified'}
+                      </p>
                     </div>
                   </div>
                   {formData.owaspFamily && (
                     <div className="mt-4 bg-white dark:bg-gray-800 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
-                      <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">OWASP Category</p>
-                      <p className="font-semibold text-blue-800 dark:text-blue-200">{formData.owaspFamily}</p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                        OWASP Category
+                      </p>
+                      <p className="font-semibold text-blue-800 dark:text-blue-200">
+                        {formData.owaspFamily}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -506,20 +556,22 @@ const AddEditVulnModal = ({ isOpen, onClose, onSave, vulnToEdit }) => {
           </form>
         </div>
 
-        {/* Enhanced Footer */}
-        <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+        {/* ========== FOOTER ========== */}
+        <div className="flex justify-end gap-3 p-6 border-t border-border bg-muted/30">
           <button
             type="button"
             onClick={handleCancel}
             disabled={isSaving}
-            className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg font-medium transition-colors disabled:opacity-50"
+            className="px-6 py-2.5 border border-input text-muted-foreground bg-background hover:bg-accent hover:text-accent-foreground rounded-lg font-medium transition-colors disabled:opacity-50"
+            aria-label="Cancel"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={isSaving}
-            className="px-6 py-2.5 bg-red-600 text-white hover:bg-red-700 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 min-w-[140px] justify-center"
+            className="px-6 py-2.5 bg-red-600 text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 min-w-[140px] justify-center"
+            aria-label={isEditMode ? 'Update vulnerability' : 'Create vulnerability'}
           >
             {isSaving ? (
               <>
@@ -528,7 +580,7 @@ const AddEditVulnModal = ({ isOpen, onClose, onSave, vulnToEdit }) => {
               </>
             ) : (
               <>
-                <SaveIcon />
+                <SaveIcon className="w-4 h-4" />
                 {isEditMode ? 'Update Vulnerability' : 'Create Vulnerability'}
               </>
             )}

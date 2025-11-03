@@ -297,7 +297,7 @@ const Sidebar = React.memo(() => {
 
                 {/* Time Tracker */}
                 <NavLink
-                  to="/time-tracker"
+                  to="/tester/tracker"
                   className={linkClasses}
                   onClick={handleLinkClick}
                   aria-label="Go to time tracker"
