@@ -20,36 +20,6 @@ export const getProfile = async () => {
 };
 
 /**
- * Alias for getProfile - for backward compatibility
- * @returns {Promise<object>} The user profile data.
- */
-export const getCurrentUser = async () => {
-  return getProfile();
-};
-
-/**
- * Updates the profile of the currently logged-in user.
- * @param {object} profileData - The data to update { name, email }.
- * @returns {Promise<object>} The updated user profile data.
- */
-export const updateProfile = async (profileData) => {
-  const response = await fetch(`${API_URL}/users/profile`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(profileData),
-    credentials: 'include',
-  });
-  
-  const data = await response.json();
-  
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to update profile');
-  }
-  
-  return data;
-};
-
-/**
  * Updates the password for the currently logged-in user.
  * @param {object} passwordData - { currentPassword, newPassword }.
  * @returns {Promise<object>} The success message from the API.
@@ -71,14 +41,6 @@ export const updatePassword = async (passwordData) => {
   return data;
 };
 
-/**
- * Alias for updatePassword - for backward compatibility
- * @param {object} passwordData - { currentPassword, newPassword }.
- * @returns {Promise<object>} The success message from the API.
- */
-export const changePassword = async (passwordData) => {
-  return updatePassword(passwordData);
-};
 
 /**
  * Fetches all users (Admin only).
@@ -284,17 +246,195 @@ export const updatePreferences = async (preferences) => {
   return data;
 };
 
-export const enableMFA = async (method) => {
-  const response = await api.post('/api/user/mfa/enable', { method });
-  return response.data;
+/**
+ * ✅ Get current user profile
+ */
+export const getCurrentUser = async () => {
+  try {
+    const response = await fetch(`${API_URL}/users/profile`, {
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch current user');
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (error) {
+    console.error('❌ Error fetching current user:', error.message);
+    throw error;
+  }
 };
 
+/**
+ * ✅ Update user profile
+ */
+export const updateProfile = async (profileData) => {
+  try {
+    if (!profileData.name || !profileData.email) {
+      throw new Error('Name and email are required');
+    }
+
+    const response = await fetch(`${API_URL}/users/profile`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profileData),
+      credentials: 'include',
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update profile');
+    }
+
+    return {
+      success: true,
+      data: data.data,
+      message: data.message,
+    };
+  } catch (error) {
+    console.error('❌ Error updating profile:', error.message);
+    throw error;
+  }
+};
+
+/**
+ * ✅ Change password
+ */
+export const changePassword = async (passwordData) => {
+  try {
+    const { currentPassword, newPassword } = passwordData;
+
+    if (!currentPassword || !newPassword) {
+      throw new Error('Current and new password are required');
+    }
+
+    const response = await fetch(`${API_URL}/users/password`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        currentPassword,
+        newPassword,
+      }),
+      credentials: 'include',
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to change password');
+    }
+
+    return {
+      success: true,
+      message: data.message,
+    };
+  } catch (error) {
+    console.error('❌ Error changing password:', error.message);
+    throw error;
+  }
+};
+
+/**
+ * ✅ NEW: Enable MFA
+ */
+export const enableMFA = async (mfaMethod = 'authenticator') => {
+  try {
+    console.log(`🔐 Enabling MFA with method: ${mfaMethod}`);
+
+    const response = await fetch(`${API_URL}/users/mfa/enable`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mfaMethod }),
+      credentials: 'include',
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to enable MFA');
+    }
+
+    console.log('✅ MFA setup initiated:', data);
+
+    return {
+      success: true,
+      data: data.data,
+      message: data.message,
+    };
+  } catch (error) {
+    console.error('❌ Error enabling MFA:', error.message);
+    throw error;
+  }
+};
+
+/**
+ * ✅ NEW: Verify MFA token
+ */
+export const verifyMFAToken = async (token) => {
+  try {
+    if (!token) {
+      throw new Error('Verification token is required');
+    }
+
+    console.log('🔐 Verifying MFA token...');
+
+    const response = await fetch(`${API_URL}/users/mfa/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+      credentials: 'include',
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to verify MFA token');
+    }
+
+    console.log('✅ MFA token verified');
+
+    return {
+      success: true,
+      message: data.message,
+    };
+  } catch (error) {
+    console.error('❌ Error verifying MFA:', error.message);
+    throw error;
+  }
+};
+
+/**
+ * ✅ NEW: Disable MFA
+ */
 export const disableMFA = async () => {
-  const response = await api.post('/api/user/mfa/disable');
-  return response.data;
-};
+  try {
+    console.log('🔓 Disabling MFA...');
 
-export const verifyMFA = async (code) => {
-  const response = await api.post('/api/user/mfa/verify', { code });
-  return response.data;
+    const response = await fetch(`${API_URL}/users/mfa/disable`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to disable MFA');
+    }
+
+    console.log('✅ MFA disabled');
+
+    return {
+      success: true,
+      message: data.message,
+    };
+  } catch (error) {
+    console.error('❌ Error disabling MFA:', error.message);
+    throw error;
+  }
 };

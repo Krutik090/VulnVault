@@ -1,13 +1,19 @@
-// =======================================================================
-// FILE: src/features/projects/ActiveProjectsPage.jsx (UPDATED)
-// PURPOSE: Display active projects with proper modals and edit functionality
-// SOC 2 NOTES: Centralized icon management, role-based access, secure data handling
-// =======================================================================
+/**
+ * ======================================================================
+ * FILE: src/features/projects/ActiveProjectsPage.jsx (FULLY UPDATED)
+ * PURPOSE: Display active projects with proper client name and vulnerability counts
+ * FIXES: Client name display, severity-wise vulnerability counts
+ * ======================================================================
+ */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { getActiveProjects, getAllProjects } from '../../api/projectApi';
+import {
+  getActiveProjects,
+  getAllProjects,
+} from '../../api/projectApi';
 import { getAllClients } from '../../api/clientApi';
+import { getVulnerabilityCountsByProject } from '../../api/projectVulnerabilitiesApi';
 import toast from 'react-hot-toast';
 import Spinner from '../../components/Spinner';
 import { useAuth } from '../../contexts/AuthContext';
@@ -16,7 +22,7 @@ import SearchableDropdown from '../../components/SearchableDropdown';
 import DataTable from '../../components/DataTable';
 import DeleteProjectModal from './DeleteProjectModal';
 
-// ✅ CENTRALIZED ICON IMPORTS (SOC 2: Single source of truth)
+// ✅ CENTRALIZED ICON IMPORTS
 import {
   PlusIcon,
   FilterIcon,
@@ -33,11 +39,12 @@ const ActiveProjectsPage = () => {
 
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState([]);
+  const [projectVulnCounts, setProjectVulnCounts] = useState({}); // ✅ NEW
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
 
-  // ✅ SOC 2: Modal states for deletion
+  // ✅ Modal states for deletion
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
 
@@ -48,18 +55,17 @@ const ActiveProjectsPage = () => {
   const fetchProjects = async () => {
     setLoading(true);
     try {
-      // ✅ SOC 2: Parallel API calls for performance
+      // ✅ Parallel API calls
       const [projectsResponse, clientsResponse] = await Promise.all([
         getActiveProjects(),
         getAllClients(),
       ]);
 
-      // ✅ SOC 2: Input validation & sanitization
       const projectData = Array.isArray(projectsResponse?.data)
         ? projectsResponse.data
         : Array.isArray(projectsResponse)
-          ? projectsResponse
-          : [];
+        ? projectsResponse
+        : [];
 
       const clientData = Array.isArray(clientsResponse?.data)
         ? clientsResponse.data
@@ -67,8 +73,41 @@ const ActiveProjectsPage = () => {
 
       setProjects(projectData);
       setClients(clientData);
+
+      // ✅ Fetch vulnerability counts for each project
+      const vulnCountsMap = {};
+      await Promise.all(
+        projectData.map(async (project) => {
+          try {
+            const countsResponse = await getVulnerabilityCountsByProject(
+              project._id
+            );
+            vulnCountsMap[project._id] = countsResponse.data || {
+              Critical: 0,
+              High: 0,
+              Medium: 0,
+              Low: 0,
+              Info: 0,
+            };
+          } catch (error) {
+            console.error(
+              `Error fetching counts for project ${project._id}:`,
+              error
+            );
+            // ✅ Fallback to zero counts
+            vulnCountsMap[project._id] = {
+              Critical: 0,
+              High: 0,
+              Medium: 0,
+              Low: 0,
+              Info: 0,
+            };
+          }
+        })
+      );
+
+      setProjectVulnCounts(vulnCountsMap);
     } catch (error) {
-      // ✅ SOC 2: Secure error handling (no sensitive data exposed)
       console.error('Failed to fetch projects');
       toast.error('Failed to load projects');
     } finally {
@@ -76,14 +115,26 @@ const ActiveProjectsPage = () => {
     }
   };
 
-  // ✅ SOC 2: Filter projects by client and status
+  // ✅ Filter projects by client and status
   const filteredProjects = useMemo(() => {
     let filtered = projects;
 
     if (selectedClient) {
-      filtered = filtered.filter(
-        (p) => p.client_name === selectedClient || p.clientId === selectedClient
-      );
+      filtered = filtered.filter((p) => {
+        // ✅ Handle both object and string client references
+        const clientName =
+          typeof p.clientId === 'object'
+            ? p.clientId?.clientName
+            : p.client_name;
+
+        const clientId =
+          typeof p.clientId === 'object' ? p.clientId?._id : p.clientId;
+
+        return (
+          clientName === selectedClient ||
+          clientId === selectedClient
+        );
+      });
     }
 
     if (selectedStatus) {
@@ -93,7 +144,15 @@ const ActiveProjectsPage = () => {
     return filtered;
   }, [projects, selectedClient, selectedStatus]);
 
-  // ✅ SOC 2: Table columns with proper sanitization and role-based rendering
+  // ✅ Get client name safely
+  const getClientName = useCallback((project) => {
+    if (typeof project.clientId === 'object') {
+      return project.clientId?.clientName || 'Unknown';
+    }
+    return project.client_name || 'Unknown';
+  }, []);
+
+  // ✅ UPDATED: Table columns with severity-wise vulnerability display
   const columns = useMemo(
     () => [
       {
@@ -114,7 +173,7 @@ const ActiveProjectsPage = () => {
         header: 'Client',
         cell: ({ row }) => (
           <span className="text-muted-foreground">
-            {row.original.client_name || 'Unknown'}
+            {getClientName(row.original)}
           </span>
         ),
       },
@@ -125,20 +184,22 @@ const ActiveProjectsPage = () => {
           <div className="flex flex-wrap gap-1">
             {Array.isArray(row.original.project_type)
               ? row.original.project_type.slice(0, 2).map((type, idx) => (
-                <span
-                  key={idx}
-                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
-                >
-                  {type}
-                </span>
-              ))
+                  <span
+                    key={idx}
+                    className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
+                  >
+                    {type}
+                  </span>
+                ))
               : row.original.project_type ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
-                  {row.original.project_type}
-                </span>
-              ) : (
-                <span className="text-muted-foreground text-xs">No type</span>
-              )}
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
+                    {row.original.project_type}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground text-xs">
+                    No type
+                  </span>
+                )}
             {Array.isArray(row.original.project_type) &&
               row.original.project_type.length > 2 && (
                 <span className="text-xs text-muted-foreground">
@@ -167,8 +228,10 @@ const ActiveProjectsPage = () => {
 
           return (
             <span
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[row.original.status] || statusColors['Not Started']
-                }`}
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                statusColors[row.original.status] ||
+                statusColors['Not Started']
+              }`}
             >
               {row.original.status}
             </span>
@@ -176,28 +239,72 @@ const ActiveProjectsPage = () => {
         },
       },
       {
-        accessorKey: 'vulnerabilityCounts',
+        accessorKey: 'vulnerabilities',
         header: 'Vulnerabilities',
         cell: ({ row }) => {
-          const counts = row.original.vulnerabilityCounts || {};
+          // ✅ Get counts from state map
+          const counts = projectVulnCounts[row.original._id] || {
+            Critical: 0,
+            High: 0,
+            Medium: 0,
+            Low: 0,
+            Info: 0,
+          };
+
           const total =
-            (counts.Critical || 0) +
-            (counts.High || 0) +
-            (counts.Medium || 0) +
-            (counts.Low || 0) +
-            (counts.Info || 0);
+            counts.Critical +
+            counts.High +
+            counts.Medium +
+            counts.Low +
+            counts.Info;
+
+          // ✅ Severity color mapping
+          const severityBadges = [
+            {
+              label: 'C',
+              count: counts.Critical,
+              color:
+                'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+            },
+            {
+              label: 'H',
+              count: counts.High,
+              color:
+                'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+            },
+            {
+              label: 'M',
+              count: counts.Medium,
+              color:
+                'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+            },
+            {
+              label: 'L',
+              count: counts.Low,
+              color:
+                'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+            },
+            {
+              label: 'I',
+              count: counts.Info,
+              color:
+                'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
+            },
+          ];
 
           return (
-            <div className="flex items-center gap-2">
-              {counts.Critical > 0 && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                  C: {counts.Critical}
-                </span>
-              )}
-              {counts.High > 0 && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
-                  H: {counts.High}
-                </span>
+            <div className="flex items-center gap-1 flex-wrap">
+              {severityBadges.map(
+                (badge) =>
+                  badge.count > 0 && (
+                    <span
+                      key={badge.label}
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${badge.color}`}
+                      title={`${badge.label}: ${badge.count}`}
+                    >
+                      {badge.label}:{badge.count}
+                    </span>
+                  )
               )}
               {total === 0 && (
                 <span className="text-xs text-muted-foreground">None</span>
@@ -221,15 +328,14 @@ const ActiveProjectsPage = () => {
         id: 'actions',
         header: 'Actions',
         cell: ({ row }) => {
-          // ✅ DEBUG: Verify data exists
           if (!row.original._id) {
             console.warn('Missing project ID:', row.original);
-            return <span className="text-red-600">No ID</span>;
+            return <span className="text-red-600 text-xs">No ID</span>;
           }
 
           return (
             <div className="flex items-center gap-1">
-              {/* ✅ VIEW - Navigate to project details */}
+              {/* VIEW */}
               <Link
                 to={`/projects/${row.original._id}`}
                 className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
@@ -277,11 +383,10 @@ const ActiveProjectsPage = () => {
               )}
             </div>
           );
-        }
+        },
       },
-
     ],
-    [user?.role]
+    [user?.role, projectVulnCounts, getClientName]
   );
 
   const handleProjectDeleted = () => {
@@ -298,13 +403,19 @@ const ActiveProjectsPage = () => {
     );
   }
 
-  // ✅ SOC 2: Build client options with defensive checks
+  // ✅ Build client options from response (handle both formats)
   const clientOptions = [
     { value: '', label: 'All Clients' },
-    ...clients.map((client) => ({
-      value: client._id || client.id,
-      label: client.client_name || client.clientName || client.name || 'Unknown',
-    })),
+    ...clients.map((client) => {
+      const clientName =
+        client.client_name || client.clientName || client.name || 'Unknown';
+      const clientId = client._id || client.id;
+
+      return {
+        value: clientId,
+        label: clientName,
+      };
+    }),
   ];
 
   const statusOptions = [
@@ -329,7 +440,7 @@ const ActiveProjectsPage = () => {
           </p>
         </div>
 
-        {/* ✅ SOC 2: Admin-only "Add New Project" button */}
+        {/* Admin-only "Add New Project" button */}
         {user?.role === 'admin' && (
           <Link
             to="/projects/add"
@@ -400,7 +511,7 @@ const ActiveProjectsPage = () => {
               : 'Get started by creating your first project'}
           </p>
 
-          {/* ✅ SOC 2: Admin-only "Create First Project" button */}
+          {/* Admin-only "Create First Project" button */}
           {user?.role === 'admin' &&
             !selectedClient &&
             !selectedStatus && (

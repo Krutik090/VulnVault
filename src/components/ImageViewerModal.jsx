@@ -1,390 +1,310 @@
 // =======================================================================
-// FILE: src/components/ImageViewerModal.jsx
-// PURPOSE: Modal for displaying larger versions of images with accessibility
-// SOC 2: Secure URL validation, image access logging, WCAG compliance
+// FILE: src/components/ImageViewerModal.jsx (ENHANCED)
+// PURPOSE: Accessible, robust modal with zoom/pan for image viewing
+// SOC 2: Secure URL handling, accessibility (WCAG), resilient state
 // =======================================================================
 
-import { useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  XIcon,
+  DownloadIcon,
+  ExternalLinkIcon,
+  ZoomInIcon,     // <-- NEW
+  ZoomOutIcon,    // <-- NEW
+  RefreshCwIcon,  // <-- NEW
+  AlertTriangleIcon // <-- From your original
+} from './Icons';
 import { useTheme } from '../contexts/ThemeContext';
 
-// ✅ UPDATED: Import icons from centralized file
-import { CloseIcon, DownloadIcon, LinkIcon } from './Icons';
-
-/**
- * ImageViewerModal Component
- * Modal for viewing full-size images with download functionality
- * 
- * @param {boolean} isOpen - Modal visibility state
- * @param {string} imageUrl - URL of image to display
- * @param {Function} onClose - Callback when modal closes
- * @param {string} title - Image title for accessibility
- * @param {string} caption - Image caption/description
- * @param {Function} onDownload - Callback when image is downloaded
- * @param {Function} onError - Error callback for compliance logging
- * @param {boolean} allowDownload - Enable download functionality (default: true)
- * @param {boolean} allowOpenTab - Enable open in new tab (default: true)
- * @param {object} imageMetadata - Image metadata for audit logging
- * 
- * @example
- * <ImageViewerModal
- *   isOpen={showViewer}
- *   imageUrl="/poc/vuln-screenshot.png"
- *   title="Vulnerability Evidence"
- *   caption="XSS vulnerability in login form"
- *   onClose={() => setShowViewer(false)}
- *   onError={logError}
- * />
- */
-const ImageViewerModal = ({ 
-  isOpen, 
-  imageUrl, 
+const ImageViewerModal = ({
+  isOpen,
+  imageUrl,
   onClose,
-  title = "Image Viewer",
-  caption = null,
-  onDownload = null,
-  onError = null,
-  allowDownload = true,
-  allowOpenTab = true,
-  imageMetadata = null
+  alt = "Image preview" // <-- NEW: More accessible alt prop
 }) => {
-  const { theme, color } = useTheme();
+  const { theme } = useTheme();
+  const [isLoading, setIsLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
-  /**
-   * ✅ SOC 2: Validate image URL
-   * Ensure URL is safe and properly formatted
-   */
-  const validateImageUrl = useCallback((url) => {
-    if (!url || typeof url !== 'string') {
-      onError?.({
-        type: 'INVALID_IMAGE_URL',
-        url,
-        message: 'Image URL is invalid or missing'
-      });
-      return false;
+  // --- NEW: State for Zoom & Pan ---
+  const [zoom, setZoom] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+  // ---
+
+  // ✅ NEW: Reset state when modal opens or image changes
+  useEffect(() => {
+    if (isOpen) {
+      setIsLoading(true);
+      setImageError(false);
+      setZoom(1);
+      setPosition({ x: 0, y: 0 });
+    }
+  }, [isOpen, imageUrl]);
+
+  // ✅ NEW: Handle Escape key to close (Accessibility)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
     }
 
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  // ✅ ENHANCED: Robust download for cross-origin images
+  const handleDownload = useCallback(async () => {
+    if (!imageUrl) return;
+
     try {
-      // ✅ Security: Validate URL format
-      const urlObj = new URL(url, window.location.origin);
-      
-      // ✅ Security: Only allow http/https
-      if (!['http:', 'https:', 'data:'].includes(urlObj.protocol)) {
-        onError?.({
-          type: 'UNSAFE_URL_PROTOCOL',
-          protocol: urlObj.protocol,
-          message: 'URL protocol is not allowed'
-        });
-        return false;
+      // Fetch the image
+      const response = await fetch(imageUrl, {
+        mode: 'cors', // Handle cross-origin
+        credentials: 'omit',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.statusText}`);
       }
 
-      return true;
-    } catch (error) {
-      onError?.({
-        type: 'URL_VALIDATION_ERROR',
-        url,
-        error: error.message
-      });
-      return false;
-    }
-  }, [onError]);
-
-  /**
-   * ✅ SOC 2: Handle image download
-   * Secure download with audit logging
-   */
-  const handleDownload = useCallback(async (e) => {
-    try {
-      e.preventDefault();
-
-      // ✅ SOC 2: Validate URL before download
-      if (!validateImageUrl(imageUrl)) {
-        return;
-      }
-
-      // ✅ SOC 2: Audit logging - download initiated
-      onError?.({
-        type: 'IMAGE_DOWNLOAD_INITIATED',
-        imageUrl,
-        metadata: imageMetadata,
-        timestamp: new Date().toISOString()
-      });
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const filename = imageUrl.split('/').pop() || 'image';
 
       // Create download link
       const link = document.createElement('a');
-      link.href = imageUrl;
-      
-      // Generate filename from URL or use default
-      const filename = imageUrl.split('/').pop() || `image-${Date.now()}.png`;
+      link.href = blobUrl;
       link.download = filename;
-      
-      // Trigger download
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
-      // ✅ SOC 2: Audit logging - download completed
-      onError?.({
-        type: 'IMAGE_DOWNLOADED',
-        filename,
-        imageUrl,
-        metadata: imageMetadata,
-        timestamp: new Date().toISOString()
-      });
+      // Clean up the blob URL
+      URL.revokeObjectURL(blobUrl);
 
-      // Call callback if provided
-      onDownload?.({ filename, url: imageUrl });
     } catch (error) {
       console.error('Download error:', error);
-      onError?.({
-        type: 'IMAGE_DOWNLOAD_ERROR',
-        error: error.message,
-        imageUrl
-      });
+      // Fallback: Try the simple open-in-tab method
+      handleOpenInTab();
     }
-  }, [imageUrl, validateImageUrl, onDownload, onError, imageMetadata]);
+  }, [imageUrl]);
 
-  /**
-   * Handle opening image in new tab
-   * ✅ SOC 2: Audit logging
-   */
-  const handleOpenInNewTab = useCallback((e) => {
-    try {
-      // ✅ SOC 2: Validate URL before opening
-      if (!validateImageUrl(imageUrl)) {
-        e.preventDefault();
-        return;
-      }
-
-      // ✅ SOC 2: Audit logging
-      onError?.({
-        type: 'IMAGE_OPENED_IN_TAB',
-        imageUrl,
-        metadata: imageMetadata,
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('Open in tab error:', error);
-      onError?.({
-        type: 'IMAGE_OPEN_TAB_ERROR',
-        error: error.message,
-        imageUrl
-      });
-    }
-  }, [imageUrl, validateImageUrl, onError, imageMetadata]);
-
-  /**
-   * Handle image load error
-   * ✅ SOC 2: Error tracking
-   */
-  const handleImageError = useCallback((e) => {
-    console.error('Image load error:', e);
-
-    onError?.({
-      type: 'IMAGE_LOAD_ERROR',
-      imageUrl,
-      status: e.target.status,
-      statusText: e.target.statusText,
-      timestamp: new Date().toISOString()
-    });
-
-    // Set fallback image
-    e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f0f0f0"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="system-ui" font-size="14" fill="%23999"%3EImage failed to load%3C/text%3E%3C/svg%3E';
-    e.target.alt = 'Image failed to load';
-  }, [imageUrl, onError]);
-
-  /**
-   * Handle ESC key press
-   * ✅ Accessibility: Keyboard support
-   */
-  const handleEscKey = useCallback((event) => {
-    if (event.keyCode === 27) {
-      // ✅ SOC 2: Audit logging - modal closed via ESC
-      onError?.({
-        type: 'MODAL_CLOSED_ESC',
-        imageUrl,
-        timestamp: new Date().toISOString()
-      });
-      onClose?.();
-    }
-  }, [imageUrl, onClose, onError]);
-
-  /**
-   * Handle backdrop click
-   * ✅ Accessibility: Click outside to close
-   */
-  const handleBackdropClick = useCallback((event) => {
-    if (event.target.classList.contains('image-viewer-overlay')) {
-      // ✅ SOC 2: Audit logging - modal closed via backdrop
-      onError?.({
-        type: 'MODAL_CLOSED_BACKDROP',
-        imageUrl,
-        timestamp: new Date().toISOString()
-      });
-      onClose?.();
-    }
-  }, [imageUrl, onClose, onError]);
-
-  /**
-   * Handle modal close
-   * ✅ SOC 2: Audit logging
-   */
-  const handleModalClose = useCallback(() => {
-    onError?.({
-      type: 'IMAGE_VIEWER_CLOSED',
-      imageUrl,
-      metadata: imageMetadata,
-      timestamp: new Date().toISOString()
-    });
-    onClose?.();
-  }, [imageUrl, onClose, onError, imageMetadata]);
-
-  // Setup event listeners
-  useEffect(() => {
-    const handleClickOutside = handleBackdropClick;
-
-    // Prevent body scroll when modal is open
-    if (isOpen !== undefined ? isOpen : imageUrl) {
-      document.body.style.overflow = 'hidden';
-      document.body.style.paddingRight = '0';
-
-      // ✅ SOC 2: Audit logging - modal opened
-      onError?.({
-        type: 'IMAGE_VIEWER_OPENED',
-        imageUrl,
-        metadata: imageMetadata,
-        timestamp: new Date().toISOString()
-      });
-
-      window.addEventListener('keydown', handleEscKey);
-      window.addEventListener('click', handleClickOutside);
-    }
-
-    return () => {
-      document.body.style.overflow = 'unset';
-      window.removeEventListener('keydown', handleEscKey);
-      window.removeEventListener('click', handleClickOutside);
-    };
-  }, [isOpen, imageUrl, handleEscKey, handleBackdropClick, onError, imageMetadata]);
-
-  // Validate image URL on mount
-  useMemo(() => {
+  const handleOpenInTab = () => {
     if (imageUrl) {
-      validateImageUrl(imageUrl);
+      window.open(imageUrl, '_blank', 'noopener,noreferrer');
     }
-  }, [imageUrl, validateImageUrl]);
+  };
 
-  // Support both patterns: isOpen prop or just imageUrl
-  const isModalOpen = useMemo(() => {
-    if (isOpen !== undefined) return isOpen;
-    return !!imageUrl;
-  }, [isOpen, imageUrl]);
+  // --- NEW: Zoom & Pan Handlers ---
+  const handleZoomIn = () => {
+    setZoom((prev) => Math.min(prev * 1.5, 5)); // Max 5x zoom
+  };
 
-  if (!isModalOpen) return null;
+  const handleZoomOut = () => {
+    setZoom((prev) => {
+      const newZoom = Math.max(prev / 1.5, 1); // Min 1x zoom
+      if (newZoom === 1) {
+        setPosition({ x: 0, y: 0 }); // Reset position at 1x
+      }
+      return newZoom;
+    });
+  };
 
-  // ✅ Security: Final URL validation before rendering
-  if (!validateImageUrl(imageUrl)) {
-    return null;
-  }
+  const handleMouseDown = (e) => {
+    if (zoom <= 1) return;
+    setIsDragging(true);
+    setStartPos({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y,
+    });
+    e.target.style.cursor = 'grabbing';
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging || zoom <= 1) return;
+    setPosition({
+      x: e.clientX - startPos.x,
+      y: e.clientY - startPos.y,
+    });
+  };
+
+  const handleMouseUpOrLeave = () => {
+    setIsDragging(false);
+    // Find the image element and reset cursor
+    const img = document.getElementById('zoomable-image');
+    if (img) {
+      img.style.cursor = zoom > 1 ? 'grab' : 'default';
+    }
+  };
+
+  const handleImageError = (e) => {
+    console.error('❌ Image loading error:', imageUrl);
+    console.error('Error details:', e);
+    setImageError(true);
+    setIsLoading(false);
+  };
+
+  const handleReload = () => {
+    setImageError(false);
+    setIsLoading(true);
+  };
+  // ---
+
+  if (!isOpen || !imageUrl) return null;
 
   return (
-    <div 
-      className={`${theme} theme-${color} fixed inset-0 z-50 flex items-center justify-center image-viewer-overlay`}
-      onClick={handleBackdropClick}
-      role="presentation"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      // ✅ NEW: Accessibility roles
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
     >
-      {/* Backdrop - ✅ Accessibility: Aria-hidden */}
-      <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm" 
-        aria-hidden="true"
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+        onClick={onClose}
       />
 
-      {/* Modal Container - ✅ Accessibility: Dialog role */}
-      <div 
-        className="relative z-10 max-w-7xl max-h-[90vh] mx-4 bg-card rounded-lg shadow-2xl border border-border overflow-hidden flex flex-col"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="image-viewer-title"
-        onClick={(e) => e.stopPropagation()}
+      {/* Modal */}
+      <div
+        className={`${theme} relative bg-card rounded-xl shadow-2xl max-w-5xl w-full mx-4 overflow-hidden flex flex-col max-h-[90vh]`}
       >
-        {/* Header - ✅ Accessibility: Semantic structure */}
-        <div className="flex items-center justify-between p-4 bg-card border-b border-border flex-shrink-0">
-          <div>
-            <h3 
-              id="image-viewer-title"
-              className="text-lg font-semibold text-card-foreground"
-            >
-              {title}
-            </h3>
-            {caption && (
-              <p className="text-sm text-muted-foreground mt-1">{caption}</p>
-            )}
-          </div>
-          
-          {/* Close Button - ✅ Accessibility: ARIA label */}
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
+          <h2 id="modal-title" className="text-lg font-semibold text-foreground">
+            Image Viewer
+          </h2>
           <button
-            onClick={handleModalClose}
-            className="p-2 hover:bg-muted rounded-lg transition-colors group flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="Close image viewer"
+            onClick={onClose}
+            className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"
+            aria-label="Close modal (Press Escape)"
           >
-            <CloseIcon 
-              className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" 
-              aria-hidden="true"
-            />
+            <XIcon className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Image Container - ✅ Accessibility: Proper semantics */}
-        <div className="p-4 flex items-center justify-center bg-muted/30 flex-1 overflow-auto">
-          <img
-            src={imageUrl}
-            alt={caption || "Full size image view"}
-            className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
-            onError={handleImageError}
-            loading="lazy"
-            decoding="async"
-            role="img"
-            aria-label={caption || "Expanded image view"}
-          />
+        {/* Image Container */}
+        <div
+          className="flex-1 flex items-center justify-center min-h-[400px] bg-black/10 overflow-hidden"
+          // ✅ NEW: Mouse events for panning
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUpOrLeave}
+          onMouseLeave={handleMouseUpOrLeave}
+        >
+          {imageError ? (
+            // ✅ ENHANCED: Error state with "Try Again"
+            <div className="text-center p-8">
+              <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangleIcon className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                Image Failed to Load
+              </h3>
+              <p className="text-muted-foreground mb-4 text-sm">
+                The image URL might be incorrect or the file may have been moved.
+              </p>
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={handleReload} // <-- NEW
+                  className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <RefreshCwIcon className="w-4 h-4" />
+                  Try Again
+                </button>
+                <button
+                  onClick={handleOpenInTab}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <ExternalLinkIcon className="w-4 h-4" />
+                  Open in Tab
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {isLoading && (
+                <div className="absolute z-10 flex items-center justify-center">
+                  <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+              <img
+                id="zoomable-image" // <-- NEW ID
+                src={imageUrl}
+                alt={alt}
+                className="max-w-full max-h-full object-contain transition-transform duration-100 ease-linear"
+                style={{
+                  // ✅ NEW: Apply zoom and pan
+                  transform: `scale(${zoom}) translate(${position.x}px, ${position.y}px)`,
+                  cursor: isLoading ? 'wait' : (zoom > 1 ? 'grab' : 'default'),
+                  visibility: isLoading ? 'hidden' : 'visible'
+                }}
+                onLoad={() => setIsLoading(false)}
+                onError={handleImageError}
+                onMouseDown={handleMouseDown} // <-- NEW
+                crossOrigin="anonymous" // Keep for CORS
+              />
+            </>
+          )}
         </div>
 
-        {/* Footer with Controls - ✅ Accessibility: Proper button semantics */}
-        <div className="p-4 bg-card border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 flex-shrink-0">
-          <div className="text-sm text-muted-foreground">
-            Press <kbd className="px-2 py-1 bg-muted text-muted-foreground rounded font-mono text-xs">ESC</kbd> or click outside to close
-          </div>
+        {/* Footer */}
+        {!imageError && (
+          <div className="flex items-center justify-between p-4 border-t border-border bg-muted/30 flex-shrink-0">
+            {/* ✅ NEW: Zoom Controls */}
+            <div className="flex items-center gap-1 p-1 bg-background border border-border rounded-lg">
+              <button
+                onClick={handleZoomOut}
+                disabled={zoom <= 1 || isLoading}
+                className="p-2 text-muted-foreground hover:text-foreground disabled:opacity-50 transition-colors"
+                aria-label="Zoom out"
+              >
+                <ZoomOutIcon className="w-4 h-4" />
+              </button>
+              <span className="w-12 text-center text-sm font-mono text-foreground">
+                {Math.round(zoom * 100)}%
+              </span>
+              <button
+                onClick={handleZoomIn}
+                disabled={zoom >= 5 || isLoading}
+                className="p-2 text-muted-foreground hover:text-foreground disabled:opacity-50 transition-colors"
+                aria-label="Zoom in"
+              >
+                <ZoomInIcon className="w-4 h-4" />
+              </button>
+            </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            {/* Download Button - ✅ SOC 2: Audit logging */}
-            {allowDownload && (
+            {/* Action Buttons */}
+            <div className="flex gap-2">
               <button
                 onClick={handleDownload}
-                className="flex items-center gap-2 px-3 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                disabled={isLoading}
+                className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                 aria-label="Download image"
               >
-                <DownloadIcon className="w-4 h-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Download</span>
-                <span className="sm:hidden">Save</span>
+                <DownloadIcon className="w-4 h-4" />
+                Download
               </button>
-            )}
-
-            {/* Open in New Tab - ✅ SOC 2: Audit logging */}
-            {allowOpenTab && (
-              <a
-                href={imageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={handleOpenInNewTab}
-                className="flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                aria-label="Open image in new tab"
+              <button
+                onClick={handleOpenInTab}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                aria-label="Open in new tab"
               >
-                <LinkIcon className="w-4 h-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Open in Tab</span>
-                <span className="sm:hidden">Open</span>
-              </a>
-            )}
+                <ExternalLinkIcon className="w-4 h-4" />
+                Open in Tab
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

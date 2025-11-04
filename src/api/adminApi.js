@@ -19,7 +19,7 @@ export const getAllUsers = async () => {
  * @returns {Promise<object>} The list of testers.
  */
 export const getTesters = async () => {
-    const response = await fetch(`${API_URL}/users/testers`, { credentials: 'include' });
+    const response = await fetch(`${API_URL}/users/tester`, { credentials: 'include' });
     if (!response.ok) throw new Error('Failed to fetch testers.');
     return response.json();
 };

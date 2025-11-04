@@ -194,8 +194,7 @@ const AddUploadModal = ({
 
     // ✅ Security: Sanitize caption (remove potential XSS)
     const sanitizedValue = value
-      .replace(/[<>]/g, '') // Remove HTML tags
-      .trim();
+      .replace(/[<>]/g, ''); // Remove HTML tags
 
     setCaptions(prev => ({
       ...prev,
