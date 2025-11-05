@@ -1,13 +1,14 @@
 // =======================================================================
-// FILE: src/components/SearchableDropdown.jsx
+// FILE: src/components/SearchableDropdown.jsx (FIXED - SOC 2 Compliant)
 // PURPOSE: Reusable, theme-aware dropdown with search and compliance
 // SOC 2: Input validation, XSS prevention, audit logging, WCAG compliance
+// FIXES: Removed nested buttons, proper button structure
 // =======================================================================
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 
-// ✅ UPDATED: Import icons from centralized file
+// ✅ Import icons from centralized file
 import { 
   ChevronDownIcon, 
   CheckIcon, 
@@ -31,21 +32,6 @@ import {
  * @param {string} noOptionsMessage - Message when no options
  * @param {Function} onError - Error callback for compliance logging
  * @param {string} className - Additional CSS classes
- * 
- * @example
- * const options = [
- *   { value: 'critical', label: 'Critical' },
- *   { value: 'high', label: 'High' }
- * ];
- * 
- * <SearchableDropdown
- *   label="Severity"
- *   options={options}
- *   value={severity}
- *   onChange={setSeverity}
- *   required
- *   onError={logError}
- * />
  */
 const SearchableDropdown = React.memo(({ 
   options = [], 
@@ -210,6 +196,7 @@ const SearchableDropdown = React.memo(({
    */
   const handleClear = useCallback((e) => {
     e.stopPropagation();
+    e.preventDefault();
     
     onError?.({
       type: 'SELECTION_CLEARED',
@@ -312,7 +299,7 @@ const SearchableDropdown = React.memo(({
         </label>
       )}
 
-      {/* Main Dropdown Button - ✅ Accessibility: ARIA attributes */}
+      {/* Main Dropdown Button - ✅ FIXED: Removed nested buttons */}
       <div className="relative">
         <button
           id={fieldId}
@@ -320,7 +307,7 @@ const SearchableDropdown = React.memo(({
           onClick={handleToggle}
           disabled={disabled}
           className={`
-            relative w-full px-3 py-2 text-left border rounded-lg
+            relative w-full px-4 py-3 text-left border rounded-lg
             bg-background text-foreground
             transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2
             ${error && isTouched 
@@ -336,30 +323,19 @@ const SearchableDropdown = React.memo(({
           `}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
-          aria-labelledby={`${fieldId}-label`}
+          aria-labelledby={label ? fieldId : undefined}
           aria-invalid={!!(error && isTouched)}
           aria-describedby={error && isTouched ? errorId : undefined}
         >
-          <span className={`block truncate ${!value ? 'text-muted-foreground' : ''}`}>
-            {selectedOptionLabel}
-          </span>
+          {/* Content container - ✅ Flex with proper spacing */}
+          <div className="flex items-center justify-between w-full">
+            <span className={`truncate ${!value ? 'text-muted-foreground' : ''}`}>
+              {selectedOptionLabel}
+            </span>
 
-          {/* Clear button - ✅ Accessibility: ARIA label */}
-          {value && !disabled && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="absolute right-8 top-1/2 transform -translate-y-1/2 p-1 hover:bg-muted rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-              aria-label="Clear selection"
-            >
-              <CloseIcon className="w-3 h-3 text-muted-foreground" aria-hidden="true" />
-            </button>
-          )}
-
-          {/* Dropdown arrow */}
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+            {/* Dropdown arrow - ✅ No longer in a button */}
             <ChevronDownIcon
-              className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${
+              className={`w-5 h-5 text-muted-foreground transition-transform duration-200 flex-shrink-0 ml-2 ${
                 isOpen ? 'rotate-180' : ''
               }`}
               aria-hidden="true"
@@ -367,15 +343,28 @@ const SearchableDropdown = React.memo(({
           </div>
         </button>
 
+        {/* ✅ FIXED: Clear button now OUTSIDE the main button */}
+        {value && !disabled && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute right-12 top-1/2 transform -translate-y-1/2 p-1.5 hover:bg-muted rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+            aria-label="Clear selection"
+            title="Clear selection"
+          >
+            <CloseIcon className="w-4 h-4 text-muted-foreground hover:text-foreground" aria-hidden="true" />
+          </button>
+        )}
+
         {/* Dropdown Panel - ✅ Accessibility: Listbox role */}
         {isOpen && (
           <div 
-            className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-hidden flex flex-col"
+            className="absolute z-50 w-full mt-2 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-hidden flex flex-col"
             role="listbox"
-            aria-label={label}
+            aria-label={label || 'Options'}
           >
             {/* Search Input */}
-            <div className="p-2 border-b border-border flex-shrink-0">
+            <div className="p-3 border-b border-border flex-shrink-0">
               <div className="relative">
                 <SearchIcon 
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" 
@@ -387,14 +376,14 @@ const SearchableDropdown = React.memo(({
                   placeholder="Search options..."
                   value={searchTerm}
                   onChange={handleSearchChange}
-                  className="w-full pl-10 pr-8 py-2 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                  className="w-full pl-10 pr-9 py-2 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   aria-label="Search options"
                 />
                 {searchTerm && (
                   <button
                     type="button"
                     onClick={handleClearSearch}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-muted rounded-full transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-muted rounded-full transition-colors focus:outline-none focus:ring-1 focus:ring-primary"
                     aria-label="Clear search"
                   >
                     <CloseIcon className="w-3 h-3 text-muted-foreground" aria-hidden="true" />
@@ -404,7 +393,7 @@ const SearchableDropdown = React.memo(({
             </div>
 
             {/* Options List */}
-            <div className="max-h-48 overflow-y-auto flex-1">
+            <div className="max-h-44 overflow-y-auto flex-1">
               {filteredOptions.length > 0 ? (
                 filteredOptions.map((option) => (
                   <button
@@ -418,27 +407,26 @@ const SearchableDropdown = React.memo(({
                       }
                     }}
                     className={`
-                      w-full px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground
+                      w-full px-4 py-2.5 text-left flex items-center justify-between
+                      hover:bg-accent hover:text-accent-foreground
                       focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary
                       ${value === option.value 
-                        ? 'bg-primary/10 text-primary' 
+                        ? 'bg-primary/10 text-primary font-medium' 
                         : 'text-card-foreground'
                       }
-                      transition-colors cursor-pointer
+                      transition-colors
                     `}
                     role="option"
                     aria-selected={value === option.value}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="truncate">{option.label}</span>
-                      {value === option.value && (
-                        <CheckIcon className="w-4 h-4 text-primary flex-shrink-0" aria-hidden="true" />
-                      )}
-                    </div>
+                    <span className="truncate">{option.label}</span>
+                    {value === option.value && (
+                      <CheckIcon className="w-4 h-4 text-primary flex-shrink-0 ml-2" aria-hidden="true" />
+                    )}
                   </button>
                 ))
               ) : (
-                <div className="px-3 py-4 text-center text-muted-foreground text-sm">
+                <div className="px-4 py-6 text-center text-muted-foreground text-sm">
                   {searchTerm ? `No options found for "${searchTerm}"` : noOptionsMessage}
                 </div>
               )}
@@ -446,7 +434,7 @@ const SearchableDropdown = React.memo(({
 
             {/* Footer with results count */}
             {filteredOptions.length > 0 && (
-              <div className="px-3 py-2 border-t border-border bg-muted/30 text-xs text-muted-foreground flex-shrink-0">
+              <div className="px-4 py-2 border-t border-border bg-muted/50 text-xs text-muted-foreground flex-shrink-0">
                 {filteredOptions.length} of {validatedOptions.length} options
               </div>
             )}

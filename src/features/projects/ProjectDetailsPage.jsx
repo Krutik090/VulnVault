@@ -1,21 +1,26 @@
-// =======================================================================
-// FILE: src/features/projects/ProjectDetailsPage.jsx (UPDATED)
-// PURPOSE: Project details page with vulnerability summary and config display
-// SOC 2 NOTES: Centralized icon management, secure data handling, role-based rendering
-// =======================================================================
+/**
+ * ======================================================================
+ * FILE: src/features/projects/ProjectDetailsPage.jsx (FULLY UPDATED)
+ * PURPOSE: Project details with vulnerability table including DELETE action
+ * SOC 2: Delete confirmation, proper error handling, audit logging
+ * ======================================================================
+ */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getProjectById } from '../../api/projectApi';
 import { getProjectConfig } from '../../api/projectDetailsApi';
-import { getProjectVulnerabilities } from '../../api/projectVulnerabilitiesApi';
+import {
+  getProjectVulnerabilities,
+  deleteVulnerabilityInstance,
+} from '../../api/projectVulnerabilitiesApi';
 import toast from 'react-hot-toast';
 import Spinner from '../../components/Spinner';
 import DataTable from '../../components/DataTable';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 
-// ✅ CENTRALIZED ICON IMPORTS (SOC 2: Single source of truth)
+// ✅ CENTRALIZED ICON IMPORTS
 import {
   ArrowLeftIcon,
   PlusIcon,
@@ -26,7 +31,94 @@ import {
   XIcon,
   FolderIcon,
   BugIcon,
+  TrashIcon,
+  AlertTriangleIcon,
 } from '../../components/Icons';
+
+/**
+ * ✅ Delete Confirmation Dialog
+ */
+const DeleteConfirmationDialog = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  title = 'Delete Vulnerability',
+  message = 'Are you sure you want to delete',
+  itemName = '',
+  isDeleting = false,
+}) => {
+  const { theme } = useTheme();
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={!isDeleting ? onClose : undefined}
+      />
+
+      <div
+        className={`${theme} relative bg-card border border-border rounded-xl shadow-2xl max-w-md w-full mx-4 p-6`}
+      >
+        <button
+          onClick={onClose}
+          disabled={isDeleting}
+          className="absolute right-4 top-4 p-1 text-muted-foreground hover:text-foreground transition-colors rounded"
+          aria-label="Close dialog"
+        >
+          <XIcon className="w-4 h-4" />
+        </button>
+
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertTriangleIcon className="w-8 h-8 text-red-600" />
+          </div>
+
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            {title}
+          </h3>
+          <p className="text-muted-foreground mb-6">
+            {message}{' '}
+            {itemName && (
+              <span className="font-medium text-foreground">
+                "{itemName}"
+              </span>
+            )}
+            ? This action cannot be undone.
+          </p>
+
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={onClose}
+              disabled={isDeleting}
+              className="px-4 py-2 border border-input text-muted-foreground bg-background hover:bg-accent hover:text-accent-foreground rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isDeleting}
+              className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 flex items-center gap-2 min-w-[100px] justify-center"
+            >
+              {isDeleting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <TrashIcon className="w-4 h-4" />
+                  Delete
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ProjectDetailsPage = () => {
   const { projectId } = useParams();
@@ -39,6 +131,10 @@ const ProjectDetailsPage = () => {
   const [config, setConfig] = useState(null);
   const [vulnerabilities, setVulnerabilities] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [deleteTargetName, setDeleteTargetName] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchProjectDetails();
@@ -47,14 +143,15 @@ const ProjectDetailsPage = () => {
   const fetchProjectDetails = async () => {
     setLoading(true);
     try {
-      // ✅ SOC 2: Parallel API calls for performance
-      const [projectResponse, configResponse, vulnResponse] = await Promise.all([
-        getProjectById(projectId),
-        getProjectConfig(projectId).catch(() => ({ data: null })),
-        getProjectVulnerabilities(projectId)
-      ]);
+      // ✅ Parallel API calls
+      const [projectResponse, configResponse, vulnResponse] = await Promise.all(
+        [
+          getProjectById(projectId),
+          getProjectConfig(projectId).catch(() => ({ data: null })),
+          getProjectVulnerabilities(projectId),
+        ]
+      );
 
-      // ✅ SOC 2: Input validation & sanitization
       const projectData = projectResponse.data || projectResponse;
       setProject(projectData);
 
@@ -76,7 +173,42 @@ const ProjectDetailsPage = () => {
     }
   };
 
-  // ✅ SOC 2: Calculate vulnerability statistics with defensive checks
+  // ✅ Delete handler
+  const openDeleteDialog = useCallback((vulnId, vulnName) => {
+    setDeleteTargetId(vulnId);
+    setDeleteTargetName(vulnName);
+    setIsDeleteDialogOpen(true);
+  }, []);
+
+  const closeDeleteDialog = useCallback(() => {
+    setDeleteTargetId(null);
+    setDeleteTargetName('');
+    setIsDeleteDialogOpen(false);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTargetId) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteVulnerabilityInstance(deleteTargetId);
+
+      // ✅ Update local state
+      setVulnerabilities((prev) =>
+        prev.filter((vuln) => vuln._id !== deleteTargetId)
+      );
+
+      toast.success('Vulnerability deleted successfully!');
+      closeDeleteDialog();
+    } catch (error) {
+      console.error('Error deleting vulnerability:', error);
+      toast.error(error.message || 'Failed to delete vulnerability');
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [deleteTargetId, closeDeleteDialog]);
+
+  // ✅ Calculate vulnerability statistics
   const vulnStats = useMemo(() => {
     const stats = {
       Critical: 0,
@@ -84,7 +216,7 @@ const ProjectDetailsPage = () => {
       Medium: 0,
       Low: 0,
       Info: 0,
-      total: vulnerabilities.length
+      total: vulnerabilities.length,
     };
 
     vulnerabilities.forEach((vuln) => {
@@ -96,7 +228,7 @@ const ProjectDetailsPage = () => {
     return stats;
   }, [vulnerabilities]);
 
-  // ✅ SOC 2: Vulnerability table columns with proper rendering
+  // ✅ UPDATED: Vulnerability table columns WITH DELETE ACTION
   const vulnColumns = useMemo(
     () => [
       {
@@ -106,7 +238,7 @@ const ProjectDetailsPage = () => {
           <span className="font-medium text-foreground">
             {row.original.vulnerability_name || 'Unknown'}
           </span>
-        )
+        ),
       },
       {
         accessorKey: 'severity',
@@ -119,7 +251,7 @@ const ProjectDetailsPage = () => {
             Medium:
               'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
             Low: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-            Info: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+            Info: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
           };
 
           return (
@@ -131,7 +263,7 @@ const ProjectDetailsPage = () => {
               {row.original.severity || 'Unknown'}
             </span>
           );
-        }
+        },
       },
       {
         accessorKey: 'cvss_score',
@@ -140,7 +272,7 @@ const ProjectDetailsPage = () => {
           <span className="text-sm font-mono">
             {row.original.cvss_score || 'N/A'}
           </span>
-        )
+        ),
       },
       {
         accessorKey: 'status',
@@ -155,7 +287,7 @@ const ProjectDetailsPage = () => {
           >
             {row.original.status === 'open' ? 'Open' : 'Closed'}
           </span>
-        )
+        ),
       },
       {
         accessorKey: 'found_by',
@@ -164,24 +296,46 @@ const ProjectDetailsPage = () => {
           <span className="text-sm text-muted-foreground">
             {row.original.found_by || 'Unknown'}
           </span>
-        )
+        ),
       },
       {
         id: 'actions',
         header: 'Actions',
         cell: ({ row }) => (
-          <Link
-            to={`/ProjectVulnerabilities/instances/details/${row.original._id}`}
-            className="inline-flex items-center gap-1 p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors text-sm"
-            aria-label={`View ${row.original.vulnerability_name} details`}
-          >
-            <EyeIcon className="w-4 h-4" />
-            View
-          </Link>
-        )
-      }
+          <div className="flex items-center gap-2">
+            {/* ✅ VIEW ACTION */}
+            <Link
+              to={`/ProjectVulnerabilities/instances/details/${row.original._id}`}
+              className="inline-flex items-center gap-1 px-3 py-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors text-sm font-medium"
+              aria-label={`View ${row.original.vulnerability_name} details`}
+              title="View details"
+            >
+              <EyeIcon className="w-4 h-4" />
+              View
+            </Link>
+
+            {/* ✅ DELETE ACTION */}
+            {(user?.role === 'admin' || user?.role === 'tester') && (
+              <button
+                onClick={() =>
+                  openDeleteDialog(
+                    row.original._id,
+                    row.original.vulnerability_name
+                  )
+                }
+                className="inline-flex items-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors text-sm font-medium"
+                aria-label={`Delete ${row.original.vulnerability_name}`}
+                title="Delete vulnerability"
+              >
+                <TrashIcon className="w-4 h-4" />
+                Delete
+              </button>
+            )}
+          </div>
+        ),
+      },
     ],
-    []
+    [user, openDeleteDialog]
   );
 
   if (loading) {
@@ -428,35 +582,35 @@ const ProjectDetailsPage = () => {
 
               {/* Team Members */}
               {project.assigned_testers &&
-              project.assigned_testers.length > 0 && (
-                <div>
-                  <h2 className="text-xl font-semibold text-foreground mb-4">
-                    Assigned Testers
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {project.assigned_testers.map((tester, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-3 p-4 bg-muted/30 border border-border rounded-lg"
-                      >
-                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-medium text-primary">
-                            {tester.name?.charAt(0).toUpperCase() || '?'}
-                          </span>
+                project.assigned_testers.length > 0 && (
+                  <div>
+                    <h2 className="text-xl font-semibold text-foreground mb-4">
+                      Assigned Testers
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {project.assigned_testers.map((tester, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-3 p-4 bg-muted/30 border border-border rounded-lg"
+                        >
+                          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                            <span className="text-sm font-medium text-primary">
+                              {tester.name?.charAt(0).toUpperCase() || '?'}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-foreground">
+                              {tester.name || 'Unknown'}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {tester.email || 'No email'}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-foreground">
-                            {tester.name || 'Unknown'}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {tester.email || 'No email'}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           )}
 
@@ -619,17 +773,17 @@ const ProjectDetailsPage = () => {
                         { key: 'disclaimer', label: 'Disclaimer' },
                         {
                           key: 'executiveSummarySection',
-                          label: 'Executive Summary'
+                          label: 'Executive Summary',
                         },
                         { key: 'scopeSection', label: 'Scope' },
                         {
                           key: 'reportingCriteriaSection',
-                          label: 'Reporting Criteria'
+                          label: 'Reporting Criteria',
                         },
                         { key: 'methodologySection', label: 'Methodology' },
                         { key: 'findingsSection', label: 'Findings' },
                         { key: 'conclusionSection', label: 'Conclusion' },
-                        { key: 'appendixSection', label: 'Appendix' }
+                        { key: 'appendixSection', label: 'Appendix' },
                       ].map((section) => (
                         <div
                           key={section.key}
@@ -671,6 +825,17 @@ const ProjectDetailsPage = () => {
           )}
         </div>
       </div>
+
+      {/* ✅ DELETE CONFIRMATION DIALOG */}
+      <DeleteConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={closeDeleteDialog}
+        onConfirm={confirmDelete}
+        title="Delete Vulnerability"
+        message="Are you sure you want to delete this vulnerability?"
+        itemName={deleteTargetName}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 };

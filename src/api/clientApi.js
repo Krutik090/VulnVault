@@ -84,20 +84,71 @@ export const getClientProjects = async (clientId) => {
   }
 };
 
+
 /**
- * Get client dashboard data
+ * ✅ NEW: Get current client user's projects
+ */
+export const getMyProjects = async () => {
+    try {
+        const response = await fetch(`${API_URL}/clients/my-projects`, {
+            credentials: 'include',
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to fetch projects');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching my projects:', error);
+        throw error;
+    }
+};
+
+/**
+ * ✅ Get client dashboard by ID (for admins)
  */
 export const getClientDashboard = async (clientId) => {
-  try {
-    const response = await fetch(
-      `${BASE_URL}/${clientId}/dashboard`, 
-      getFetchOptions('GET')
-    );
-    return await handleResponse(response);
-  } catch (error) {
-    console.error('Error fetching client dashboard:', error);
-    throw error;
-  }
+    try {
+        const response = await fetch(
+            `${BASE_URL}/${clientId}/dashboard`,
+            {
+                credentials: 'include',
+            }
+        );
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to fetch dashboard');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching client dashboard:', error);
+        throw error;
+    }
+};
+
+/**
+ * ✅ NEW: Get current client user's dashboard
+ */
+export const getMyDashboard = async () => {
+    try {
+        const response = await fetch(`${BASE_URL}/my-dashboard`, {
+            credentials: 'include',
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to fetch dashboard');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching my dashboard:', error);
+        throw error;
+    }
 };
 
 /**

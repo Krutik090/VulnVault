@@ -76,18 +76,62 @@ export const updateVulnerabilityInstance = async (vulnId, data) => {
 
 /**
  * Adds new images to an existing vulnerability instance.
- * @param {string} vulnId - The ID of the vulnerability instance.
- * @param {FormData} formData - The form data containing the new files.
+ * @param {string} vulnerabilityId - The ID of the vulnerability instance.
+ * @param {File[]} files - An array of File objects.
+ * @param {string[]} captions - An array of strings for captions.
  */
-export const addUploads = async (vulnId, formData) => {
-    const response = await fetch(`${API_URL}/project-vulnerabilities/${vulnId}/uploads`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-    });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.message || 'Failed to upload images.');
-    return result;
+export const addUploads = async (vulnerabilityId, files, captions) => {
+    try {
+        if (!vulnerabilityId) {
+            throw new Error('Vulnerability ID is required');
+        }
+        if (!Array.isArray(files) || files.length === 0) {
+            throw new Error('Files must be a non-empty array');
+        }
+
+        const formData = new FormData();
+
+        // ✅ CRITICAL FIX 1: Use the correct field name 'images'
+        files.forEach((file) => {
+            formData.append('images', file);
+        });
+
+        // ✅ Send captions as a single JSON string for consistency
+        formData.append(
+            'captions',
+            JSON.stringify(
+                captions.map((caption) => caption || '')
+            )
+        );
+
+        console.log(`📤 Adding ${files.length} upload(s) to ${vulnerabilityId}...`);
+
+        const response = await fetch(
+            `${API_URL}/project-vulnerabilities/${vulnerabilityId}/uploads`,
+            {
+                method: 'POST',
+                body: formData,
+                // ✅ CRITICAL FIX 2: Add 'credentials: 'include'' for authentication
+                credentials: 'include',
+                // ❌ Do not set 'Content-Type' for FormData.
+                // ❌ Do not set 'Authorization' header if using httpOnly cookies.
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to add uploads');
+        }
+
+        console.log('✅ Uploads added successfully:', data);
+        return data;
+
+    } catch (error) {
+        console.error('❌ Error adding uploads:', error.message);
+        toast.error(error.message); // Show error to user
+        throw error;
+    }
 };
 
 /**
@@ -107,19 +151,19 @@ export const deleteUpload = async (vulnId, uploadId) => {
 
 // Add missing functions:
 export const getVulnerabilityNames = async () => {
-  const response = await fetch(`${API_URL}/project-vulnerabilities/names`, { credentials: 'include' });
-  if (!response.ok) throw new Error('Failed to fetch vulnerability names.');
-  return response.json();
+    const response = await fetch(`${API_URL}/project-vulnerabilities/names`, { credentials: 'include' });
+    if (!response.ok) throw new Error('Failed to fetch vulnerability names.');
+    return response.json();
 };
 
 export const deleteVulnerabilityInstance = async (vulnId) => {
-  const response = await fetch(`${API_URL}/project-vulnerabilities/${vulnId}`, {
-    method: 'DELETE',
-    credentials: 'include',
-  });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.message || 'Failed to delete vulnerability.');
-  return result;
+    const response = await fetch(`${API_URL}/project-vulnerabilities/${vulnId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message || 'Failed to delete vulnerability.');
+    return result;
 };
 
 
@@ -130,7 +174,7 @@ export const deleteVulnerabilityInstance = async (vulnId) => {
  */
 export const generateVulnerabilityDetails = async (vulnName) => {
     const systemPrompt = "You are a cybersecurity expert. For the given vulnerability name, provide a detailed description, impact, and recommendation. Format the response as a JSON object with three keys: 'description', 'impact', and 'recommendation'.";
-    
+
     const payload = {
         contents: [{ parts: [{ text: `Vulnerability Name: ${vulnName}` }] }],
         systemInstruction: { parts: [{ text: systemPrompt }] },
@@ -174,4 +218,39 @@ export const generateVulnerabilityDetails = async (vulnName) => {
     }
 
     throw new Error('AI generation failed after multiple retries. Please try again later.');
+};
+
+
+/**
+ * ✅ NEW: Fetch vulnerability counts for a project
+ */
+export const getVulnerabilityCountsByProject = async (projectId) => {
+  try {
+    if (!projectId) {
+      throw new Error('Project ID is required');
+    }
+
+    console.log(`📊 Fetching vulnerability counts for project: ${projectId}`);
+
+    const response = await fetch(
+      `${API_URL}/project-vulnerabilities/by-project/${projectId}/counts`,
+      {
+        credentials: 'include',
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        errorData.message || 'Failed to fetch vulnerability counts.'
+      );
+    }
+
+    const data = await response.json();
+    console.log('✅ Vulnerability counts fetched:', data.data);
+    return data;
+  } catch (error) {
+    console.error('❌ Error fetching vulnerability counts:', error.message);
+    throw error;
+  }
 };
