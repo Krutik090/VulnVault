@@ -65,7 +65,7 @@ const TesterProjectsPage = () => {
     }
 
     console.log(`👁️ Navigating to project: ${projectId}`);
-    navigate(`/projects/${projectId}`);
+    navigate(`/tester/projects/${projectId}`);
   };
 
   // ✅ SOC 2: Safe status badge color mapping

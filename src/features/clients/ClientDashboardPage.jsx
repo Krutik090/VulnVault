@@ -1,12 +1,19 @@
-// =======================================================================
-// FILE: src/features/clients/ClientDashboardPage.jsx (UPDATED)
-// PURPOSE: Dashboard for viewing client data (admin & client roles)
-// SOC 2 NOTES: Centralized icon management, secure cookie handling, audit logging
-// =======================================================================
+/**
+ * =======================================================================
+ * FILE: src/features/clients/ClientDashboardPage.jsx (COMPLETELY UPDATED)
+ * PURPOSE: Dashboard for viewing client data (admin & client roles)
+ * FIXES:
+ * - Proper role-based API calls (client users use /my-dashboard)
+ * - Removed cookie parsing (handled by backend)
+ * - Better error handling and loading states
+ * - Cleaner code structure
+ * SOC 2 NOTES: Centralized icon management, secure API handling, audit logging
+ * =======================================================================
+ */
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getClientDashboard } from '../../api/clientApi';
+import { getClientDashboard, getMyDashboard } from '../../api/clientApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import toast from 'react-hot-toast';
@@ -18,39 +25,8 @@ import {
   BugIcon,
   CheckCircleIcon,
   ArrowLeftIcon,
+  AlertTriangleIcon,
 } from '../../components/Icons';
-
-// ✅ SOC 2: Helper function to read cookies securely
-const getCookie = (name) => {
-  try {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) {
-      const cookieValue = parts.pop().split(';').shift();
-      console.log(`🍪 Retrieved cookie: ${name}`);
-      return cookieValue;
-    }
-  } catch (error) {
-    console.error(`❌ Error reading cookie ${name}:`, error.message);
-  }
-  return null;
-};
-
-// ✅ SOC 2: Helper function to parse userData cookie securely
-const getUserDataFromCookie = () => {
-  try {
-    const userDataCookie = getCookie('userData');
-    if (userDataCookie) {
-      // Decode and parse the JSON string
-      const parsedUser = JSON.parse(decodeURIComponent(userDataCookie));
-      console.log('🍪 Parsed userData from cookie successfully');
-      return parsedUser;
-    }
-  } catch (error) {
-    console.error('❌ Error parsing userData from cookie:', error.message);
-  }
-  return null;
-};
 
 // ✅ SOC 2: Severity badge color mapping
 const getSeverityBadgeColor = (severity) => {
@@ -62,7 +38,7 @@ const getSeverityBadgeColor = (severity) => {
       'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400 border-amber-200 dark:border-amber-800',
     low: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
     informational:
-      'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+      'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800',
   };
   return (
     colors[severity?.toLowerCase()] ||
@@ -78,7 +54,7 @@ const getStatusBadgeColor = (status) => {
     Completed:
       'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800',
     'In Progress':
-      'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400 border-purple-200 dark:border-purple-800'
+      'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400 border-purple-200 dark:border-purple-800',
   };
   return (
     colors[status] ||
@@ -94,61 +70,40 @@ const ClientDashboardPage = () => {
 
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState(null);
+  const [error, setError] = useState(null);
 
-  // ✅ SOC 2: Get userData from cookie securely
-  const userDataFromCookie = getUserDataFromCookie();
-
-  // ✅ SOC 2: Determine which clientId to use (priority order)
-  const getEffectiveClientId = () => {
-    // Priority 1: URL params (admin viewing specific client)
-    if (paramClientId) {
-      console.log(
-        `📋 [PRIORITY 1] Admin viewing client dashboard: ${paramClientId}`
-      );
-      return paramClientId;
-    }
-
-    // Priority 2: From userData cookie
-    if (userDataFromCookie?.id) {
-      console.log(
-        `🍪 [PRIORITY 2] Client logged in, using cookie ID: ${userDataFromCookie.id}`
-      );
-      return userDataFromCookie.id;
-    }
-
-    // Priority 3: From auth context
-    if (user?.id) {
-      console.log(`👤 [PRIORITY 3] Using auth context ID: ${user.id}`);
-      return user.id;
-    }
-
-    console.error('❌ No clientId found in any source');
-    return null;
-  };
-
-  const effectiveClientId = getEffectiveClientId();
+  // ✅ FIXED: Determine if admin is viewing a specific client
+  const isAdminViewing = !!paramClientId && user?.role === 'admin';
 
   useEffect(() => {
-    if (effectiveClientId) {
-      fetchDashboard();
-    } else {
-      setLoading(false);
-      toast.error(
-        'No client ID found. Please log in as a client or access via admin dashboard.'
-      );
-    }
-  }, [effectiveClientId]);
+    fetchDashboard();
+  }, [user?.role, paramClientId]);
 
-  // ✅ SOC 2: Fetch dashboard with audit logging
+  /**
+   * ✅ FIXED: Fetch dashboard with proper role-based logic
+   */
   const fetchDashboard = async () => {
     try {
-      console.log(
-        `🔍 Fetching client dashboard for ID: ${effectiveClientId}`
-      );
-      console.log(`👥 User role: ${user?.role || 'unknown'}`);
-
       setLoading(true);
-      const response = await getClientDashboard(effectiveClientId);
+      setError(null);
+
+      let response;
+
+      // ✅ FIXED: Use different endpoints based on role and context
+      if (user?.role === 'client') {
+        // ✅ Client users always use /my-dashboard
+        console.log('🔍 Fetching dashboard for current client user');
+        response = await getMyDashboard();
+      } else if (user?.role === 'admin' && paramClientId) {
+        // ✅ Admins viewing specific client dashboard
+        console.log(`🔍 Admin viewing client dashboard: ${paramClientId}`);
+        response = await getClientDashboard(paramClientId);
+      } else {
+        // ✅ Invalid state
+        throw new Error(
+          'Invalid access: Please provide a client ID or log in as a client'
+        );
+      }
 
       console.log('📊 Dashboard fetched successfully');
 
@@ -156,62 +111,96 @@ const ClientDashboardPage = () => {
       if (response?.data) {
         setDashboardData(response.data);
       } else if (response?.success === false) {
-        console.error('❌ Dashboard fetch failed:', response.message);
-        toast.error(response.message || 'Failed to load dashboard');
+        throw new Error(response.message || 'Failed to load dashboard');
       } else {
-        console.error('❌ No dashboard data available');
-        toast.error('No dashboard data available');
+        throw new Error('No dashboard data available');
       }
     } catch (error) {
       console.error('❌ Error fetching dashboard:', error.message);
+      setError(error.message);
       toast.error(error.message || 'Failed to load dashboard');
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ Loading state
   if (loading) {
     return (
       <div className={`${theme} theme-${color}`}>
-        <div className="flex items-center justify-center h-96">
-          <Spinner message="Loading dashboard..." />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Spinner size="large" message="Loading dashboard..." />
         </div>
       </div>
     );
   }
 
+  // ✅ Error state
+  if (error) {
+    return (
+      <div className={`${theme} theme-${color}`}>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+          <AlertTriangleIcon className="w-16 h-16 text-red-500 mb-4" />
+          <h3 className="text-xl font-semibold text-foreground mb-2">
+            Unable to Load Dashboard
+          </h3>
+          <p className="text-sm text-muted-foreground mb-6 max-w-md">
+            {error}
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={fetchDashboard}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+              aria-label="Retry loading dashboard"
+            >
+              Try Again
+            </button>
+            {user?.role === 'admin' && (
+              <button
+                onClick={() => navigate('/clients')}
+                className="px-4 py-2 border border-input text-foreground rounded-lg hover:bg-accent transition-colors"
+                aria-label="Back to clients"
+              >
+                Back to Clients
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ No data state
   if (!dashboardData) {
     return (
-      <div className={`${theme} theme-${color} text-center py-16`}>
-        <h3 className="text-lg font-semibold text-foreground">
-          No data available
-        </h3>
-        <p className="text-sm text-muted-foreground mt-2">
-          Unable to load dashboard data for this client
-        </p>
-        {user?.role === 'admin' && (
-          <button
-            onClick={() => navigate('/clients')}
-            className="mt-4 text-primary hover:underline"
-            aria-label="Back to clients"
-          >
-            Back to Clients
-          </button>
-        )}
+      <div className={`${theme} theme-${color}`}>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            No Data Available
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Unable to load dashboard data
+          </p>
+          {user?.role === 'admin' && (
+            <button
+              onClick={() => navigate('/clients')}
+              className="text-primary hover:underline"
+              aria-label="Back to clients"
+            >
+              Back to Clients
+            </button>
+          )}
+        </div>
       </div>
     );
   }
 
   const { client, statistics, recentProjects } = dashboardData;
-  const isAdminViewing = !!paramClientId && user?.role === 'admin';
-  const contactName = isAdminViewing
-    ? client?.contactPerson
-    : userDataFromCookie?.name || user?.name;
 
   return (
     <div className={`${theme} theme-${color} space-y-6`}>
       {/* ========== HEADER WITH BACK BUTTON ========== */}
-      <div className="flex items-center gap-4 flex-col sm:flex-row">
+      <div className="flex items-center gap-4">
         {isAdminViewing && (
           <button
             onClick={() => navigate('/clients')}
@@ -222,16 +211,21 @@ const ClientDashboardPage = () => {
             <ArrowLeftIcon className="w-5 h-5" />
           </button>
         )}
-        <div>
+        <div className="flex-1">
           <h1 className="text-3xl font-bold text-foreground">
             {client?.clientName || 'Client'} Dashboard
           </h1>
           <p className="text-muted-foreground mt-1">
-            {isAdminViewing
-              ? `🔍 Viewing as Admin • Contact: ${
-                  client?.contactPerson || 'N/A'
-                }`
-              : `👋 Welcome, ${contactName || 'Client'}`}
+            {isAdminViewing ? (
+              <>
+                🔍 Viewing as Admin •{' '}
+                <span className="font-medium">
+                  Contact: {client?.contactPerson || 'N/A'}
+                </span>
+              </>
+            ) : (
+              <>👋 Welcome, {user?.name || 'Client'}</>
+            )}
           </p>
         </div>
       </div>
@@ -239,13 +233,15 @@ const ClientDashboardPage = () => {
       {/* ========== STATISTICS CARDS ========== */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Total Projects */}
-        <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+        <div className="bg-card border border-border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/20">
               <FolderIcon className="text-blue-600 dark:text-blue-400 w-6 h-6" />
             </div>
             <div>
-              <div className="text-sm text-muted-foreground">Total Projects</div>
+              <div className="text-sm text-muted-foreground">
+                Total Projects
+              </div>
               <div className="text-2xl font-bold text-foreground">
                 {statistics?.totalProjects || 0}
               </div>
@@ -254,7 +250,7 @@ const ClientDashboardPage = () => {
         </div>
 
         {/* Total Vulnerabilities */}
-        <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+        <div className="bg-card border border-border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/20">
               <BugIcon className="text-red-600 dark:text-red-400 w-6 h-6" />
@@ -271,13 +267,15 @@ const ClientDashboardPage = () => {
         </div>
 
         {/* Active Projects */}
-        <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+        <div className="bg-card border border-border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/20">
               <CheckCircleIcon className="text-green-600 dark:text-green-400 w-6 h-6" />
             </div>
             <div>
-              <div className="text-sm text-muted-foreground">Active Projects</div>
+              <div className="text-sm text-muted-foreground">
+                Active Projects
+              </div>
               <div className="text-2xl font-bold text-foreground">
                 {statistics?.activeProjects || 0}
               </div>
@@ -298,8 +296,13 @@ const ClientDashboardPage = () => {
             <div className="space-y-3">
               {Object.entries(statistics.vulnerabilitiesBySeverity).map(
                 ([severity, count]) => (
-                  <div key={severity} className="flex items-center justify-between">
-                    <span className="text-foreground capitalize">{severity}</span>
+                  <div
+                    key={severity}
+                    className="flex items-center justify-between"
+                  >
+                    <span className="text-foreground capitalize font-medium">
+                      {severity}
+                    </span>
                     <span
                       className={`px-3 py-1 rounded-full text-sm font-medium border ${getSeverityBadgeColor(
                         severity
@@ -312,9 +315,11 @@ const ClientDashboardPage = () => {
               )}
             </div>
           ) : (
-            <p className="text-center text-muted-foreground py-8">
-              No vulnerabilities recorded
-            </p>
+            <div className="text-center py-8">
+              <p className="text-muted-foreground text-sm">
+                No vulnerabilities recorded
+              </p>
+            </div>
           )}
         </div>
 
@@ -328,8 +333,13 @@ const ClientDashboardPage = () => {
             <div className="space-y-3">
               {Object.entries(statistics.projectsByStatus).map(
                 ([status, count]) => (
-                  <div key={status} className="flex items-center justify-between">
-                    <span className="text-foreground capitalize">{status}</span>
+                  <div
+                    key={status}
+                    className="flex items-center justify-between"
+                  >
+                    <span className="text-foreground font-medium">
+                      {status}
+                    </span>
                     <span
                       className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusBadgeColor(
                         status
@@ -342,23 +352,30 @@ const ClientDashboardPage = () => {
               )}
             </div>
           ) : (
-            <p className="text-center text-muted-foreground py-8">
-              No projects yet
-            </p>
+            <div className="text-center py-8">
+              <p className="text-muted-foreground text-sm">No projects yet</p>
+            </div>
           )}
         </div>
       </div>
 
       {/* ========== RECENT PROJECTS ========== */}
       <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-foreground mb-4">Recent Projects</h2>
+        <h2 className="text-lg font-bold text-foreground mb-4">
+          Recent Projects
+        </h2>
         {recentProjects && recentProjects.length > 0 ? (
           <div className="space-y-3">
             {recentProjects.map((project) => (
               <div
                 key={project._id}
                 onClick={() => navigate(`/projects/${project._id}`)}
-                className="p-4 rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    navigate(`/projects/${project._id}`);
+                  }
+                }}
+                className="p-4 rounded-lg border border-border hover:bg-muted hover:shadow-sm transition-all cursor-pointer"
                 role="button"
                 tabIndex={0}
                 aria-label={`View project ${project.project_name}`}
@@ -386,21 +403,22 @@ const ClientDashboardPage = () => {
             ))}
           </div>
         ) : (
-          <p className="text-center text-muted-foreground py-8">
-            No recent projects
-          </p>
+          <div className="text-center py-8">
+            <p className="text-muted-foreground text-sm">No recent projects</p>
+          </div>
         )}
       </div>
 
       {/* ========== INFORMATION SECTION ========== */}
       <div className="bg-muted/30 border border-border rounded-lg p-6">
         <h3 className="text-lg font-semibold text-foreground mb-3">
-          Dashboard Overview
+          📊 Dashboard Overview
         </h3>
-        <p className="text-sm text-muted-foreground">
-          This dashboard provides a comprehensive view of your client's security
-          testing projects and vulnerabilities. Click on any project to view
-          detailed information, test findings, and remediation status.
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          This dashboard provides a comprehensive view of{' '}
+          {isAdminViewing ? 'the client\'s' : 'your'} security testing projects
+          and vulnerabilities. Click on any project to view detailed
+          information, test findings, and remediation status.
         </p>
       </div>
     </div>

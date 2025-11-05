@@ -43,12 +43,12 @@ import {
  *   onError={logError}
  * />
  */
-const StatCard = React.memo(({ 
-  title, 
-  value, 
-  icon: Icon, 
-  trend, 
-  trendValue, 
+const StatCard = React.memo(({
+  title,
+  value,
+  icon: Icon,
+  trend,
+  trendValue,
   description,
   color = 'primary',
   onClick = null,
@@ -108,7 +108,7 @@ const StatCard = React.memo(({
   const sanitizeText = useCallback((text) => {
     if (!text) return '';
     if (typeof text !== 'string' && typeof text !== 'number') return '';
-    
+
     return String(text)
       .replace(/[<>]/g, '')
       .trim()
@@ -178,7 +178,7 @@ const StatCard = React.memo(({
   }, [validatedTrend, sanitizedTrendValue]);
 
   return (
-    <div 
+    <div
       className={`${theme} theme-${themeColor} ${className}`}
       role="region"
       aria-label={`${sanitizedTitle} statistic`}
@@ -188,8 +188,8 @@ const StatCard = React.memo(({
           bg-card border border-border rounded-lg p-6 
           transition-all duration-200
           focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2
-          ${onClick 
-            ? 'cursor-pointer hover:shadow-lg hover:border-primary/50' 
+          ${onClick
+            ? 'cursor-pointer hover:shadow-lg hover:border-primary/50'
             : 'hover:shadow-md'
           }
           ${loading ? 'opacity-70' : ''}
@@ -209,7 +209,7 @@ const StatCard = React.memo(({
           {/* Left side - Content */}
           <div className="flex-1 min-w-0">
             {/* Title - ✅ Accessibility: Proper heading */}
-            <p 
+            <p
               className="text-sm font-medium text-muted-foreground truncate"
               id={`stat-title-${sanitizedTitle?.replace(/\s+/g, '-')}`}
             >
@@ -217,7 +217,7 @@ const StatCard = React.memo(({
             </p>
 
             {/* Value - ✅ Accessibility: Clear value */}
-            <h3 
+            <h3
               className="text-3xl font-bold mt-2 text-foreground"
               aria-label={`${sanitizedTitle}: ${validatedValue}`}
             >
@@ -227,17 +227,17 @@ const StatCard = React.memo(({
                 validatedValue
               )}
             </h3>
-            
+
             {/* Description */}
             {sanitizedDescription && !loading && (
               <p className="text-xs text-muted-foreground mt-1">
                 {sanitizedDescription}
               </p>
             )}
-            
+
             {/* Trend indicator - ✅ Accessibility: ARIA label */}
             {validatedTrend && !loading && (
-              <div 
+              <div
                 className="flex items-center gap-2 mt-3"
                 role="status"
                 aria-label={getTrendLabel()}
@@ -256,10 +256,10 @@ const StatCard = React.memo(({
               </div>
             )}
           </div>
-          
+
           {/* Right side - Icon */}
           {Icon && !loading && (
-            <div 
+            <div
               className={`p-3 rounded-lg ${colorClasses[validatedColor]} flex-shrink-0 ml-4`}
               aria-hidden="true"
             >
@@ -269,7 +269,7 @@ const StatCard = React.memo(({
 
           {/* Loading icon state */}
           {loading && (
-            <div 
+            <div
               className={`p-3 rounded-lg ${colorClasses[validatedColor]} flex-shrink-0 ml-4 opacity-50`}
               aria-hidden="true"
             >
@@ -278,16 +278,6 @@ const StatCard = React.memo(({
           )}
         </div>
 
-        {/* Error state indicator */}
-        {validatedColor === 'danger' && (
-          <div 
-            className="mt-2 flex items-center gap-1 text-danger text-xs"
-            role="status"
-          >
-            <AlertTriangleIcon className="w-3 h-3" aria-hidden="true" />
-            <span>Requires attention</span>
-          </div>
-        )}
       </div>
     </div>
   );
