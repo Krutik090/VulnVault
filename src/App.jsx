@@ -148,8 +148,6 @@ function App() {
             <Route path="/clients/:clientId" element={<ClientDetailsPage />} />
             <Route path="/clients" element={<ClientsPage />} />
 
-            {/* Tools */}
-            <Route path="/subdomain-finder" element={<SubdomainFinderPage />} />
           </Route>
 
           {/* ==================== TESTER ROUTES (SHARED ACCESS) ==================== */}
