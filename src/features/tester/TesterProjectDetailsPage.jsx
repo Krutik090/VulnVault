@@ -1,15 +1,8 @@
-/**
- * ======================================================================
- * FILE: src/features/tester/TesterProjectDetailsPage.jsx (UPDATED)
- * Using getProjectDetails from testerApi.js
- * ======================================================================
- */
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { getProjectDetails } from '../../api/testerApi'; // ✅ IMPORT
+import { getProjectDetails, getProjectVulnerabilities } from '../../api/testerApi'; // ✅ ADD getProjectVulnerabilities
 import AddVulnerabilityPage from '../projects/AddVulnerabilityPage';
 import ProjectConfigPage from '../projects/ProjectConfigPage';
 import toast from 'react-hot-toast';
@@ -36,6 +29,7 @@ const TesterProjectDetailsPage = () => {
 
     const [activeTab, setActiveTab] = useState('overview');
     const [projectData, setProjectData] = useState(null);
+    const [myVulnerabilityCount, setMyVulnerabilityCount] = useState(0); // ✅ NEW
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -44,7 +38,7 @@ const TesterProjectDetailsPage = () => {
     }, [projectId]);
 
     /**
-     * ✅ UPDATED: Use testerApi function
+     * ✅ Fetch project details AND my vulnerabilities count
      */
     const fetchProjectDetails = async () => {
         try {
@@ -53,14 +47,26 @@ const TesterProjectDetailsPage = () => {
 
             console.log(`🔍 Fetching project details: ${projectId}`);
 
-            // ✅ CALL API FUNCTION
-            const response = await getProjectDetails(projectId);
+            // ✅ Fetch both project details and my vulnerabilities
+            const [projectResponse, vulnResponse] = await Promise.all([
+                getProjectDetails(projectId),
+                getProjectVulnerabilities(projectId),
+            ]);
 
-            if (response.data) {
-                setProjectData(response.data);
+            if (projectResponse.data) {
+                setProjectData(projectResponse.data);
                 console.log('✅ Project loaded successfully');
             } else {
                 throw new Error('Invalid response format');
+            }
+
+            // ✅ Count only MY vulnerabilities
+            if (vulnResponse.data && vulnResponse.data.vulnerabilities) {
+                const myVulns = vulnResponse.data.vulnerabilities.filter(
+                    (v) => v.isOwnVulnerability
+                ).length;
+                setMyVulnerabilityCount(myVulns);
+                console.log(`✅ My vulnerabilities: ${myVulns}`);
             }
         } catch (err) {
             console.error('❌ Error:', err.message);
@@ -190,37 +196,41 @@ const TesterProjectDetailsPage = () => {
                 <div className="border-b border-border flex overflow-x-auto">
                     <button
                         onClick={() => setActiveTab('overview')}
-                        className={`px-6 py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === 'overview'
-                            ? 'text-primary border-b-2 border-primary bg-primary/5'
-                            : 'text-muted-foreground hover:text-foreground'
-                            }`}
+                        className={`px-6 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
+                            activeTab === 'overview'
+                                ? 'text-primary border-b-2 border-primary bg-primary/5'
+                                : 'text-muted-foreground hover:text-foreground'
+                        }`}
                     >
                         📋 Overview
                     </button>
                     <button
                         onClick={() => setActiveTab('vulnerabilities')}
-                        className={`px-6 py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === 'vulnerabilities'
-                            ? 'text-primary border-b-2 border-primary bg-primary/5'
-                            : 'text-muted-foreground hover:text-foreground'
-                            }`}
+                        className={`px-6 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
+                            activeTab === 'vulnerabilities'
+                                ? 'text-primary border-b-2 border-primary bg-primary/5'
+                                : 'text-muted-foreground hover:text-foreground'
+                        }`}
                     >
                         📋 All Vulnerabilities
                     </button>
                     <button
                         onClick={() => setActiveTab('add-vulnerability')}
-                        className={`px-6 py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === 'add-vulnerability'
-                            ? 'text-primary border-b-2 border-primary bg-primary/5'
-                            : 'text-muted-foreground hover:text-foreground'
-                            }`}
+                        className={`px-6 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
+                            activeTab === 'add-vulnerability'
+                                ? 'text-primary border-b-2 border-primary bg-primary/5'
+                                : 'text-muted-foreground hover:text-foreground'
+                        }`}
                     >
                         🔍 Add Vulnerability
                     </button>
                     <button
                         onClick={() => setActiveTab('config')}
-                        className={`px-6 py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === 'config'
-                            ? 'text-primary border-b-2 border-primary bg-primary/5'
-                            : 'text-muted-foreground hover:text-foreground'
-                            }`}
+                        className={`px-6 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
+                            activeTab === 'config'
+                                ? 'text-primary border-b-2 border-primary bg-primary/5'
+                                : 'text-muted-foreground hover:text-foreground'
+                        }`}
                     >
                         ⚙️ Configuration
                     </button>
@@ -232,7 +242,7 @@ const TesterProjectDetailsPage = () => {
                         <div className="space-y-6">
                             {/* Summary Cards */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                {/* Total Vulnerabilities */}
+                                {/* ✅ UPDATED: Total Vulnerabilities (ALL testers) */}
                                 <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4">
                                     <div className="flex items-center justify-between">
                                         <div>
@@ -242,6 +252,9 @@ const TesterProjectDetailsPage = () => {
                                             <h3 className="text-3xl font-bold text-red-600 dark:text-red-400 mt-1">
                                                 {projectData.vulnerabilityCount || 0}
                                             </h3>
+                                            <p className="text-xs text-red-600 dark:text-red-500 mt-1">
+                                                (My: {myVulnerabilityCount})
+                                            </p>
                                         </div>
                                         <BugIcon className="w-8 h-8 text-red-500 opacity-20" />
                                     </div>
@@ -369,6 +382,9 @@ const TesterProjectDetailsPage = () => {
                                         <ShieldIcon className="w-5 h-5" />
                                         Vulnerabilities by Severity
                                     </h3>
+                                    <p className="text-xs text-muted-foreground mb-3">
+                                        (All testers combined)
+                                    </p>
 
                                     <div className="space-y-3">
                                         {[
@@ -381,7 +397,7 @@ const TesterProjectDetailsPage = () => {
                                             const count =
                                                 projectData
                                                     .vulnerabilitiesBySeverity?.[
-                                                severity
+                                                    severity
                                                 ] || 0;
                                             const total =
                                                 projectData.vulnerabilityCount ||
@@ -389,9 +405,9 @@ const TesterProjectDetailsPage = () => {
                                             const percentage =
                                                 total > 0
                                                     ? Math.round(
-                                                        (count / total) *
-                                                        100
-                                                    )
+                                                          (count / total) *
+                                                              100
+                                                      )
                                                     : 0;
 
                                             return (
@@ -411,20 +427,21 @@ const TesterProjectDetailsPage = () => {
                                                     </div>
                                                     <div className="w-full bg-background rounded-full h-2 overflow-hidden">
                                                         <div
-                                                            className={`h-2 rounded-full transition-all ${severity ===
+                                                            className={`h-2 rounded-full transition-all ${
+                                                                severity ===
                                                                 'Critical'
-                                                                ? 'bg-red-500'
-                                                                : severity ===
-                                                                    'High'
+                                                                    ? 'bg-red-500'
+                                                                    : severity ===
+                                                                      'High'
                                                                     ? 'bg-orange-500'
                                                                     : severity ===
-                                                                        'Medium'
-                                                                        ? 'bg-amber-500'
-                                                                        : severity ===
-                                                                            'Low'
-                                                                            ? 'bg-blue-500'
-                                                                            : 'bg-gray-500'
-                                                                }`}
+                                                                      'Medium'
+                                                                    ? 'bg-amber-500'
+                                                                    : severity ===
+                                                                      'Low'
+                                                                    ? 'bg-blue-500'
+                                                                    : 'bg-gray-500'
+                                                            }`}
                                                             style={{
                                                                 width: `${percentage}%`,
                                                             }}
@@ -438,6 +455,7 @@ const TesterProjectDetailsPage = () => {
                             </div>
                         </div>
                     )}
+
                     {/* ========== VULNERABILITIES TAB ========== */}
                     {activeTab === 'vulnerabilities' && (
                         <VulnerabilitiesListTab projectId={projectId} testerId={user.id} />
