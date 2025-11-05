@@ -205,20 +205,6 @@ const ClientProjectsPage = () => {
                     );
                 },
             },
-            {
-                id: 'actions',
-                header: 'Actions',
-                cell: ({ row }) => (
-                    <button
-                        onClick={() => handleViewProject(row.original._id)}
-                        className="p-1.5 rounded-lg hover:bg-muted transition-colors text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-                        title="View Project"
-                        aria-label={`View project ${row.original.project_name}`}
-                    >
-                        <EyeIcon className="w-4 h-4" />
-                    </button>
-                ),
-            },
         ],
         []
     );
