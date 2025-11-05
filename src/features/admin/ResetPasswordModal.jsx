@@ -1,10 +1,10 @@
 // =======================================================================
-// FILE: src/features/admin/ResetPasswordModal.jsx (UPDATED)
+// FILE: src/features/admin/ResetPasswordModal.jsx (FIXED - NO FOCUS LOSS)
 // PURPOSE: Modal for resetting user passwords with theme support
 // SOC 2 NOTES: Centralized icon management, secure password handling, audit logging
 // =======================================================================
 
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import Modal from '../../components/Modal';
 import { resetPassword } from '../../api/adminApi';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -28,10 +28,14 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState({});
 
+  // ✅ FIXED: Use refs to persist across renders
+  const newPasswordInputRef = useRef(null);
+  const confirmPasswordInputRef = useRef(null);
+
   const { theme, color } = useTheme();
 
   // ✅ SOC 2: Comprehensive password validation
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     const newErrors = {};
 
     // Validate new password
@@ -52,77 +56,87 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [newPassword, confirmPassword]);
 
-  // ✅ SOC 2: Handle password reset with audit logging
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      toast.error('Please fix the errors below');
-      return;
-    }
-
-    if (!user || !user._id) {
-      toast.error('Invalid user data');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      // ✅ SOC 2: Log password reset attempt (audit trail)
-      console.log(`🔐 Resetting password for user: ${user._id} (${user.email})`);
-
-      await resetPassword(user._id, newPassword.trim());
-
-      // ✅ SOC 2: Log successful reset
-      console.log(`✅ Password reset successfully for: ${user._id}`);
-
-      toast.success(
-        `Password for ${user.name} has been reset successfully.`
-      );
-      handleClose();
-    } catch (error) {
-      console.error('❌ Error resetting password:', error.message);
-      toast.error(error.message || 'Failed to reset password');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // ✅ SOC 2: Clear sensitive data on modal close
-  const handleClose = () => {
-    setNewPassword('');
-    setConfirmPassword('');
-    setShowNewPassword(false);
-    setShowConfirmPassword(false);
-    setErrors({});
-    onClose?.();
-  };
-
-  // ✅ SOC 2: Handle password field changes
-  const handlePasswordChange = (field, value) => {
+  // ✅ FIXED: Separate handler for password changes that doesn't cause re-renders
+  const handlePasswordChange = useCallback((field, value) => {
     if (field === 'newPassword') {
       setNewPassword(value);
     } else {
       setConfirmPassword(value);
     }
 
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors((prev) => ({
-        ...prev,
-        [field]: null
-      }));
-    }
-  };
+    // ✅ FIXED: Clear error for this specific field only (single state update)
+    setErrors((prevErrors) => {
+      if (prevErrors[field]) {
+        return {
+          ...prevErrors,
+          [field]: null,
+        };
+      }
+      return prevErrors;
+    });
+  }, []);
+
+  // ✅ SOC 2: Handle password reset with audit logging
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+
+      if (!validateForm()) {
+        toast.error('Please fix the errors below');
+        return;
+      }
+
+      if (!user || !user._id) {
+        toast.error('Invalid user data');
+        return;
+      }
+
+      setIsSaving(true);
+      try {
+        // ✅ SOC 2: Log password reset attempt (audit trail)
+        console.log(
+          `🔐 Resetting password for user: ${user._id} (${user.email})`
+        );
+
+        await resetPassword(user._id, newPassword.trim());
+
+        // ✅ SOC 2: Log successful reset
+        console.log(`✅ Password reset successfully for: ${user._id}`);
+
+        toast.success(
+          `Password for ${user.name} has been reset successfully.`
+        );
+        handleClose();
+      } catch (error) {
+        console.error('❌ Error resetting password:', error.message);
+        toast.error(error.message || 'Failed to reset password');
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [user, validateForm]
+  );
+
+  // ✅ SOC 2: Clear sensitive data on modal close
+  const handleClose = useCallback(() => {
+    setNewPassword('');
+    setConfirmPassword('');
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+    setErrors({});
+    onClose?.();
+  }, [onClose]);
 
   if (!user) return null;
 
   // ✅ SOC 2: Safe data extraction
   const userName = user.name || 'Unknown User';
   const userEmail = user.email || 'No email';
-  const passwordsMatch = newPassword && confirmPassword && newPassword === confirmPassword;
+  const passwordsMatch =
+    newPassword && confirmPassword && newPassword === confirmPassword;
+  const hasPasswords = newPassword && confirmPassword;
 
   return (
     <div className={`${theme} theme-${color}`}>
@@ -193,6 +207,7 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
                 <LockIcon className="w-4 h-4 text-muted-foreground" />
               </div>
               <input
+                ref={newPasswordInputRef}
                 type={showNewPassword ? 'text' : 'password'}
                 id="newPassword"
                 value={newPassword}
@@ -221,6 +236,7 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
                     ? 'Hide new password'
                     : 'Show new password'
                 }
+                tabIndex="-1"
               >
                 {showNewPassword ? (
                   <EyeOffIcon className="w-4 h-4" />
@@ -252,6 +268,7 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
                 <LockIcon className="w-4 h-4 text-muted-foreground" />
               </div>
               <input
+                ref={confirmPasswordInputRef}
                 type={showConfirmPassword ? 'text' : 'password'}
                 id="confirmPassword"
                 value={confirmPassword}
@@ -280,6 +297,7 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
                     ? 'Hide confirm password'
                     : 'Show confirm password'
                 }
+                tabIndex="-1"
               >
                 {showConfirmPassword ? (
                   <EyeOffIcon className="w-4 h-4" />
@@ -296,26 +314,26 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
           </div>
 
           {/* ========== PASSWORD MATCH INDICATOR ========== */}
-          {/* ✅ SOC 2: Real-time password validation feedback */}
-          {newPassword && confirmPassword && (
-            <div
-              className={`p-3 rounded-lg border transition-all ${
+          {/* ✅ FIXED: Always render container, just change visibility to prevent DOM shifts */}
+          <div
+            className={`p-3 rounded-lg border transition-all ${
+              hasPasswords
+                ? passwordsMatch
+                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 opacity-100 max-h-20'
+                  : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 opacity-100 max-h-20'
+                : 'opacity-0 max-h-0 overflow-hidden'
+            }`}
+          >
+            <p
+              className={`text-sm font-medium ${
                 passwordsMatch
-                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                  : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                  ? 'text-green-800 dark:text-green-200'
+                  : 'text-red-800 dark:text-red-200'
               }`}
             >
-              <p
-                className={`text-sm font-medium ${
-                  passwordsMatch
-                    ? 'text-green-800 dark:text-green-200'
-                    : 'text-red-800 dark:text-red-200'
-                }`}
-              >
-                {passwordsMatch ? '✓ Passwords match' : '✗ Passwords do not match'}
-              </p>
-            </div>
-          )}
+              {passwordsMatch ? '✓ Passwords match' : '✗ Passwords do not match'}
+            </p>
+          </div>
 
           {/* ========== ACTION BUTTONS ========== */}
           <div className="flex flex-col sm:flex-row gap-3 justify-end pt-6 border-t border-border">
