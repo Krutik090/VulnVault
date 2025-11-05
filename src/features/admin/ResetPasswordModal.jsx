@@ -1,10 +1,13 @@
-// =======================================================================
-// FILE: src/features/admin/ResetPasswordModal.jsx (FIXED - NO FOCUS LOSS)
-// PURPOSE: Modal for resetting user passwords with theme support
-// SOC 2 NOTES: Centralized icon management, secure password handling, audit logging
-// =======================================================================
+/**
+ * ======================================================================
+ * FILE: src/features/admin/ResetPasswordModal.jsx (FULLY FIXED)
+ * PURPOSE: Modal for resetting user passwords with theme support
+ * FIXES: CSS syntax, callback dependencies, error handling
+ * SOC 2 NOTES: Secure password handling, audit logging
+ * ======================================================================
+ */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import Modal from '../../components/Modal';
 import { resetPassword } from '../../api/adminApi';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -27,10 +30,6 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState({});
-
-  // ✅ FIXED: Use refs to persist across renders
-  const newPasswordInputRef = useRef(null);
-  const confirmPasswordInputRef = useRef(null);
 
   const { theme, color } = useTheme();
 
@@ -58,7 +57,7 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
     return Object.keys(newErrors).length === 0;
   }, [newPassword, confirmPassword]);
 
-  // ✅ FIXED: Separate handler for password changes that doesn't cause re-renders
+  // ✅ FIXED: Separate handler for password changes
   const handlePasswordChange = useCallback((field, value) => {
     if (field === 'newPassword') {
       setNewPassword(value);
@@ -66,17 +65,24 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
       setConfirmPassword(value);
     }
 
-    // ✅ FIXED: Clear error for this specific field only (single state update)
-    setErrors((prevErrors) => {
-      if (prevErrors[field]) {
-        return {
-          ...prevErrors,
-          [field]: null,
-        };
-      }
-      return prevErrors;
-    });
-  }, []);
+    // Clear error for this field
+    if (errors[field]) {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        [field]: null,
+      }));
+    }
+  }, [errors]);
+
+  // ✅ SOC 2: Clear sensitive data on modal close
+  const handleClose = useCallback(() => {
+    setNewPassword('');
+    setConfirmPassword('');
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+    setErrors({});
+    onClose?.();
+  }, [onClose]);
 
   // ✅ SOC 2: Handle password reset with audit logging
   const handleSubmit = useCallback(
@@ -95,39 +101,42 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
 
       setIsSaving(true);
       try {
-        // ✅ SOC 2: Log password reset attempt (audit trail)
         console.log(
           `🔐 Resetting password for user: ${user._id} (${user.email})`
         );
 
+        // ✅ The API call now uses PATCH method
         await resetPassword(user._id, newPassword.trim());
 
-        // ✅ SOC 2: Log successful reset
-        console.log(`✅ Password reset successfully for: ${user._id}`);
+        console.log(
+          `✅ Password reset successfully for: ${user._id}`
+        );
 
         toast.success(
           `Password for ${user.name} has been reset successfully.`
         );
-        handleClose();
+
+        // ✅ Small delay for user feedback
+        setTimeout(() => {
+          handleClose();
+        }, 500);
       } catch (error) {
-        console.error('❌ Error resetting password:', error.message);
-        toast.error(error.message || 'Failed to reset password');
+        console.error('❌ Error resetting password:', error);
+
+        // ✅ Better error messages
+        if (error.message.includes('401')) {
+          toast.error('Unauthorized. You do not have permission.');
+        } else if (error.message.includes('404')) {
+          toast.error('User not found.');
+        } else {
+          toast.error(error.message || 'Failed to reset password');
+        }
       } finally {
         setIsSaving(false);
       }
     },
-    [user, validateForm]
+    [user, validateForm, newPassword, handleClose]
   );
-
-  // ✅ SOC 2: Clear sensitive data on modal close
-  const handleClose = useCallback(() => {
-    setNewPassword('');
-    setConfirmPassword('');
-    setShowNewPassword(false);
-    setShowConfirmPassword(false);
-    setErrors({});
-    onClose?.();
-  }, [onClose]);
 
   if (!user) return null;
 
@@ -158,11 +167,10 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
             </div>
           </div>
         }
-        maxWidth="md"
+        maxWidth="500px"
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* ========== USER INFORMATION ========== */}
-          {/* ✅ SOC 2: Display user info for confirmation */}
           <div className="bg-muted/30 border border-border rounded-lg p-4">
             <div className="flex items-start gap-3">
               <UserIcon className="text-primary w-4 h-4 mt-1 flex-shrink-0" />
@@ -178,7 +186,6 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
           </div>
 
           {/* ========== SECURITY NOTICE ========== */}
-          {/* ✅ SOC 2: Inform about password reset implications */}
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <AlertTriangleIcon className="text-amber-600 dark:text-amber-400 w-5 h-5 mt-0.5 flex-shrink-0" />
@@ -187,8 +194,9 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
                   🔐 Security Notice
                 </h4>
                 <p className="text-sm text-amber-700 dark:text-amber-300">
-                  The user will need to use this new password on their next
-                  login. Make sure to communicate the new password securely.
+                  The user will need to use this new password
+                  on their next login. Make sure to communicate
+                  the new password securely.
                 </p>
               </div>
             </div>
@@ -207,19 +215,19 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
                 <LockIcon className="w-4 h-4 text-muted-foreground" />
               </div>
               <input
-                ref={newPasswordInputRef}
                 type={showNewPassword ? 'text' : 'password'}
                 id="newPassword"
                 value={newPassword}
                 onChange={(e) =>
-                  handlePasswordChange('newPassword', e.target.value)
+                  handlePasswordChange(
+                    'newPassword',
+                    e.target.value
+                  )
                 }
-                className={`
-                  w-full pl-10 pr-12 py-3 border rounded-lg bg-background text-foreground 
-                  placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                  ${errors.newPassword ? 'border-red-500' : 'border-input'}
-                  transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
-                `}
+                className={`w-full pl-10 pr-12 py-3 border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${errors.newPassword
+                    ? 'border-red-500'
+                    : 'border-input'
+                  }`}
                 placeholder="Enter new password"
                 disabled={isSaving}
                 aria-label="New password"
@@ -228,7 +236,9 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
               />
               <button
                 type="button"
-                onClick={() => setShowNewPassword(!showNewPassword)}
+                onClick={() =>
+                  setShowNewPassword(!showNewPassword)
+                }
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                 disabled={isSaving}
                 aria-label={
@@ -261,26 +271,27 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
               htmlFor="confirmPassword"
               className="block text-sm font-medium text-foreground mb-2"
             >
-              Confirm New Password <span className="text-red-500">*</span>
+              Confirm New Password{' '}
+              <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <LockIcon className="w-4 h-4 text-muted-foreground" />
               </div>
               <input
-                ref={confirmPasswordInputRef}
                 type={showConfirmPassword ? 'text' : 'password'}
                 id="confirmPassword"
                 value={confirmPassword}
                 onChange={(e) =>
-                  handlePasswordChange('confirmPassword', e.target.value)
+                  handlePasswordChange(
+                    'confirmPassword',
+                    e.target.value
+                  )
                 }
-                className={`
-                  w-full pl-10 pr-12 py-3 border rounded-lg bg-background text-foreground 
-                  placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                  ${errors.confirmPassword ? 'border-red-500' : 'border-input'}
-                  transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
-                `}
+                className={`w-full pl-10 pr-12 py-3 border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${errors.confirmPassword
+                    ? 'border-red-500'
+                    : 'border-input'
+                  }`}
                 placeholder="Confirm new password"
                 disabled={isSaving}
                 aria-label="Confirm new password"
@@ -289,7 +300,9 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
               />
               <button
                 type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                onClick={() =>
+                  setShowConfirmPassword(!showConfirmPassword)
+                }
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                 disabled={isSaving}
                 aria-label={
@@ -314,24 +327,24 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
           </div>
 
           {/* ========== PASSWORD MATCH INDICATOR ========== */}
-          {/* ✅ FIXED: Always render container, just change visibility to prevent DOM shifts */}
+          {/* ✅ FIXED: Proper CSS without syntax errors */}
           <div
-            className={`p-3 rounded-lg border transition-all ${
-              hasPasswords
+            className={`p-3 rounded-lg border transition-all overflow-hidden ${hasPasswords
                 ? passwordsMatch
                   ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 opacity-100 max-h-20'
                   : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 opacity-100 max-h-20'
-                : 'opacity-0 max-h-0 overflow-hidden'
-            }`}
+                : 'opacity-0 max-h-0'
+              }`}
           >
             <p
-              className={`text-sm font-medium ${
-                passwordsMatch
+              className={`text-sm font-medium ${passwordsMatch
                   ? 'text-green-800 dark:text-green-200'
                   : 'text-red-800 dark:text-red-200'
-              }`}
+                }`}
             >
-              {passwordsMatch ? '✓ Passwords match' : '✗ Passwords do not match'}
+              {passwordsMatch
+                ? '✓ Passwords match'
+                : '✗ Passwords do not match'}
             </p>
           </div>
 
@@ -349,7 +362,10 @@ const ResetPasswordModal = ({ isOpen = false, user, onClose }) => {
             <button
               type="submit"
               disabled={
-                isSaving || !newPassword || !confirmPassword || !passwordsMatch
+                isSaving ||
+                !newPassword ||
+                !confirmPassword ||
+                !passwordsMatch
               }
               className="px-6 py-2.5 bg-primary text-primary-foreground hover:bg-primary/90 dark:hover:bg-primary/80 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               aria-label="Reset password"

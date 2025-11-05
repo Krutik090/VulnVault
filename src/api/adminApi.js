@@ -19,9 +19,9 @@ export const getAllUsers = async () => {
  * @returns {Promise<object>} The list of testers.
  */
 export const getTesters = async () => {
-    const response = await fetch(`${API_URL}/users/tester`, { credentials: 'include' });
-    if (!response.ok) throw new Error('Failed to fetch testers.');
-    return response.json();
+  const response = await fetch(`${API_URL}/users/tester`, { credentials: 'include' });
+  if (!response.ok) throw new Error('Failed to fetch testers.');
+  return response.json();
 };
 
 /**
@@ -40,23 +40,32 @@ export const createUser = async (userData) => {
   if (!response.ok) throw new Error(data.message || 'Failed to create user.');
   return data;
 };
-
 /**
- * Resets a user's password. (Admin only)
- * @param {string} userId - The ID of the user.
- * @param {string} newPassword - The new password.
- * @returns {Promise<object>} The API response.
+ * ✅ FIXED: Reset user password (admin only)
+ * Method: PATCH (not PUT)
  */
 export const resetPassword = async (userId, newPassword) => {
-    const response = await fetch(`${API_URL}/users/${userId}/password`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newPassword }),
-        credentials: 'include',
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Failed to reset password.');
-    return data;
+  if (!userId || !newPassword) {
+    throw new Error('User ID and new password are required');
+  }
+
+  const response = await fetch(
+    `${API_URL}/users/${userId}/password`,
+    {
+      method: 'PATCH', // ✅ FIXED: Changed from PUT to PATCH
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newPassword }),
+      credentials: 'include',
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to reset password.');
+  }
+
+  return data;
 };
 
 /**
@@ -65,11 +74,11 @@ export const resetPassword = async (userId, newPassword) => {
  * @returns {Promise<object>} The API response.
  */
 export const deleteUser = async (userId) => {
-    const response = await fetch(`${API_URL}/users/${userId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Failed to delete user.');
-    return data;
+  const response = await fetch(`${API_URL}/users/${userId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Failed to delete user.');
+  return data;
 };
