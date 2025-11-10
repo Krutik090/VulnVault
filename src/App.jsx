@@ -139,9 +139,12 @@ function App() {
 
             {/* Vulnerability Management - ✅ FIXED: SPECIFIC ROUTES FIRST */}
             <Route path="/vulnerability-database" element={<VulnerabilityDatabasePage />} />
+            {/* <Route path="/ProjectVulnerabilities/instances/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} /> */}
             <Route path="/projects/:projectId/vulnerabilities/instances/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} />
-            <Route path="/ProjectVulnerabilities/instances/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} />
-
+            <Route
+              path="/projects/:projectId/vulnerabilities/:vulnerabilityId/edit"
+              element={<VulnerabilityInstanceDetailsPage mode="edit" />}
+            />
             {/* Client Management - ✅ FIXED: SPECIFIC ROUTES FIRST */}
             <Route path="/clients/:clientId/projects" element={<ClientProjectsPage />} />
             <Route path="/clients/:clientId/dashboard" element={<ClientDashboardPage />} />
@@ -172,7 +175,11 @@ function App() {
             <Route path="/projects/:projectId/add-vulnerability" element={<AddVulnerabilityPage />} />
             {/* ✅ GENERIC ROUTE AFTER SPECIFIC ONES */}
             <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
-            <Route path="/ProjectVulnerabilities/instances/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} />
+            <Route path="/tester/projects/:projectId/vulnerabilities/instances/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} />
+            <Route
+              path="/tester/projects/:projectId/vulnerabilities/:vulnerabilityId/edit"
+              element={<VulnerabilityInstanceDetailsPage mode="edit" />}
+            />
             <Route path="/statistics" element={<StatisticsDashboardPage />} />
             <Route path="/subdomain-finder" element={<SubdomainFinderPage />} />
           </Route>
