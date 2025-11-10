@@ -13,6 +13,7 @@ import {
 import toast from 'react-hot-toast';
 import DataTable from '../../components/DataTable';
 import { LockIcon, GlobeIcon, CheckIcon } from '../../components/Icons';
+import { useNavigate } from 'react-router-dom';
 
 const VulnerabilitiesListTab = ({ projectId, testerId }) => {
     const [vulnerabilities, setVulnerabilities] = useState([]);
@@ -20,6 +21,7 @@ const VulnerabilitiesListTab = ({ projectId, testerId }) => {
     const [error, setError] = useState(null);
     const [updatingVisibility, setUpdatingVisibility] = useState(null);
     const [visibilityFilter, setVisibilityFilter] = useState('all');
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetchVulnerabilities();
@@ -150,6 +152,12 @@ const VulnerabilitiesListTab = ({ projectId, testerId }) => {
         };
     };
 
+    const handleViewVulnerability = (vulnerabilityId) => {
+        console.log(`🔍 Viewing vulnerability: ${vulnerabilityId}`);
+
+        // Navigate to vulnerability instance details page
+        navigate(`/tester/projects/${projectId}/vulnerabilities/instances/details/${vulnerabilityId}`);
+    };
     /**
      * ✅ Filter vulnerabilities
      */
@@ -287,6 +295,21 @@ const VulnerabilitiesListTab = ({ projectId, testerId }) => {
                 cell: ({ row }) => (
                     <div className="text-xs text-muted-foreground">
                         {new Date(row.original.createdAt).toLocaleDateString()}
+                    </div>
+                ),
+            },
+            {
+                id: 'actions',
+                header: 'Actions',
+                cell: ({ row }) => (
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => handleViewVulnerability(row.original._id)}
+                            className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-xs font-medium hover:bg-primary/90 transition-colors"
+                            aria-label={`View ${row.original.vulnerability_name}`}
+                        >
+                            View
+                        </button>
                     </div>
                 ),
             },
