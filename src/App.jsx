@@ -140,8 +140,6 @@ function App() {
             <Route path="/vulnerability-database" element={<VulnerabilityDatabasePage />} />
             <Route path="/ProjectVulnerabilities/instances/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} /> 
             <Route path="/projects/:projectId/vulnerabilities/instances/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} />
-            
-
             <Route
               path="/projects/:projectId/vulnerabilities/:vulnerabilityId/edit"
               element={<VulnerabilityInstanceDetailsPage mode="edit" />}
