@@ -130,8 +130,7 @@ function App() {
             {/* Project Management - ✅ FIXED: SPECIFIC ROUTES FIRST */}
             <Route path="/projects/add" element={<AddProjectPage />} />
             <Route path="/projects/:projectId/edit" element={<AddProjectPage isEdit={true} />} />
-            <Route path="/projects/:projectId/config" element={<ProjectConfigPage />} />
-            <Route path="/projects/:projectId/add-vulnerability" element={<AddVulnerabilityPage />} />
+            <Route path="/projects/:projectId/config" element={<ProjectConfigPage />} />            <Route path="/projects/:projectId/add-vulnerability" element={<AddVulnerabilityPage />} />
             {/* ✅ GENERIC ROUTE AFTER SPECIFIC ONES */}
             <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
             <Route path="/active-projects" element={<ActiveProjectsPage />} />
@@ -139,8 +138,10 @@ function App() {
 
             {/* Vulnerability Management - ✅ FIXED: SPECIFIC ROUTES FIRST */}
             <Route path="/vulnerability-database" element={<VulnerabilityDatabasePage />} />
-            {/* <Route path="/ProjectVulnerabilities/instances/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} /> */}
+            <Route path="/ProjectVulnerabilities/instances/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} /> 
             <Route path="/projects/:projectId/vulnerabilities/instances/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} />
+            
+
             <Route
               path="/projects/:projectId/vulnerabilities/:vulnerabilityId/edit"
               element={<VulnerabilityInstanceDetailsPage mode="edit" />}
