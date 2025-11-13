@@ -51,7 +51,7 @@ const AddUploadModal = ({
 
   // ✅ SOC 2: Configuration with defaults
   const config = useMemo(() => ({
-    maxFileSize: options.maxFileSize || 25, // MB
+    maxFileSize: options.maxFileSize || 10, // MB
     maxFiles: options.maxFiles || 10,
     maxCaptionLength: options.maxCaptionLength || 500,
     allowedMimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
