@@ -151,3 +151,55 @@ SOC 2: Accessibility, performance, theme support
 .light {
   color-scheme: light;
 }
+
+
+/* Add to your global CSS file (e.g., index.css or App.css) */
+
+/* Ensure lists render properly in view mode */
+.prose ul {
+  list-style-type: disc !important;
+  padding-left: 1.5rem !important;
+  margin: 0.5rem 0 !important;
+}
+
+.prose ol {
+  list-style-type: decimal !important;
+  padding-left: 1.5rem !important;
+  margin: 0.5rem 0 !important;
+}
+
+.prose li {
+  margin: 0.25rem 0 !important;
+  display: list-item !important;
+}
+
+.prose ul ul,
+.prose ol ul {
+  list-style-type: circle !important;
+}
+
+.prose ul ul ul,
+.prose ol ul ul,
+.prose ol ol ul {
+  list-style-type: square !important;
+}
+
+.prose ol ol {
+  list-style-type: lower-alpha !important;
+}
+
+.prose p {
+  margin: 0.5rem 0 !important;
+}
+
+.prose strong {
+  font-weight: 600 !important;
+}
+
+.prose em {
+  font-style: italic !important;
+}
+
+.prose u {
+  text-decoration: underline !important;
+}
