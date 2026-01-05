@@ -58,3 +58,29 @@ export const getProjectTimesheet = async (projectId) => {
   }
   return response.json();
 };
+
+/**
+ * Generate Project Report (Fetch Implementation)
+ * @param {string} projectId 
+ */
+export const generateProjectReport = async (projectId) => {
+  const response = await fetch(`${API_URL_DETAILS}/projects/${projectId}/report`, {
+    method: 'GET',
+    // 'credentials: "include"' is the fetch equivalent of axios 'withCredentials: true'
+    // It ensures httpOnly cookies (like your secure JWT) are sent with the request.
+    credentials: 'include',
+    headers: {
+      'Cache-Control': 'no-cache' // Force fresh request
+    }
+  });
+
+  if (!response.ok) {
+    // Unlike axios, fetch doesn't throw automatically on 4xx/5xx errors.
+    // We try to parse the error message from the backend, or fallback to status text.
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Error: ${response.statusText}`);
+  }
+
+  // Return the blob directly so it's easier to use in the component
+  return response.blob();
+};
