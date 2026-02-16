@@ -11,17 +11,17 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 
 // ✅ UPDATED: Import icons from centralized file
-import { 
-  DashboardIcon, 
-  ChartBarIcon, 
-  UsersIcon, 
-  ProjectsIcon, 
-  TimeIcon, 
-  DatabaseIcon, 
-  FolderIcon, 
-  ToolsIcon, 
-  ChevronDownIcon, 
-  ShieldIcon, 
+import {
+  DashboardIcon,
+  ChartBarIcon,
+  UsersIcon,
+  ProjectsIcon,
+  TimeIcon,
+  DatabaseIcon,
+  FolderIcon,
+  ToolsIcon,
+  ChevronDownIcon,
+  ShieldIcon,
   CloseIcon,
   PlusIcon,
   EyeIcon,
@@ -46,24 +46,24 @@ const Sidebar = React.memo(() => {
   const location = useLocation();
 
   // Dropdown states
-  const isUserManagementActive = location.pathname.startsWith('/manage-users') || 
-                                 location.pathname.startsWith('/user-tracker');
+  const isUserManagementActive = location.pathname.startsWith('/manage-users') ||
+    location.pathname.startsWith('/user-tracker');
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(isUserManagementActive);
 
   const isProjectManagementActive = location.pathname.startsWith('/project-records') ||
-                                    location.pathname.startsWith('/add-client') ||
-                                    location.pathname.startsWith('/clients/') ||
-                                    location.pathname.startsWith('/active-projects') ||
-                                    location.pathname.startsWith('/projects/');
+    location.pathname.startsWith('/add-client') ||
+    location.pathname.startsWith('/clients/') ||
+    location.pathname.startsWith('/active-projects') ||
+    location.pathname.startsWith('/projects/');
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(isProjectManagementActive);
 
   const isVulnManagementActive = location.pathname.startsWith('/vulnerability-database') ||
-                                 location.pathname.startsWith('/vulnerabilities/') ||
-                                 location.pathname.startsWith('/project-vulnerabilities/');
+    location.pathname.startsWith('/vulnerabilities/') ||
+    location.pathname.startsWith('/project-vulnerabilities/');
   const [isVulnDropdownOpen, setIsVulnDropdownOpen] = useState(isVulnManagementActive);
 
-  const isClientManagementActive = location.pathname.startsWith('/clients') || 
-                                   location.pathname.startsWith('/add-client');
+  const isClientManagementActive = location.pathname.startsWith('/clients') ||
+    location.pathname.startsWith('/add-client');
   const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(isClientManagementActive);
 
   const isToolsActive = location.pathname.startsWith('/subdomain-finder');
@@ -224,9 +224,8 @@ const Sidebar = React.memo(() => {
     <>
       {/* Sidebar Container */}
       <aside
-        className={`${theme} theme-${color} fixed lg:static inset-y-0 left-0 z-30 w-72 h-screen overflow-hidden bg-card border-r border-border flex flex-col shadow-lg transform transition-transform duration-300 ease-in-out ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        className={`${theme} theme-${color} fixed lg:static inset-y-0 left-0 z-30 w-72 h-screen overflow-hidden bg-card border-r border-border flex flex-col shadow-lg transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          }`}
         role="navigation"
         aria-label="Main navigation"
       >
@@ -264,6 +263,15 @@ const Sidebar = React.memo(() => {
             >
               <DashboardIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
               <span className="text-sm font-medium">Dashboard</span>
+            </NavLink>
+            <NavLink
+              to={`/${user?.role}/ctemDashboard`}
+              className={linkClasses}
+              onClick={handleLinkClick}
+              aria-label="Go to dashboard"
+            >
+              <DashboardIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+              <span className="text-sm font-medium">CTEM Dashboard</span>
             </NavLink>
 
             {/* Statistics Dashboard - Admin Only */}
@@ -535,12 +543,13 @@ const Sidebar = React.memo(() => {
               </div>
             )}
           </div>
+           
         </nav>
 
         {/* Footer - User Info */}
         <div className="p-4 border-t border-border bg-muted/30">
           <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-card">
-            <div 
+            <div
               className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0"
               aria-label={`${userDisplayName} avatar`}
             >

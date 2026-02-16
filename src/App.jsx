@@ -28,7 +28,7 @@ import DashboardPage from './features/dashboard/DashboardPage';
 import ProfilePage from './features/profile/ProfilePage';
 import StatisticsDashboardPage from './features/dashboard/StatisticsDashboardPage';
 import SubdomainFinderPage from './features/tools/SubdomainFinderPage';
-
+import CTEMDashboardPage from './features/dashboard/CTEMDashboardPage';
 // ========================================
 // PROJECT & VULNERABILITY (Shared across layouts)
 // ========================================
@@ -120,8 +120,10 @@ function App() {
           >
             {/* Dashboard & Profile */}
             <Route path="/admin/dashboard" element={<DashboardPage />} />
+            <Route path="/admin/ctemDashboard" element={<CTEMDashboardPage />} />
             <Route path="/admin/profile" element={<ProfilePage />} />
             <Route path="/statistics" element={<StatisticsDashboardPage />} />
+            <Route path="/subdomain-finder" element={<SubdomainFinderPage />} />
 
             {/* User Management */}
             <Route path="/manage-users" element={<ManageUsersPage />} />
@@ -180,7 +182,6 @@ function App() {
               element={<VulnerabilityInstanceDetailsPage mode="edit" />}
             />
             <Route path="/statistics" element={<StatisticsDashboardPage />} />
-            <Route path="/subdomain-finder" element={<SubdomainFinderPage />} />
           </Route>
 
           {/* ==================== CLIENT ROUTES ==================== */}

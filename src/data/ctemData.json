@@ -1,0 +1,112 @@
+[
+  {
+    "id": "studiooffashionandcraft.com",
+    "name": "studiooffashionandcraft.com",
+    "riskScore": 0,
+    "riskLabel": "Low Risk",
+    "assetsDiscovered": 0,
+    "activeExposures": 0,
+    "remediationRate": "NA",
+    "trendData": [
+      { "month": "Jan", "risk": "00" },
+      { "month": "Feb", "risk": "00" },
+      { "month": "Mar", "risk": "00" },
+      { "month": "Apr", "risk": "00" },
+      { "month": "May", "risk": "00" },
+      { "month": "Jun", "risk": "00" }
+    ],
+    "severityDistribution": [
+      { "name": "Critical", "value": 0, "color": "#ef4444" },
+      { "name": "High", "value": 0, "color": "#f97316" },
+      { "name": "Medium", "value": 0, "color": "#eab308" },
+      { "name": "Low", "value": 0, "color": "#3b82f6" }
+    ],
+    "topRisks": [
+      { "id": 1, "name": "None", "severity": "Critical", "status": "None" },
+      { "id": 2, "name": "None", "severity": "High", "status": "None" },
+      { "id": 3, "name": "None", "severity": "High", "status": "None" }
+    ],
+    "domainInfo": {
+      "registrar": "GoDaddy.com, LLC",
+      "createdDate": "2019-04-12",
+      "expiryDate": "2025-04-12",
+      "cloudProvider": "AWS (us-east-1)",
+      "ipAddress": "34.221.12.45"
+    },
+    "technologies": [
+      { "name": "Nginx", "version": "1.18.0", "category": "Web Server" },
+      { "name": "React", "version": "17.0.2", "category": "JavaScript Framework" }
+    ],
+    "subdomains": [
+      { "sub": "api.finance-api.example.com", "ip": "34.221.12.45", "status": "200 OK", "ports": "80, 443" }
+    ],
+    "relatedDomains": [],
+    "leakedCredentials": []
+  },
+  {
+    "id": "usha-com",
+    "name": "usha.com",
+    "riskScore": 45,
+    "riskLabel": "Critical Risk",
+    "assetsDiscovered": 1235,
+    "activeExposures": 156,
+    "remediationRate": "20%",
+    "trendData": [
+      { "month": "Jan", "risk": 80 },
+      { "month": "Feb", "risk": 75 },
+      { "month": "Mar", "risk": 70 },
+      { "month": "Apr", "risk": 60 },
+      { "month": "May", "risk": 50 },
+      { "month": "Jun", "risk": 45 }
+    ],
+    "severityDistribution": [
+      { "name": "Critical", "value": 15, "color": "#ef4444" },
+      { "name": "High", "value": 45, "color": "#f97316" },
+      { "name": "Medium", "value": 30, "color": "#eab308" },
+      { "name": "Low", "value": 66, "color": "#3b82f6" }
+    ],
+    "topRisks": [
+      { "id": 1, "name": "Exposed Credentials in Public Logs", "severity": "Critical", "status": "Open" },
+      { "id": 2, "name": "Weak Authentication Mechanisms", "severity": "Critical", "status": "Open" }
+    ],
+    "domainInfo": {
+      "registrar": "Network Solutions, LLC",
+      "createdDate": "1997-05-20",
+      "expiryDate": "2026-05-19",
+      "cloudProvider": "Hybrid",
+      "ipAddress": "Multiple"
+    },
+    "technologies": [
+      { "name": "ASP.NET", "version": "4.0", "category": "Web Framework" },
+      { "name": "IIS", "version": "10.0", "category": "Web Server" }
+    ],
+    "subdomains": [
+      { "sub": "ushajoy.usha.com", "ip": "203.x.x.x", "status": "200 OK", "ports": "80, 443" },
+      { "sub": "ascqa.usha.com", "ip": "203.x.x.x", "status": "200 OK", "ports": "80, 443" }
+    ],
+    "relatedDomains": [],
+    "leakedCredentials": [
+      {
+        "url": "https://ushajoy.usha.com/",
+        "username": "124313",
+        "password": "Utk********",
+        "source": "Stealer Logs",
+        "pocImage": "/poc/usha2.png"
+      },
+      {
+        "url": "https://ascqa.usha.com/",
+        "username": "15037801",
+        "password": "TIR********",
+        "source": "Stealer Logs",
+        "pocImage": "/poc/usha1.png"
+      },
+      {
+        "url": "https://ushajoy.usha.com/",
+        "username": "147714",
+        "password": "Ush********",
+        "source": "Stealer Logs",
+        "pocImage": "/poc/usha3.png"
+      }
+    ]
+  }
+]
