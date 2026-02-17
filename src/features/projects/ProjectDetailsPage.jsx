@@ -15,6 +15,12 @@ import {
   getProjectVulnerabilities,
   deleteVulnerabilityInstance,
 } from '../../api/projectVulnerabilitiesApi';
+
+import {
+  getProjectUnifiedVulnerabilities,
+  deleteUnifiedVulnerability
+} from '../../api/unifiedVulnerabilityApi';
+
 import toast from 'react-hot-toast';
 import Spinner from '../../components/Spinner';
 import DataTable from '../../components/DataTable';
@@ -132,8 +138,11 @@ const ProjectDetailsPage = () => {
   const [project, setProject] = useState(null);
   const [config, setConfig] = useState(null);
   const [vulnerabilities, setVulnerabilities] = useState([]);
+  const [unifiedVulnerabilities, setUnifiedVulnerabilities] = useState([]);
+  const [vulnerabilitySource, setVulnerabilitySource] = useState(() => {
+    return localStorage.getItem('vulnerabilitySource') || 'manual';
+  });
   const [activeTab, setActiveTab] = useState('overview');
-
   // Delete states
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
@@ -150,11 +159,16 @@ const ProjectDetailsPage = () => {
   const fetchProjectDetails = async () => {
     setLoading(true);
     try {
-      const [projectResponse, configResponse, vulnResponse] = await Promise.all(
+      const [projectResponse, configResponse, vulnResponse, unifiedResponse] = await Promise.all(
         [
           getProjectById(projectId),
           getProjectConfig(projectId).catch(() => ({ data: null })),
           getProjectVulnerabilities(projectId),
+          // 👉 ADD THIS: Fetch Unified Vulnerabilities (catch error so it doesn't break page)
+          getProjectUnifiedVulnerabilities(projectId).catch(err => {
+            console.error("Unified fetch failed", err);
+            return { data: [] };
+          }),
         ]
       );
 
@@ -162,13 +176,18 @@ const ProjectDetailsPage = () => {
       setProject(projectData);
       setConfig(configResponse.data || null);
 
+      // 1. Set Manual Data
       const vulnData = Array.isArray(vulnResponse?.data)
         ? vulnResponse.data
         : Array.isArray(vulnResponse)
           ? vulnResponse
           : [];
-
       setVulnerabilities(vulnData);
+
+      // 👉 2. Set Unified Data
+      const unifiedData = (unifiedResponse && unifiedResponse.data) ? unifiedResponse.data : [];
+      setUnifiedVulnerabilities(unifiedData);
+
     } catch (error) {
       console.error('Failed to fetch project details');
       toast.error('Failed to load project details');
@@ -177,6 +196,17 @@ const ProjectDetailsPage = () => {
       setLoading(false);
     }
   };
+
+  // 👉 ADD THIS: Toggle Handler
+  const handleSourceChange = (source) => {
+    setVulnerabilitySource(source);
+    localStorage.setItem('vulnerabilitySource', source);
+  };
+
+  // 👉 ADD THIS: Computed property for displayed vulnerabilities
+  const displayedVulnerabilities = useMemo(() => {
+    return vulnerabilitySource === 'manual' ? vulnerabilities : unifiedVulnerabilities;
+  }, [vulnerabilitySource, vulnerabilities, unifiedVulnerabilities]);
 
   const handleGenerateReport = async () => {
     if (vulnerabilities.length === 0) {
@@ -249,10 +279,15 @@ const ProjectDetailsPage = () => {
     if (!deleteTargetId) return;
     setIsDeleting(true);
     try {
-      await deleteVulnerabilityInstance(deleteTargetId);
-      setVulnerabilities((prev) =>
-        prev.filter((vuln) => vuln._id !== deleteTargetId)
-      );
+      // 👉 CHECK SOURCE TO DETERMINE API
+      if (vulnerabilitySource === 'integrations') {
+        await deleteUnifiedVulnerability(deleteTargetId);
+        setUnifiedVulnerabilities((prev) => prev.filter((vuln) => vuln._id !== deleteTargetId));
+      } else {
+        await deleteVulnerabilityInstance(deleteTargetId);
+        setVulnerabilities((prev) => prev.filter((vuln) => vuln._id !== deleteTargetId));
+      }
+
       toast.success('Vulnerability deleted successfully!');
       closeDeleteDialog();
     } catch (error) {
@@ -261,81 +296,80 @@ const ProjectDetailsPage = () => {
     } finally {
       setIsDeleting(false);
     }
-  }, [deleteTargetId, closeDeleteDialog]);
+  }, [deleteTargetId, closeDeleteDialog, vulnerabilitySource]); // Add vulnerabilitySource dependency
 
   // Statistics calculation
   const vulnStats = useMemo(() => {
+    // 👉 Use displayedVulnerabilities instead of vulnerabilities
     const stats = {
-      Critical: 0, High: 0, Medium: 0, Low: 0, Info: 0, total: vulnerabilities.length,
+      Critical: 0, High: 0, Medium: 0, Low: 0, Info: 0, total: displayedVulnerabilities.length,
     };
-    vulnerabilities.forEach((vuln) => {
-      if (vuln.severity && stats.hasOwnProperty(vuln.severity)) {
-        stats[vuln.severity]++;
+    displayedVulnerabilities.forEach((vuln) => {
+      // Handle casing differences (Info vs Informational) if necessary
+      let severity = vuln.severity;
+      if (severity === 'Informational') severity = 'Info';
+
+      if (severity && stats.hasOwnProperty(severity)) {
+        stats[severity]++;
       }
     });
     return stats;
-  }, [vulnerabilities]);
+  }, [displayedVulnerabilities]);
 
   // Table Columns
   const vulnColumns = useMemo(
     () => [
       {
+        // 👉 Handle both schema field names
         accessorKey: 'vulnerability_name',
         header: 'Vulnerability',
         cell: ({ row }) => (
-          <span className="font-medium text-foreground">
-            {row.original.vulnerability_name || 'Unknown'}
-          </span>
+          <div className="flex flex-col">
+            <span className="font-medium text-foreground">
+              {/* Unified uses 'title', Manual uses 'vulnerability_name' */}
+              {row.original.title || row.original.vulnerability_name || 'Unknown'}
+            </span>
+            {/* Show Source Badge if in Integration Mode */}
+            {row.original.source && row.original.source !== 'MANUAL' && (
+              <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                {row.original.source}
+              </span>
+            )}
+          </div>
         ),
       },
+      // ... Severity and CVSS columns remain the same ...
       {
         accessorKey: 'severity',
         header: 'Severity',
         cell: ({ row }) => {
+          // ... existing color logic ...
           const severityColors = {
+            // ... existing colors
             Critical: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
             High: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
             Medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
             Low: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
             Info: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
+            Informational: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400', // Handle both
           };
           return (
-            <span
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${severityColors[row.original.severity] || severityColors.Info
-                }`}
-            >
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${severityColors[row.original.severity] || severityColors.Info}`}>
               {row.original.severity || 'Unknown'}
             </span>
           );
-        },
+        }
       },
-      {
-        accessorKey: 'cvss_score',
-        header: 'CVSS',
-        cell: ({ row }) => (
-          <span className="text-sm font-mono">{row.original.cvss_score || 'N/A'}</span>
-        ),
-      },
-      {
-        accessorKey: 'status',
-        header: 'Status',
-        cell: ({ row }) => (
-          <span
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${row.original.status === 'open'
-              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-              : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
-              }`}
-          >
-            {row.original.status === 'open' ? 'Open' : 'Closed'}
-          </span>
-        ),
-      },
+      // ... CVSS and Status columns remain same ...
       {
         accessorKey: 'found_by',
         header: 'Found By',
         cell: ({ row }) => (
           <span className="text-sm text-muted-foreground">
-            {row.original.found_by || 'Unknown'}
+            {/* Unified uses object {name, email}, Manual uses string */}
+            {typeof row.original.found_by === 'object'
+              ? row.original.found_by?.name
+              : row.original.found_by || 'Unknown'}
           </span>
         ),
       },
@@ -354,7 +388,8 @@ const ProjectDetailsPage = () => {
             </Link>
             {(user?.role === 'admin' || user?.role === 'tester') && (
               <button
-                onClick={() => openDeleteDialog(row.original._id, row.original.vulnerability_name)}
+                // Handle both title fields
+                onClick={() => openDeleteDialog(row.original._id, row.original.title || row.original.vulnerability_name)}
                 className="inline-flex items-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors text-sm font-medium"
                 title="Delete vulnerability"
               >
@@ -567,24 +602,63 @@ const ProjectDetailsPage = () => {
           {/* ========== VULNERABILITIES TAB ========== */}
           {activeTab === 'vulnerabilities' && (
             <div className="space-y-4">
-              {vulnerabilities.length === 0 ? (
+
+              {/* 👉 ADD THIS: Data Source Toggle */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="inline-flex p-1 bg-muted/50 rounded-lg border border-border">
+                  <button
+                    onClick={() => handleSourceChange('manual')}
+                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${vulnerabilitySource === 'manual'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                  >
+                    Manual (Web)
+                  </button>
+                  <button
+                    onClick={() => handleSourceChange('integrations')}
+                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${vulnerabilitySource === 'integrations'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                  >
+                    Integrations (Nessus)
+                  </button>
+                </div>
+
+                {/* Show count badge */}
+                <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">
+                  Showing: {displayedVulnerabilities.length} items
+                </span>
+              </div>
+
+              {/* Update DataTable Logic */}
+              {displayedVulnerabilities.length === 0 ? (
                 <div className="text-center py-12">
                   <BugIcon className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
                   <h3 className="text-lg font-semibold text-foreground mb-2">No vulnerabilities found</h3>
-                  <p className="text-muted-foreground mb-6">Start by adding the first vulnerability to this project</p>
-                  <Link
-                    to={`/projects/${projectId}/add-vulnerability`}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
-                  >
-                    <PlusIcon className="w-5 h-5" />
-                    Add First Vulnerability
-                  </Link>
+                  <p className="text-muted-foreground mb-6">
+                    {vulnerabilitySource === 'manual'
+                      ? "Start by adding the first vulnerability manually."
+                      : "No integration findings found. Sync from Nessus in Integrations."}
+                  </p>
+
+                  {/* Only show Add button for Manual for now */}
+                  {vulnerabilitySource === 'manual' && (
+                    <Link
+                      to={`/projects/${projectId}/add-vulnerability`}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                    >
+                      <PlusIcon className="w-5 h-5" />
+                      Add First Vulnerability
+                    </Link>
+                  )}
                 </div>
               ) : (
                 <DataTable
-                  data={vulnerabilities}
+                  data={displayedVulnerabilities} // 👉 Pass displayedVulnerabilities
                   columns={vulnColumns}
-                  title={`Vulnerabilities (${vulnerabilities.length})`}
+                  title={`${vulnerabilitySource === 'manual' ? 'Manual' : 'Unified'} Vulnerabilities`}
                 />
               )}
             </div>

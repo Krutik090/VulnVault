@@ -1,7 +1,6 @@
 // =======================================================================
 // FILE: src/features/integrations/IntegrationsPage.jsx
 // PURPOSE: Advanced Integrations UI with Nessus Sync Workflow
-// SOC 2: Audit logging, RBAC, and Secure Data Handling
 // =======================================================================
 
 import React, { useState, useEffect } from 'react';
@@ -18,44 +17,64 @@ import {
 } from '../../components/Icons';
 import toast from 'react-hot-toast';
 
-// ✅ Correct Imports
 import { API_URL, DEFAULT_FETCH_OPTIONS, validateResponse } from '../../api/config';
 import { getAllClients, getClientProjects } from '../../api/clientApi';
 import NessusFindingsModal from './NessusFindingsModal';
 
+// Helper to format Plugin Set Date (e.g. 20231015 -> Oct 15, 2023)
+const formatPluginDate = (dateStr) => {
+  if (!dateStr) return 'Unknown';
+  // Nessus often sends YYYYMMDDHHMM or similar.
+  // Simple check if it looks like YYYYMMDD...
+  if (dateStr.length >= 8) {
+    const year = dateStr.substring(0, 4);
+    const month = dateStr.substring(4, 6);
+    const day = dateStr.substring(6, 8);
+    return `${year}-${month}-${day}`;
+  }
+  return dateStr;
+};
+
+// Helper to format Expiration Timestamp
+const formatExpiration = (timestamp) => {
+  if (!timestamp) return 'Unknown';
+  const date = new Date(timestamp * 1000); // Unix timestamp
+  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+};
+
 const IntegrationsPage = () => {
   const { user } = useAuth();
-
-  // 1. UI State Definitions
   const [viewMode, setViewMode] = useState('grid');
 
-  // Initialize connection state from localStorage
+  // Persistence State
   const [isNessusConnected, setIsNessusConnected] = useState(() => {
     return localStorage.getItem('nessusConnected') === 'true';
   });
 
   const [loading, setLoading] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false); 
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  // ✅ ADDED MISSING MODAL STATES
+  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [previewFindings, setPreviewFindings] = useState([]);
   const [isFetchingPreview, setIsFetchingPreview] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
 
-  // 2. Data State Definitions
+  // Data States
   const [clients, setClients] = useState([]);
   const [projects, setProjects] = useState([]);
   const [nessusScans, setNessusScans] = useState([]);
+  
+  // ✅ NEW: Server Info State
+  const [nessusInfo, setNessusInfo] = useState(null);
 
-  // 3. Selection State Definitions
+  // Selection States
   const [selectedClient, setSelectedClient] = useState('');
   const [selectedProject, setSelectedProject] = useState('');
   const [selectedScan, setSelectedScan] = useState('');
 
   // --- Effects ---
 
-  // Log access for SOC 2
   useEffect(() => {
     console.log('✅ Audit: Integrations UI Accessed', {
       userId: user?._id,
@@ -63,10 +82,11 @@ const IntegrationsPage = () => {
     });
   }, [user?._id]);
 
-  // Auto-fetch scans if connected
+  // Initial Load (if connected)
   useEffect(() => {
     if (isNessusConnected) {
       fetchNessusScans();
+      fetchServerInfo(); // ✅ Fetch info on load
     }
   }, []);
 
@@ -89,7 +109,7 @@ const IntegrationsPage = () => {
     fetchClients();
   }, []);
 
-  // Fetch Projects when Client Changes
+  // Fetch Projects
   useEffect(() => {
     if (selectedClient) {
       const fetchProjects = async () => {
@@ -121,13 +141,28 @@ const IntegrationsPage = () => {
         ...DEFAULT_FETCH_OPTIONS,
         method: 'GET'
       });
-
       const data = await validateResponse(response, 'Fetch Scans');
       const scanList = Array.isArray(data) ? data : (data.data || []);
       setNessusScans(scanList);
     } catch (error) {
       console.error(error);
       setNessusScans([]);
+    }
+  };
+
+  // ✅ NEW: Fetch Server Info
+  const fetchServerInfo = async () => {
+    try {
+      const response = await fetch(`${API_URL}/integrations/nessus/server-info`, {
+        ...DEFAULT_FETCH_OPTIONS,
+        method: 'GET'
+      });
+      const data = await validateResponse(response, 'Server Info');
+      if (data.status === 'success') {
+        setNessusInfo(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch Nessus info:', error);
     }
   };
 
@@ -146,6 +181,7 @@ const IntegrationsPage = () => {
         localStorage.setItem('nessusConnected', 'true');
         toast.success('Successfully linked to Nessus instance');
         fetchNessusScans();
+        fetchServerInfo(); // ✅ Fetch info after connect
       }
     } catch (error) {
       console.error(error);
@@ -159,11 +195,11 @@ const IntegrationsPage = () => {
     setIsNessusConnected(false);
     localStorage.removeItem('nessusConnected');
     setNessusScans([]);
+    setNessusInfo(null);
     setSelectedScan('');
     toast.success('Disconnected from Nessus');
   };
 
-  // Step 1: Handle Sync (Open Preview Modal)
   const handleSync = async () => {
     if (!selectedProject || !selectedScan) {
       toast.error('Please select a project and a scan');
@@ -195,7 +231,6 @@ const IntegrationsPage = () => {
     }
   };
 
-  // Step 2: Handle Import Confirm (Called by Modal)
   const handleImportConfirm = async (selectedFindings) => {
     setIsImporting(true);
     const toastId = toast.loading(`Importing ${selectedFindings.length} findings...`);
@@ -215,7 +250,7 @@ const IntegrationsPage = () => {
       if (data.status === 'success') {
         toast.success(`Successfully imported ${data.importedCount} findings!`, { id: toastId });
         setIsModalOpen(false);
-        setPreviewFindings([]); // Clear memory
+        setPreviewFindings([]); 
       }
     } catch (error) {
       console.error(error);
@@ -230,9 +265,10 @@ const IntegrationsPage = () => {
   const NessusModule = ({ isListMode = false }) => (
     <div className={`bg-card border border-border rounded-xl shadow-sm transition-all overflow-hidden ${isListMode ? 'w-full' : 'p-6 border-l-4 border-l-primary'}`}>
       <div className={`flex flex-col ${isListMode ? '' : 'space-y-6'}`}>
+        
         {/* Header Section */}
-        <div className={`flex items-center justify-between p-6 ${isListMode ? 'bg-muted/30 border-b border-border' : ''}`}>
-          <div className="flex items-center gap-4">
+        <div className={`flex flex-wrap items-center justify-between p-6 ${isListMode ? 'bg-muted/30 border-b border-border' : ''}`}>
+          <div className="flex items-center gap-4 mb-4 md:mb-0">
             <div className="p-3 bg-white dark:bg-card rounded-lg shadow-sm">
               <ShieldCheckIcon className={`w-8 h-8 ${isNessusConnected ? 'text-green-500' : 'text-primary'}`} />
             </div>
@@ -263,6 +299,35 @@ const IntegrationsPage = () => {
             }
           </button>
         </div>
+
+        {/* ✅ NEW: Nessus Info Grid */}
+        {isNessusConnected && nessusInfo && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-6 py-4 mx-6 bg-muted/30 rounded-lg border border-border">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-semibold">Nessus Version</p>
+              <p className="font-medium text-foreground">{nessusInfo.version || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-semibold">License Type</p>
+              <p className="font-medium text-foreground">{nessusInfo.type || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-semibold">Plugins Updated</p>
+              <p className="font-medium text-foreground">{formatPluginDate(nessusInfo.plugins_last_update)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-semibold">License Expires</p>
+              <p className={`font-medium ${
+                // Basic check if expired (if timestamp exists)
+                nessusInfo.expiration && nessusInfo.expiration < Date.now()/1000 
+                ? 'text-red-500' 
+                : 'text-green-600 dark:text-green-400'
+              }`}>
+                {formatExpiration(nessusInfo.expiration)}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Workflow Section */}
         {isNessusConnected && (
@@ -396,8 +461,6 @@ const IntegrationsPage = () => {
           </div>
         )}
       </div>
-      
-      {/* ✅ MODAL COMPONENT */}
       <NessusFindingsModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
