@@ -25,7 +25,9 @@ import {
   CloseIcon,
   PlusIcon,
   EyeIcon,
-  DocumentIcon
+  DocumentIcon,
+  ShieldCheckIcon,
+  LinkIcon
 } from './Icons';
 
 /**
@@ -270,9 +272,21 @@ const Sidebar = React.memo(() => {
               onClick={handleLinkClick}
               aria-label="Go to dashboard"
             >
-              <DashboardIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+              <ShieldCheckIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
               <span className="text-sm font-medium">CTEM Dashboard</span>
             </NavLink>
+            {/* Integrations Tab - Admin & Tester */}
+            {(user?.role === 'admin' || user?.role === 'tester') && (
+              <NavLink
+                to="/integrations"
+                className={linkClasses}
+                onClick={handleLinkClick}
+                aria-label="Go to integrations"
+              >
+                <LinkIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                <span className="text-sm font-medium">Integrations</span>
+              </NavLink>
+            )}
 
             {/* Statistics Dashboard - Admin Only */}
             {user?.role === 'admin' && (
@@ -543,7 +557,7 @@ const Sidebar = React.memo(() => {
               </div>
             )}
           </div>
-           
+
         </nav>
 
         {/* Footer - User Info */}

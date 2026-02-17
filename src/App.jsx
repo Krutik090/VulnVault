@@ -49,7 +49,7 @@ import VulnerabilityDatabasePage from './features/vulnerabilities/VulnerabilityD
 import ClientsPage from './features/clients/ClientsPage';
 import ClientDetailsPage from './features/clients/ClientDetailsPage';
 import ClientProjectsPage from './features/clients/ClientProjectsPage';
-
+import IntegrationsPage from './features/integrations/IntegrationsPage';
 // ========================================
 // TESTER ONLY PAGES
 // ========================================
@@ -121,6 +121,8 @@ function App() {
             {/* Dashboard & Profile */}
             <Route path="/admin/dashboard" element={<DashboardPage />} />
             <Route path="/admin/ctemDashboard" element={<CTEMDashboardPage />} />
+            <Route path="/integrations" element={<IntegrationsPage />} />
+
             <Route path="/admin/profile" element={<ProfilePage />} />
             <Route path="/statistics" element={<StatisticsDashboardPage />} />
             <Route path="/subdomain-finder" element={<SubdomainFinderPage />} />
@@ -132,7 +134,9 @@ function App() {
             {/* Project Management - ✅ FIXED: SPECIFIC ROUTES FIRST */}
             <Route path="/projects/add" element={<AddProjectPage />} />
             <Route path="/projects/:projectId/edit" element={<AddProjectPage isEdit={true} />} />
-            <Route path="/projects/:projectId/config" element={<ProjectConfigPage />} />            <Route path="/projects/:projectId/add-vulnerability" element={<AddVulnerabilityPage />} />
+            <Route path="/projects/:projectId/config" element={<ProjectConfigPage />} />
+            <Route path="/projects/:projectId/add-vulnerability" element={<AddVulnerabilityPage />} />
+
             {/* ✅ GENERIC ROUTE AFTER SPECIFIC ONES */}
             <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
             <Route path="/active-projects" element={<ActiveProjectsPage />} />
@@ -140,7 +144,7 @@ function App() {
 
             {/* Vulnerability Management - ✅ FIXED: SPECIFIC ROUTES FIRST */}
             <Route path="/vulnerability-database" element={<VulnerabilityDatabasePage />} />
-            <Route path="/ProjectVulnerabilities/instances/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} /> 
+            <Route path="/ProjectVulnerabilities/instances/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} />
             <Route path="/projects/:projectId/vulnerabilities/instances/details/:vulnId" element={<VulnerabilityInstanceDetailsPage />} />
             <Route
               path="/projects/:projectId/vulnerabilities/:vulnerabilityId/edit"
@@ -170,7 +174,6 @@ function App() {
               path="/tester/projects/:projectId"
               element={<TesterProjectDetailsPage />}
             />
-
             {/* ✅ SHARED ROUTES - Testers have access to these */}
             {/* ✅ FIXED: SPECIFIC ROUTES FIRST */}
             <Route path="/projects/:projectId/add-vulnerability" element={<AddVulnerabilityPage />} />
