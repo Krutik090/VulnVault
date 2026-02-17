@@ -21,19 +21,27 @@ import toast from 'react-hot-toast';
 // ✅ Correct Imports
 import { API_URL, DEFAULT_FETCH_OPTIONS, validateResponse } from '../../api/config';
 import { getAllClients, getClientProjects } from '../../api/clientApi';
+import NessusFindingsModal from './NessusFindingsModal';
 
 const IntegrationsPage = () => {
   const { user } = useAuth();
-  
+
   // 1. UI State Definitions
   const [viewMode, setViewMode] = useState('grid');
-  
-  // ✅ PERSISTENCE: Initialize state from localStorage
+
+  // Initialize connection state from localStorage
   const [isNessusConnected, setIsNessusConnected] = useState(() => {
     return localStorage.getItem('nessusConnected') === 'true';
   });
-  
+
   const [loading, setLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false); 
+
+  // ✅ ADDED MISSING MODAL STATES
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [previewFindings, setPreviewFindings] = useState([]);
+  const [isFetchingPreview, setIsFetchingPreview] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   // 2. Data State Definitions
   const [clients, setClients] = useState([]);
@@ -55,22 +63,26 @@ const IntegrationsPage = () => {
     });
   }, [user?._id]);
 
-  // ✅ PERSISTENCE: Auto-fetch scans if already connected on mount
+  // Auto-fetch scans if connected
   useEffect(() => {
     if (isNessusConnected) {
       fetchNessusScans();
     }
-  }, []); // Run once on mount
+  }, []);
 
-  // Fetch Clients on Load
+  // Fetch Clients
   useEffect(() => {
     const fetchClients = async () => {
       try {
-        const data = await getAllClients();
-        setClients(Array.isArray(data) ? data : []);
+        const response = await getAllClients();
+        if (response && Array.isArray(response.data)) {
+          setClients(response.data);
+        } else {
+          setClients([]);
+        }
       } catch (err) {
         console.error("Client fetch error:", err);
-        toast.error("Failed to load clients");
+        if (err.status !== 403) toast.error("Failed to load clients");
         setClients([]);
       }
     };
@@ -82,8 +94,12 @@ const IntegrationsPage = () => {
     if (selectedClient) {
       const fetchProjects = async () => {
         try {
-          const data = await getClientProjects(selectedClient);
-          setProjects(Array.isArray(data) ? data : []);
+          const response = await getClientProjects(selectedClient);
+          if (response?.data?.projects && Array.isArray(response.data.projects)) {
+            setProjects(response.data.projects);
+          } else {
+            setProjects([]);
+          }
         } catch (err) {
           console.error("Project fetch error:", err);
           toast.error("Failed to load projects");
@@ -105,14 +121,12 @@ const IntegrationsPage = () => {
         ...DEFAULT_FETCH_OPTIONS,
         method: 'GET'
       });
-      
+
       const data = await validateResponse(response, 'Fetch Scans');
       const scanList = Array.isArray(data) ? data : (data.data || []);
       setNessusScans(scanList);
     } catch (error) {
       console.error(error);
-      // Don't toast on auto-fetch to avoid spamming user on reload
-      // toast.error("Connected, but failed to load scan list.");
       setNessusScans([]);
     }
   };
@@ -129,7 +143,6 @@ const IntegrationsPage = () => {
 
       if (data.status === 'ok') {
         setIsNessusConnected(true);
-        // ✅ Save to localStorage
         localStorage.setItem('nessusConnected', 'true');
         toast.success('Successfully linked to Nessus instance');
         fetchNessusScans();
@@ -142,7 +155,6 @@ const IntegrationsPage = () => {
     }
   };
 
-  // ✅ NEW: Handle Disconnect
   const handleDisconnect = () => {
     setIsNessusConnected(false);
     localStorage.removeItem('nessusConnected');
@@ -151,12 +163,66 @@ const IntegrationsPage = () => {
     toast.success('Disconnected from Nessus');
   };
 
-  const handleSync = () => {
+  // Step 1: Handle Sync (Open Preview Modal)
+  const handleSync = async () => {
     if (!selectedProject || !selectedScan) {
-      toast.error('Please select a project and a scan to sync');
+      toast.error('Please select a project and a scan');
       return;
     }
-    toast.loading(`Syncing Scan ID: ${selectedScan} to Project ID: ${selectedProject}...`);
+
+    setIsFetchingPreview(true);
+    const toastId = toast.loading('Fetching scan results from Nessus...');
+
+    try {
+      const response = await fetch(`${API_URL}/integrations/nessus/preview`, {
+        ...DEFAULT_FETCH_OPTIONS,
+        method: 'POST',
+        body: JSON.stringify({ scanId: selectedScan })
+      });
+
+      const data = await validateResponse(response, 'Nessus Preview');
+
+      if (data.status === 'success') {
+        setPreviewFindings(data.data || []);
+        setIsModalOpen(true);
+        toast.dismiss(toastId);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(`Preview Failed: ${error.message}`, { id: toastId });
+    } finally {
+      setIsFetchingPreview(false);
+    }
+  };
+
+  // Step 2: Handle Import Confirm (Called by Modal)
+  const handleImportConfirm = async (selectedFindings) => {
+    setIsImporting(true);
+    const toastId = toast.loading(`Importing ${selectedFindings.length} findings...`);
+
+    try {
+      const response = await fetch(`${API_URL}/integrations/nessus/import`, {
+        ...DEFAULT_FETCH_OPTIONS,
+        method: 'POST',
+        body: JSON.stringify({
+          projectId: selectedProject,
+          findings: selectedFindings
+        })
+      });
+
+      const data = await validateResponse(response, 'Nessus Import');
+
+      if (data.status === 'success') {
+        toast.success(`Successfully imported ${data.importedCount} findings!`, { id: toastId });
+        setIsModalOpen(false);
+        setPreviewFindings([]); // Clear memory
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(`Import Failed: ${error.message}`, { id: toastId });
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   // --- Render Components ---
@@ -174,27 +240,25 @@ const IntegrationsPage = () => {
               <div className="flex items-center gap-2">
                 <h3 className="text-xl font-bold">Tenable Nessus</h3>
                 {isNessusConnected && (
-                   <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-bold border border-green-200">
-                     Connected
-                   </span>
+                  <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-bold border border-green-200">
+                    Connected
+                  </span>
                 )}
               </div>
               <p className="text-sm text-muted-foreground">Professional Vulnerability Scanner</p>
             </div>
           </div>
-          
-          {/* ✅ UPDATED BUTTON: Connect vs Disconnect */}
+
           <button
             onClick={isNessusConnected ? handleDisconnect : handleNessusConnect}
-            disabled={loading}
-            className={`px-6 py-2 rounded-lg font-medium transition-all shadow-sm ${
-              isNessusConnected 
-                ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30' 
+            disabled={loading || isSyncing || isFetchingPreview}
+            className={`px-6 py-2 rounded-lg font-medium transition-all shadow-sm ${isNessusConnected
+                ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30'
                 : 'bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50'
-            }`}
+              }`}
           >
-            {loading 
-              ? 'Processing...' 
+            {loading
+              ? 'Processing...'
               : (isNessusConnected ? 'Disconnect' : 'Connect Nessus')
             }
           </button>
@@ -204,7 +268,7 @@ const IntegrationsPage = () => {
         {isNessusConnected && (
           <div className={`p-6 ${isListMode ? 'animate-slideDown' : ''}`}>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              
+
               {/* 1. Select Client */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1">
@@ -213,11 +277,12 @@ const IntegrationsPage = () => {
                 <select
                   value={selectedClient}
                   onChange={(e) => setSelectedClient(e.target.value)}
-                  className="w-full p-2.5 bg-background border border-border rounded-lg text-sm focus:ring-2 focus:ring-primary"
+                  disabled={isSyncing || isFetchingPreview}
+                  className="w-full p-2.5 bg-background border border-border rounded-lg text-sm focus:ring-2 focus:ring-primary disabled:opacity-50"
                 >
                   <option value="">Choose Client...</option>
                   {(clients || []).map(c => (
-                    <option key={c._id} value={c._id}>{c.name}</option>
+                    <option key={c._id} value={c._id}>{c.clientName || c.name}</option>
                   ))}
                 </select>
               </div>
@@ -229,13 +294,13 @@ const IntegrationsPage = () => {
                 </label>
                 <select
                   value={selectedProject}
-                  disabled={!selectedClient}
+                  disabled={!selectedClient || isSyncing || isFetchingPreview}
                   onChange={(e) => setSelectedProject(e.target.value)}
                   className="w-full p-2.5 bg-background border border-border rounded-lg text-sm disabled:opacity-50"
                 >
                   <option value="">Choose Project...</option>
                   {(projects || []).map(p => (
-                    <option key={p._id} value={p._id}>{p.name}</option>
+                    <option key={p._id} value={p._id}>{p.project_name || p.name}</option>
                   ))}
                 </select>
               </div>
@@ -248,7 +313,8 @@ const IntegrationsPage = () => {
                 <select
                   value={selectedScan}
                   onChange={(e) => setSelectedScan(e.target.value)}
-                  className="w-full p-2.5 bg-background border border-border rounded-lg text-sm"
+                  disabled={isSyncing || isFetchingPreview}
+                  className="w-full p-2.5 bg-background border border-border rounded-lg text-sm disabled:opacity-50"
                 >
                   <option value="">Choose Scan...</option>
                   {(nessusScans || []).map(s => (
@@ -263,9 +329,14 @@ const IntegrationsPage = () => {
               <div className="flex items-end">
                 <button
                   onClick={handleSync}
-                  className="w-full bg-primary text-primary-foreground py-2.5 rounded-lg font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                  disabled={isSyncing || isFetchingPreview || !selectedProject || !selectedScan}
+                  className="w-full bg-primary text-primary-foreground py-2.5 rounded-lg font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <DatabaseIcon className="w-4 h-4" /> Sync Results
+                  {isFetchingPreview ? (
+                    <>Fetching Preview...</>
+                  ) : (
+                    <><DatabaseIcon className="w-4 h-4" /> Sync Results</>
+                  )}
                 </button>
               </div>
             </div>
@@ -325,6 +396,15 @@ const IntegrationsPage = () => {
           </div>
         )}
       </div>
+      
+      {/* ✅ MODAL COMPONENT */}
+      <NessusFindingsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onImport={handleImportConfirm}
+        findings={previewFindings}
+        isImporting={isImporting}
+      />
     </div>
   );
 };
