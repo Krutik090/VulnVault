@@ -663,3 +663,16 @@ export const LayoutGridIcon = (props) => (
     <rect width="7" height="7" x="3" y="14" rx="1" />
   </svg>
 );
+
+export const CloudIcon = ({ className = "w-5 h-5", ...props }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+  </svg>
+);
+
+export const DropletIcon = ({ className = "w-5 h-5", ...props }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 21.5c-4.418 0-8-3.582-8-8 0-4.418 8-11.5 8-11.5s8 7.082 8 11.5c0 4.418-3.582 8-8 8z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 17a3 3 0 100-6 3 3 0 000 6z" />
+  </svg>
+);

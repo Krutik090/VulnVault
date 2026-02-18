@@ -45,7 +45,7 @@ const NessusFindingsModal = ({ isOpen, onClose, onImport, findings, isImporting 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadeIn">
       <div className="bg-card w-full max-w-4xl max-h-[85vh] rounded-xl shadow-2xl flex flex-col border border-border">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border bg-muted/20 rounded-t-xl">
           <div className="flex items-center gap-3">
@@ -66,8 +66,8 @@ const NessusFindingsModal = ({ isOpen, onClose, onImport, findings, isImporting 
         <div className="flex items-center justify-between px-6 py-4 bg-background border-b border-border">
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
                 checked={selectedIds.size === filteredFindings.length && filteredFindings.length > 0}
                 onChange={handleSelectAll}
@@ -78,9 +78,9 @@ const NessusFindingsModal = ({ isOpen, onClose, onImport, findings, isImporting 
               {selectedIds.size} selected
             </span>
           </div>
-          
-          <select 
-            value={filterSeverity} 
+
+          <select
+            value={filterSeverity}
             onChange={(e) => setFilterSeverity(e.target.value)}
             className="text-sm border border-border rounded-md px-2 py-1 bg-background"
           >
@@ -102,15 +102,16 @@ const NessusFindingsModal = ({ isOpen, onClose, onImport, findings, isImporting 
                 <th className="px-6 py-3">Title</th>
                 <th className="px-6 py-3">Severity</th>
                 <th className="px-6 py-3">Host (IP)</th>
-                <th className="px-6 py-3">Port</th>
+                {/* ✅ ADD SYNOPSIS COLUMN */}
+                <th className="px-6 py-3 hidden md:table-cell">Synopsis</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredFindings.map((vuln) => (
                 <tr key={vuln.external_id} className={`hover:bg-muted/30 transition-colors ${selectedIds.has(vuln.external_id) ? 'bg-primary/5' : ''}`}>
                   <td className="px-6 py-3">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={selectedIds.has(vuln.external_id)}
                       onChange={() => handleToggle(vuln.external_id)}
                       className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
@@ -120,39 +121,36 @@ const NessusFindingsModal = ({ isOpen, onClose, onImport, findings, isImporting 
                     {vuln.title}
                   </td>
                   <td className="px-6 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                      vuln.severity === 'Critical' ? 'bg-red-100 text-red-700' :
-                      vuln.severity === 'High' ? 'bg-orange-100 text-orange-700' :
-                      vuln.severity === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-blue-100 text-blue-700'
-                    }`}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${vuln.severity === 'Critical' ? 'bg-red-100 text-red-700' :
+                        vuln.severity === 'High' ? 'bg-orange-100 text-orange-700' :
+                          vuln.severity === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-blue-100 text-blue-700'
+                      }`}>
                       {vuln.severity}
                     </span>
                   </td>
                   <td className="px-6 py-3 text-muted-foreground">{vuln.details.ip_address}</td>
-                  <td className="px-6 py-3 text-muted-foreground font-mono">{vuln.details.port}</td>
-                </tr>
-              ))}
-              {filteredFindings.length === 0 && (
-                <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-muted-foreground">
-                    No findings match your filter.
+
+                  {/* ✅ ADD SYNOPSIS DATA */}
+                  <td className="px-6 py-3 text-muted-foreground text-xs hidden md:table-cell truncate max-w-xs" title={vuln.impact}>
+                    {vuln.impact || 'N/A'}
                   </td>
                 </tr>
-              )}
+              ))}
+              {/* ... existing empty state ... */}
             </tbody>
           </table>
         </div>
 
         {/* Footer */}
         <div className="p-6 border-t border-border bg-muted/20 flex justify-end gap-3 rounded-b-xl">
-          <button 
+          <button
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             Cancel
           </button>
-          <button 
+          <button
             onClick={handleImportClick}
             disabled={isImporting || selectedIds.size === 0}
             className="px-6 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold flex items-center gap-2 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"

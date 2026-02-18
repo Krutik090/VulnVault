@@ -1,9 +1,10 @@
 // =======================================================================
 // FILE: src/features/integrations/IntegrationsPage.jsx
-// PURPOSE: Advanced Integrations UI with Nessus Sync Workflow
+// PURPOSE: Advanced Integrations UI with Nessus & Scout Suite Workflows
 // =======================================================================
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // ✅ Added for navigation
 import { useAuth } from '../../contexts/AuthContext';
 import {
   LinkIcon,
@@ -14,6 +15,8 @@ import {
   SearchIcon,
   LayoutGridIcon,
   ListIcon,
+  CloudIcon, // ✅ Added CloudIcon
+  ArrowRightIcon // ✅ Added ArrowRightIcon for navigation button
 } from '../../components/Icons';
 import toast from 'react-hot-toast';
 
@@ -21,11 +24,9 @@ import { API_URL, DEFAULT_FETCH_OPTIONS, validateResponse } from '../../api/conf
 import { getAllClients, getClientProjects } from '../../api/clientApi';
 import NessusFindingsModal from './NessusFindingsModal';
 
-// Helper to format Plugin Set Date (e.g. 20231015 -> Oct 15, 2023)
+// Helper to format Plugin Set Date
 const formatPluginDate = (dateStr) => {
   if (!dateStr) return 'Unknown';
-  // Nessus often sends YYYYMMDDHHMM or similar.
-  // Simple check if it looks like YYYYMMDD...
   if (dateStr.length >= 8) {
     const year = dateStr.substring(0, 4);
     const month = dateStr.substring(4, 6);
@@ -38,12 +39,13 @@ const formatPluginDate = (dateStr) => {
 // Helper to format Expiration Timestamp
 const formatExpiration = (timestamp) => {
   if (!timestamp) return 'Unknown';
-  const date = new Date(timestamp * 1000); // Unix timestamp
+  const date = new Date(timestamp * 1000);
   return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
 };
 
 const IntegrationsPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate(); // ✅ Hook for navigation
   const [viewMode, setViewMode] = useState('grid');
 
   // Persistence State
@@ -64,8 +66,8 @@ const IntegrationsPage = () => {
   const [clients, setClients] = useState([]);
   const [projects, setProjects] = useState([]);
   const [nessusScans, setNessusScans] = useState([]);
-  
-  // ✅ NEW: Server Info State
+
+  // Server Info State
   const [nessusInfo, setNessusInfo] = useState(null);
 
   // Selection States
@@ -86,7 +88,7 @@ const IntegrationsPage = () => {
   useEffect(() => {
     if (isNessusConnected) {
       fetchNessusScans();
-      fetchServerInfo(); // ✅ Fetch info on load
+      fetchServerInfo();
     }
   }, []);
 
@@ -150,7 +152,6 @@ const IntegrationsPage = () => {
     }
   };
 
-  // ✅ NEW: Fetch Server Info
   const fetchServerInfo = async () => {
     try {
       const response = await fetch(`${API_URL}/integrations/nessus/server-info`, {
@@ -181,7 +182,7 @@ const IntegrationsPage = () => {
         localStorage.setItem('nessusConnected', 'true');
         toast.success('Successfully linked to Nessus instance');
         fetchNessusScans();
-        fetchServerInfo(); // ✅ Fetch info after connect
+        fetchServerInfo();
       }
     } catch (error) {
       console.error(error);
@@ -233,28 +234,32 @@ const IntegrationsPage = () => {
 
   const handleImportConfirm = async (selectedFindings) => {
     setIsImporting(true);
-    const toastId = toast.loading(`Importing ${selectedFindings.length} findings...`);
+    // Notify user this might take longer due to CSV generation
+    const toastId = toast.loading('Generating detailed CSV report from Nessus... This may take ~30-60 seconds.');
 
     try {
-      const response = await fetch(`${API_URL}/integrations/nessus/import`, {
+      // ✅ CALL THE NEW DETAILED SYNC ENDPOINT
+      const response = await fetch(`${API_URL}/integrations/nessus/sync-detailed`, {
         ...DEFAULT_FETCH_OPTIONS,
         method: 'POST',
         body: JSON.stringify({
           projectId: selectedProject,
-          findings: selectedFindings
+          scanId: selectedScan, // We need the Scan ID to trigger the export
+          // Optional: If you want to filter backend side, send the IDs
+          // selectedIds: selectedFindings.map(f => f.external_id) 
         })
       });
 
-      const data = await validateResponse(response, 'Nessus Import');
+      const data = await validateResponse(response, 'Nessus Detailed Sync');
 
       if (data.status === 'success') {
-        toast.success(`Successfully imported ${data.importedCount} findings!`, { id: toastId });
+        toast.success(`Successfully synced ${data.count} detailed findings!`, { id: toastId, duration: 5000 });
         setIsModalOpen(false);
-        setPreviewFindings([]); 
+        setPreviewFindings([]);
       }
     } catch (error) {
       console.error(error);
-      toast.error(`Import Failed: ${error.message}`, { id: toastId });
+      toast.error(`Sync Failed: ${error.message}`, { id: toastId });
     } finally {
       setIsImporting(false);
     }
@@ -263,14 +268,14 @@ const IntegrationsPage = () => {
   // --- Render Components ---
 
   const NessusModule = ({ isListMode = false }) => (
-    <div className={`bg-card border border-border rounded-xl shadow-sm transition-all overflow-hidden ${isListMode ? 'w-full' : 'p-6 border-l-4 border-l-primary'}`}>
+    <div className={`bg-card border border-border rounded-xl shadow-sm transition-all overflow-hidden ${isListMode ? 'w-full' : 'p-6 border-l-4 border-l-green-500'}`}>
       <div className={`flex flex-col ${isListMode ? '' : 'space-y-6'}`}>
-        
+
         {/* Header Section */}
-        <div className={`flex flex-wrap items-center justify-between p-6 ${isListMode ? 'bg-muted/30 border-b border-border' : ''}`}>
+        <div className={`flex flex-wrap items-center justify-between ${isListMode ? 'p-6 bg-muted/30 border-b border-border' : ''}`}>
           <div className="flex items-center gap-4 mb-4 md:mb-0">
-            <div className="p-3 bg-white dark:bg-card rounded-lg shadow-sm">
-              <ShieldCheckIcon className={`w-8 h-8 ${isNessusConnected ? 'text-green-500' : 'text-primary'}`} />
+            <div className="p-3 bg-white dark:bg-card rounded-lg shadow-sm border border-border">
+              <ShieldCheckIcon className={`w-8 h-8 ${isNessusConnected ? 'text-green-500' : 'text-muted-foreground'}`} />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -281,7 +286,7 @@ const IntegrationsPage = () => {
                   </span>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">Professional Vulnerability Scanner</p>
+              <p className="text-sm text-muted-foreground">Network Vulnerability Scanner</p>
             </div>
           </div>
 
@@ -289,8 +294,8 @@ const IntegrationsPage = () => {
             onClick={isNessusConnected ? handleDisconnect : handleNessusConnect}
             disabled={loading || isSyncing || isFetchingPreview}
             className={`px-6 py-2 rounded-lg font-medium transition-all shadow-sm ${isNessusConnected
-                ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30'
-                : 'bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50'
+              ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30'
+              : 'bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50'
               }`}
           >
             {loading
@@ -300,29 +305,27 @@ const IntegrationsPage = () => {
           </button>
         </div>
 
-        {/* ✅ NEW: Nessus Info Grid */}
+        {/* Nessus Info Grid */}
         {isNessusConnected && nessusInfo && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-6 py-4 mx-6 bg-muted/30 rounded-lg border border-border">
+          <div className={`grid grid-cols-2 md:grid-cols-4 gap-4 px-4 py-3 bg-muted/30 rounded-lg border border-border ${isListMode ? 'mx-6 mt-4' : 'mt-4'}`}>
             <div>
-              <p className="text-xs text-muted-foreground uppercase font-semibold">Nessus Version</p>
-              <p className="font-medium text-foreground">{nessusInfo.version || 'N/A'}</p>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Version</p>
+              <p className="font-semibold text-sm text-foreground">{nessusInfo.version || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground uppercase font-semibold">License Type</p>
-              <p className="font-medium text-foreground">{nessusInfo.type || 'N/A'}</p>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">License</p>
+              <p className="font-semibold text-sm text-foreground">{nessusInfo.type || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground uppercase font-semibold">Plugins Updated</p>
-              <p className="font-medium text-foreground">{formatPluginDate(nessusInfo.plugins_last_update)}</p>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Plugins</p>
+              <p className="font-semibold text-sm text-foreground">{formatPluginDate(nessusInfo.plugins_last_update)}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground uppercase font-semibold">License Expires</p>
-              <p className={`font-medium ${
-                // Basic check if expired (if timestamp exists)
-                nessusInfo.expiration && nessusInfo.expiration < Date.now()/1000 
-                ? 'text-red-500' 
-                : 'text-green-600 dark:text-green-400'
-              }`}>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Expires</p>
+              <p className={`font-semibold text-sm ${nessusInfo.expiration && nessusInfo.expiration < Date.now() / 1000
+                  ? 'text-red-500'
+                  : 'text-green-600 dark:text-green-400'
+                }`}>
                 {formatExpiration(nessusInfo.expiration)}
               </p>
             </div>
@@ -331,7 +334,7 @@ const IntegrationsPage = () => {
 
         {/* Workflow Section */}
         {isNessusConnected && (
-          <div className={`p-6 ${isListMode ? 'animate-slideDown' : ''}`}>
+          <div className={`${isListMode ? 'p-6 animate-slideDown' : 'mt-6'}`}>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
 
               {/* 1. Select Client */}
@@ -411,6 +414,56 @@ const IntegrationsPage = () => {
     </div>
   );
 
+  // ✅ NEW: Scout Suite Module
+  const ScoutSuiteModule = ({ isListMode = false }) => (
+    <div className={`bg-card border border-border rounded-xl shadow-sm transition-all overflow-hidden ${isListMode ? 'w-full' : 'p-6 border-l-4 border-l-blue-500'}`}>
+      <div className={`flex flex-col ${isListMode ? '' : 'h-full justify-between'}`}>
+        {/* Header */}
+        <div className={`flex flex-wrap items-center justify-between ${isListMode ? 'p-6 bg-muted/30 border-b border-border' : ''}`}>
+          <div className="flex items-center gap-4 mb-4 md:mb-0">
+            <div className="p-3 bg-white dark:bg-card rounded-lg shadow-sm border border-border">
+              <CloudIcon className="w-8 h-8 text-blue-500" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xl font-bold">Scout Suite</h3>
+                <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200">
+                  Integrated
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">Multi-Cloud Security Auditing (AWS, Azure, GCP)</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => navigate('/cloud-security')}
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all shadow-sm flex items-center gap-2"
+          >
+            Open Dashboard <ArrowRightIcon className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Content / Features Description */}
+        <div className={`${isListMode ? 'p-6' : 'mt-6'}`}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-3 bg-muted/30 rounded-lg border border-border">
+              <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Supported Providers</p>
+              <p className="text-sm font-medium">AWS, Azure, GCP, Alibaba, Oracle</p>
+            </div>
+            <div className="p-3 bg-muted/30 rounded-lg border border-border">
+              <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Capabilities</p>
+              <p className="text-sm font-medium">Misconfiguration Scanning, IAM Audit</p>
+            </div>
+            <div className="p-3 bg-muted/30 rounded-lg border border-border">
+              <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Reporting</p>
+              <p className="text-sm font-medium">HTML Reports & JSON Export</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="p-6 max-w-[100rem] mx-auto space-y-8">
       {/* Header & Mode Toggles */}
@@ -436,12 +489,16 @@ const IntegrationsPage = () => {
         </div>
       </div>
 
-      <div className={viewMode === 'grid' ? 'grid grid-cols-1 gap-8' : 'flex flex-col gap-6'}>
+      <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 gap-8' : 'flex flex-col gap-6'}>
+        {/* Module 1: Nessus */}
         <NessusModule isListMode={viewMode === 'list'} />
+
+        {/* Module 2: Scout Suite (New) */}
+        <ScoutSuiteModule isListMode={viewMode === 'list'} />
 
         {/* Placeholders for future integrations */}
         {viewMode === 'grid' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-50">
+          <div className="grid grid-cols-1 gap-6 opacity-50 col-span-1 lg:col-span-2">
             <div className="bg-card border border-border rounded-xl p-6 border-l-4 border-l-muted">
               <div className="flex items-center gap-3 mb-3">
                 <LinkIcon className="w-6 h-6 text-muted-foreground" />

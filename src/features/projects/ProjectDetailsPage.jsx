@@ -205,9 +205,28 @@ const ProjectDetailsPage = () => {
 
   // 👉 ADD THIS: Computed property for displayed vulnerabilities
   const displayedVulnerabilities = useMemo(() => {
-    return vulnerabilitySource === 'manual' ? vulnerabilities : unifiedVulnerabilities;
-  }, [vulnerabilitySource, vulnerabilities, unifiedVulnerabilities]);
+    if (vulnerabilitySource === 'manual') return vulnerabilities;
 
+    // ✅ GROUPING LOGIC: Combine Nessus findings by Title
+    const groups = {};
+
+    unifiedVulnerabilities.forEach(vuln => {
+      const key = vuln.title; // Grouping by Title
+
+      if (!groups[key]) {
+        // First instance starts the group
+        groups[key] = {
+          ...vuln,
+          _id: vuln._id, // Keep the ID of the first one to link to details
+          instanceCount: 0
+        };
+      }
+      groups[key].instanceCount++;
+    });
+
+    // Return array of unique groups
+    return Object.values(groups);
+  }, [vulnerabilitySource, vulnerabilities, unifiedVulnerabilities]);
   const handleGenerateReport = async () => {
     if (vulnerabilities.length === 0) {
       toast.error('Cannot generate report: No vulnerabilities found.');
@@ -329,6 +348,13 @@ const ProjectDetailsPage = () => {
               {/* Unified uses 'title', Manual uses 'vulnerability_name' */}
               {row.original.title || row.original.vulnerability_name || 'Unknown'}
             </span>
+            {/* ✅ SHOW COUNT BADGE IF GROUPED */}
+                {row.original.instanceCount > 1 && (
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-gray-600 rounded-full min-w-[20px]">
+                        {row.original.instanceCount}
+                    </span>
+                )}
+                
             {/* Show Source Badge if in Integration Mode */}
             {row.original.source && row.original.source !== 'MANUAL' && (
               <span className="text-[10px] text-muted-foreground uppercase font-semibold">
