@@ -51,7 +51,7 @@ import ClientDetailsPage from './features/clients/ClientDetailsPage';
 import ClientProjectsPage from './features/clients/ClientProjectsPage';
 import IntegrationsPage from './features/integrations/IntegrationsPage';
 import CloudSecurityPage from './features/cloud-security/CloudSecurityPage';
-
+import CalderaDashboard from './features/caldera/CalderaDashboard';
 // ========================================
 // TESTER ONLY PAGES
 // ========================================
@@ -125,6 +125,7 @@ function App() {
             <Route path="/admin/ctemDashboard" element={<CTEMDashboardPage />} />
             <Route path="/integrations" element={<IntegrationsPage />} />
             <Route path="/cloud-security" element={<CloudSecurityPage />} />
+            <Route path="/integrations/bash-dashboard" element={<CalderaDashboard />} />
 
             <Route path="/admin/profile" element={<ProfilePage />} />
             <Route path="/statistics" element={<StatisticsDashboardPage />} />
